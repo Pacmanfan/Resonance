@@ -417,7 +417,8 @@
       "WORK-000022",
       "WORK-000023",
       "WORK-000024",
-      "WORK-000025"
+      "WORK-000025",
+      "WORK-000026"
     ]
   },
   "follow_ups": [
@@ -559,6 +560,16 @@
     {
       "timestamp": "2026-11-18T06:03:22.852993+00:00",
       "text": "Add some trance / astral projection settings for the session / program",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T06:09:24.561227+00:00",
+      "text": "in setup, I am trying to connect to the web page. It is not working.",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T06:14:42.876306+00:00",
+      "text": "remove the brightness control from setup",
       "attachments": []
     }
   ]

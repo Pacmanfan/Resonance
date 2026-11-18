@@ -135,6 +135,21 @@ proportion) and the fade at the end, then START. The audio starts with the sessi
 the fade, at its end. PAUSE holds the clock and the audio; STOP ends through
 the fade.
 
+## Web interface
+
+In Setup mode the device serves a web page for managing sound files and
+Wi-Fi. The Setup screen shows everything needed:
+
+1. Join the Wi-Fi network shown (`Resonance-Setup`) with the password shown.
+2. Open the address shown (`http://192.168.4.1`).
+3. Log in as `resonance` with the same password.
+
+There you can browse `RESONANCE/AUDIO`, upload `.mp3` and `.wav` files (drag
+and drop, several at once), delete files, create folders, give the device
+your home network, and restart it into Play mode. Once it is on a home
+network, the Setup screen shows its address there. The endpoints are in
+`docs/architecture/API.md`.
+
 ## Operating modes
 
 | Mode | Radio | For |

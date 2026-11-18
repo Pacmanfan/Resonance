@@ -559,7 +559,7 @@ void Ui::drawSessionStatus() {
 }
 
 // The whole interface of Setup mode: how to reach the device from a browser,
-// the state of the card, brightness, and the way back. Nothing that belongs
+// the login, the state of the card, and the way back. Nothing that belongs
 // to listening is shown, because nothing can play in this mode.
 void Ui::drawSetup() {
     char text[48];
@@ -569,16 +569,15 @@ void Ui::drawSetup() {
     if (accessPoint || station) {
         label(accessPoint ? "1. Join this Wi-Fi network" : "Connected to Wi-Fi network", 8, y, kTextDim, kFontSmall);
         label(_status.network, 8, y + 16, kText, kFontText);
-        y += 42;
-        if (accessPoint) {
-            label("Password", 8, y, kTextDim, kFontSmall);
-            label(_settings.apPass, 8, y + 16, kText, kFontText);
-            y += 42;
-        }
+        y += 40;
         label(accessPoint ? "2. Open in a browser" : "Open in a browser", 8, y, kTextDim, kFontSmall);
         snprintf(text, sizeof(text), "http://%s", _status.address);
         label(text, 8, y + 16, kCyan, kFontText);
-        label("(web page not built yet)", 8, y + 38, kWarning, kFontSmall);
+        y += 40;
+        // One password serves the device's own network and the web login.
+        label(accessPoint ? "Password (Wi-Fi and login)" : "Login password", 8, y, kTextDim, kFontSmall);
+        label(_settings.apPass, 8, y + 16, kText, kFontText);
+        label("Login name: resonance", 8, y + 38, kTextDim, kFontSmall);
     } else {
         label("Wi-Fi is starting...", 8, y, kTextDim, kFontSmall);
     }
@@ -589,12 +588,6 @@ void Ui::drawSetup() {
     label(text, 8, y, _status.sdMounted ? kTextDim : kWarning, kFontSmall);
     snprintf(text, sizeof(text), "Firmware %s", RESONANCE_VERSION);
     label(text, 8, y + 15, kTextDim, kFontSmall);
-
-    y = kContentTop + 186;
-    addButton(8, y, 56, 38, "-", kIdBrightnessDown);
-    addButton(176, y, 56, 38, "+", kIdBrightnessUp);
-    snprintf(text, sizeof(text), "Brightness %u%%", static_cast<unsigned>(_settings.brightness));
-    centered(text, kScreenW / 2, y + 19, kText, kBackground, kFontSmall);
 
     addButton(8, kScreenH - 54, 224, 46, "Back to PLAY", kIdBackToPlay);
 }

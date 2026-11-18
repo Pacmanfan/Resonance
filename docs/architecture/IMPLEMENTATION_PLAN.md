@@ -16,7 +16,7 @@
 | — | Frequency presets (RES-AUDIO-006) | Built in 0.5.2: tap a value on FREQ to cycle presets. User-defined presets are not built |
 | 5 | Bluetooth device management | Not started |
 | 6 | Session engine | **Core implemented: timers, four factory programs, sweeps, pause, stop, end fades; verified in host tests and started by the operator on the device. Not built: sessions made by the user, their storage on the card, the editor, session history** |
-| 7 | Web interface (Setup mode) | Not started |
+| 7 | Web interface (Setup mode) | **First part built (0.7.0): login, status, sound library, upload, delete, folders, Wi-Fi, restart. The server starts on the device; not yet used from a browser. Not built: renaming, playlists, sessions and presets, settings, backup** |
 | 8 | Product refinement | Not started |
 
 The stages of the request are kept, with two changes from ADR-000204: the

@@ -53,6 +53,7 @@ Resonance (the product this repository builds):
 * `docs/architecture/ARCHITECTURE.md` — the firmware architecture.
 * `docs/architecture/LIBRARY_EVALUATION.md` — the selected libraries and the flash and RAM budgets.
 * `docs/architecture/IMPLEMENTATION_PLAN.md` — the staged plan, decision gates and risks.
+* `docs/architecture/API.md` — the web interface's endpoints, authentication and upload rules.
 * `hardware/case/README.md` — the printable enclosure (draft): parts, what to measure before printing, assembly.
 
 ## Current architecture location

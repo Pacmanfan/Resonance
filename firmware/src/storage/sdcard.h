@@ -5,6 +5,8 @@
 
 #include <stdint.h>
 
+#include <FS.h>
+
 namespace sdcard {
 
 struct Info {
@@ -48,6 +50,25 @@ uint8_t list(const char* directory, uint16_t skip, Entry* out, uint8_t capacity,
 // when `current` is the last or is not found). Returns false when the
 // directory holds no sound file.
 bool nextFile(const char* directory, const char* current, char* out, uint8_t capacity);
+
+// File management for the web interface. Every path is absolute on the card
+// and has already passed the rules of rc_paths.h; this module is the only
+// one that touches the card (RES-ARCH-002).
+
+// Calls `visitor` for every sub-directory and sound file of `directory`,
+// with the file's size in bytes. Returns false when it cannot be opened.
+typedef void (*EntryVisitor)(const char* name, bool directory, uint32_t size, void* context);
+bool visit(const char* directory, EntryVisitor visitor, void* context);
+
+bool exists(const char* path);
+bool makeDirectory(const char* path);
+// Removes a file, or a directory that is empty.
+bool remove(const char* path);
+bool rename(const char* from, const char* to);
+// Opens a file for writing, replacing any file of that name.
+fs::File openForWrite(const char* path);
+// Deletes upload leftovers (*.part) in `directory` and below, a few levels deep.
+void removeLeftovers(const char* directory, uint8_t depth = 3);
 
 // True for a name ending in .wav or .mp3, in any letter case.
 bool isSoundFile(const char* name);

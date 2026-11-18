@@ -27,3 +27,4 @@ WORK-000022 | completed | Resonance: tap-and-hold repeat on adjustment buttons |
 WORK-000023 | completed | Resonance: centred titles in one font, no PLAY marker | completed/WORK-000023-resonance-centred-titles-in-one-font-no.md | RES-GUI-002 | VER-000023
 WORK-000024 | completed | Resonance: single-screen interface in Setup mode | completed/WORK-000024-resonance-single-screen-interface-in-set.md | RES-ARCH-005, RES-GUI-001, RES-NET-003 | VER-000024, VER-000025
 WORK-000025 | completed | Resonance: trance and astral session programs | completed/WORK-000025-resonance-trance-and-astral-session-prog.md | RES-SESS-002, RES-PROC-006 | VER-000026
+WORK-000026 | completed | Resonance Stage 7 (first part): web interface - status, sound files, upload, Wi-Fi | completed/WORK-000026-resonance-stage-7-first-part-web-interfa.md | RES-WEB-001, RES-WEB-004, RES-WEB-005, RES-WEB-006, RES-NET-002, RES-NET-004 | VER-000027

@@ -42,8 +42,8 @@ running, 50 kB remain before any audio code exists
 - Play mode is the normal state and is not marked on the screen. Setup mode
   has a single screen of its own, titled `SETUP`, with no tab bar: the
   network to join and its password (when the device is its own access
-  point), the address to open in a browser, the card's free space, the
-  firmware version, brightness, and `Back to PLAY` (one tap, since leaving
+  point), the address to open in a browser, the login name and password, the
+  card's free space, the firmware version, and `Back to PLAY` (one tap, since leaving
   Setup interrupts nothing; entering it from Play takes two). Nothing that
   belongs to listening is shown there.
 - Consequence: in Setup mode there is no audio, so the web interface manages
@@ -110,6 +110,8 @@ firmware/
     rc_resample.h/.cpp        conversion to 44.1 kHz
     rc_session.h/.cpp         sessions: stages, sweeps, runner, factory programs
     rc_presets.h/.cpp         frequency presets for the Frequency Studio
+    rc_paths.h/.cpp           rules for names, paths and uploaded content; JSON escaping
+    rc_repeat.h               tap-and-hold timing
   src/
     main.cpp                  start-up, mode, status, serial diagnostics
     version.h
@@ -124,6 +126,8 @@ firmware/
     audio/player              decoder task: WAV and MP3 from the card into the ring
     radio/bt_stack            Bluetooth memory hook and release (Setup mode)
     radio/wifi_link           station, set-up access point, mDNS
+    net/webui                 web server: authentication, files, upload, Wi-Fi, restart
+    net/webpage.h             the web interface's single page
   tests/                      host tests of the portable core
   tools/host_tests.py         builds and runs them with the host compiler
   tools/serial_capture.py     reads the device's serial report
@@ -296,14 +300,36 @@ planned (ADR-000204).
 - *Planned:* sessions made by the user, stored as JSON on the card, with an
   editor (the web interface is the natural place for it).
 
-## Web administration (*planned*, Stage 7, Setup mode only)
+## Web administration (Setup mode only)
 
-- Asynchronous server, REST under `/api/v1/`, assets gzipped in the image.
-- Handlers hold no reference to hardware objects; file operations go through
-  `sdcard`.
-- Authentication for everything but the login page; uploads to a temporary
-  file, signature checked, renamed on success; one portable function
-  validates every path.
+First part built (firmware 0.7.0); the endpoints are in `API.md`.
+
+- **The core's small blocking `WebServer`**, not an asynchronous one. The
+  Stage 1 evaluation chose an asynchronous server so that requests could
+  not stall audio; with the operating modes of ADR-000204 nothing plays
+  while the server runs, so the simpler one is enough and saves a
+  dependency and its RAM. It is served from `loop()`.
+- One page (`net/webpage.h`), HTML, style and script together in flash,
+  nothing loaded from outside the device. It shows status, browses the
+  sound library, uploads (several files, drag and drop, progress, cancel),
+  deletes, creates folders, sets the home Wi-Fi network and the device
+  name, and restarts into either mode.
+- **Every request needs Digest authentication** with the device password
+  shown on the Setup screen (RES-WEB-006). The same password protects the
+  device's own access point.
+- Handlers hold no reference to hardware. Files go through `sdcard`,
+  settings through `settings_store`.
+- Every folder, name and uploaded file passes the portable rules of
+  `rc_paths` first: no path can leave the sound library, only `.mp3` and
+  `.wav` are accepted, and the first bytes must be the format the name
+  claims, whatever type the browser declares (RES-WEB-005).
+- Uploads are written to `<name>.part` and renamed when complete; nothing is
+  overwritten without the page having asked (RES-WEB-004).
+- The Wi-Fi password is write-only: no answer contains it (RES-NET-004).
+- File names from the card are escaped for JSON by the device and for HTML
+  by the page before they are shown.
+- *Not built yet:* renaming, playlists, sessions and presets, settings,
+  backup and restore.
 
 ## Tasks
 

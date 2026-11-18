@@ -37,7 +37,7 @@ const char* const kTree[] = {
 bool mount() {
     // Three open files at most: one being played, one directory being
     // listed, one being written.
-    mounted = SD.begin(pins::kSdCs, sdSpi(), 20000000, "/sd", 3, false);
+    mounted = SD.begin(pins::kSdCs, sdSpi(), 20000000, "/sd", 4, false);
     if (!mounted) {
         refresh();
         return false;
@@ -157,6 +157,60 @@ bool nextFile(const char* directory, const char* current, char* out, uint8_t cap
         found = true;
     }
     return found;
+}
+
+bool visit(const char* directory, EntryVisitor visitor, void* context) {
+    if (!mounted) return false;
+    File dir = SD.open(directory);
+    if (!dir || !dir.isDirectory()) return false;
+    for (File f = dir.openNextFile(); f; f = dir.openNextFile()) {
+        const char* name = f.name();
+        const bool isDir = f.isDirectory();
+        const uint32_t size = isDir ? 0 : static_cast<uint32_t>(f.size());
+        if (name != nullptr && name[0] != '.' && name[0] != '\0' && (isDir || isSoundFile(name))) {
+            visitor(name, isDir, size, context);
+        }
+        f.close();
+    }
+    dir.close();
+    return true;
+}
+
+bool exists(const char* path) { return mounted && SD.exists(path); }
+
+bool makeDirectory(const char* path) { return mounted && SD.mkdir(path); }
+
+bool remove(const char* path) {
+    if (!mounted) return false;
+    File f = SD.open(path);
+    if (!f) return false;
+    const bool isDir = f.isDirectory();
+    f.close();
+    return isDir ? SD.rmdir(path) : SD.remove(path);
+}
+
+bool rename(const char* from, const char* to) { return mounted && SD.rename(from, to); }
+
+fs::File openForWrite(const char* path) { return mounted ? SD.open(path, FILE_WRITE) : fs::File(); }
+
+void removeLeftovers(const char* directory, uint8_t depth) {
+    if (!mounted) return;
+    File dir = SD.open(directory);
+    if (!dir || !dir.isDirectory()) return;
+    char path[200];
+    for (File f = dir.openNextFile(); f; f = dir.openNextFile()) {
+        const char* name = f.name();
+        const bool isDir = f.isDirectory();
+        snprintf(path, sizeof(path), "%s/%s", directory, name != nullptr ? name : "");
+        f.close();
+        if (name == nullptr || name[0] == '\0') continue;
+        if (isDir) {
+            if (depth > 0) removeLeftovers(path, static_cast<uint8_t>(depth - 1));
+        } else if (hasExtension(name, ".part")) {
+            SD.remove(path);
+        }
+    }
+    dir.close();
 }
 
 }  // namespace sdcard

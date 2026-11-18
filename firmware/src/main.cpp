@@ -8,6 +8,7 @@
 #include "gui/display.h"
 #include "gui/ui.h"
 #include "hal/board.h"
+#include "net/webui.h"
 #include "audio/bt_audio.h"
 #include "audio/player.h"
 #include "radio/bt_stack.h"
@@ -130,6 +131,8 @@ void printReport() {
                   static_cast<unsigned>(sessionProgram), static_cast<unsigned>(timerChoice),
                   static_cast<unsigned>(programLength), static_cast<unsigned>(fadeChoice),
                   static_cast<double>(settings.primaryHz), static_cast<double>(settings.beatHz));
+    Serial.printf("REPORT web %lu request(s), %lu upload(s)\n", static_cast<unsigned long>(webui::requestCount()),
+                  static_cast<unsigned long>(webui::uploadCount()));
     Serial.printf("REPORT flash image %lu bytes\n", static_cast<unsigned long>(ESP.getSketchSize()));
     // Raw identification reads, to settle which controller the panel carries.
     Serial.printf("REPORT panel RDDID 0x%06lX RDDST 0x%08lX\n", static_cast<unsigned long>(lcd().panelId()),
@@ -150,6 +153,8 @@ void startRadio() {
         printHeap("bluetooth released");
         wifilink::begin(settings);
         printHeap("wifi started");
+        webui::begin(settings);
+        printHeap("web server started");
     } else {
         audio.tone().setFrequencies(settings.primaryHz, settings.beatHz);
         audio.setMasterVolume(volume);
@@ -696,6 +701,14 @@ void loop() {
             break;
     }
     pollSerial();
+    if (settings.mode == rc::Mode::Setup) {
+        webui::tick();
+        bool toSetup = false;
+        if (webui::takeRestartRequest(&toSetup)) {
+            delay(400);  // let the answer reach the browser
+            switchMode(toSetup ? rc::Mode::Setup : rc::Mode::Play);
+        }
+    }
 
     const uint32_t now = millis();
     if (radioPending && now - radioStartedMs > 3000) {
