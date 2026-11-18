@@ -396,7 +396,8 @@
       "WORK-000001",
       "WORK-000002",
       "WORK-000003",
-      "WORK-000004"
+      "WORK-000004",
+      "WORK-000005"
     ]
   },
   "follow_ups": [
@@ -418,6 +419,16 @@
     {
       "timestamp": "2026-11-18T03:14:15.593118+00:00",
       "text": "I conencted to the wifi and went to the address, nothing happened. The flicker and yellow dots appear fixed.",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T03:33:40.079577+00:00",
+      "text": "So - the bottom row - It has text - but I want them to look more like buttons. My BT audio earbuds are still charging. Also - format the 32GB SD card attached to my laptop. I have already backed it up",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T03:36:53.414238+00:00",
+      "text": "I tapped twice to put it into setup mode, then the screen went black. it's still black after power cycling",
       "attachments": []
     }
   ]

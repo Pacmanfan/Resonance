@@ -39,7 +39,7 @@ that come from the board in hand.
 | Touch controller | Answers on IO33/IO32 at address **0x5D**; identifies as a GT911, configured for 240 × 320 and 5 points. Its coordinates match the display directly, with no scaling, mirroring or rotation: 30 presses by the operator landed on the tabs and the button they were aimed at (firmware 0.2.1, VER-000003) | M6 |
 | Touch interrupt | **IO21 idles high.** A driver that waits for it to be low never reads a touch; the firmware polls the controller instead and leaves IO21 alone | Section 3 |
 | Display | Initialises at 24 MHz, SPI mode 0, and shows the interface: the operator saw the dark blue screen, so inversion is right. The first colour scheme was too low in contrast and was replaced; the operator has not yet seen the new one. Colour order (red and blue not swapped) is not explicitly confirmed. **Read-back returns zero** (display ID and status), so MISO on IO12 does not deliver data on this board | M7, partly |
-| microSD | Mount failed with "card failed" on command 0: no card answered. Not yet tested with a card inserted | — |
+| microSD | Without a card: "card failed" on command 0. With a 32 GB FAT32 card: mounts at 20 MHz on IO5/18/19/23, 30,509 MB reported (firmware 0.3.1) | M12 |
 | Bluetooth Classic | Starts and stays up | — |
 | Wi-Fi | Access point starts; a scan found 8 networks | — |
 | Supply at radio start | **The board lost power 16 times in 37 seconds** while Bluetooth was first being started (the USB bridge dropped off the bus each time), then started normally and has been stable since. See section 8 | — |
@@ -300,4 +300,4 @@ above.
 | M9 | Board revision printed on the PCB, against schematic V1.0 | All of **S** |
 | M10 | Behaviour on battery: run time, cut-off, light-load shutdown | Section 8 |
 | M11 | Power at radio start: repeat a cold start on a direct USB port and with a battery connected | Section 8 |
-| M12 | microSD with a card inserted | Section 4 |
+| M12 | ~~microSD with a card inserted~~ **Done: mounts** | Section 4 |

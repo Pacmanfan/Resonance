@@ -144,7 +144,8 @@ planned (ADR-000204).
 - LovyanGFX draws directly to the panel; there is no GUI framework and no
   frame buffer. Screens are redrawn only where something changed.
 - Five tabs: Home, Frequency Studio, Sound Library, Sessions, Settings
-  (RES-GUI-001). Controls that are not built yet say so on the screen.
+  (RES-GUI-001). The tab bar is a row of five buttons, each outlined
+  and filled; the open one is filled with the highlight colour. Controls that are not built yet say so on the screen.
 - Home has the audio on/off control with the volume beside it, and a
   Bluetooth button that opens the device list: found devices as buttons,
   tap one to connect, and Disconnect when connected.

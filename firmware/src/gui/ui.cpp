@@ -167,13 +167,21 @@ void Ui::drawHeader() {
 }
 
 void Ui::drawTabBar() {
+    // Each tab is drawn as a button: a filled, outlined rounded rectangle.
+    // The open tab is filled with the highlight colour and dark text.
     const int16_t top = kContentBottom;
-    _lcd.fillRect(0, top, kScreenW, kTabBarH, kPanel);
+    _lcd.fillRect(0, top, kScreenW, kTabBarH, kBackground);
     for (uint8_t i = 0; i < static_cast<uint8_t>(Tab::Count); ++i) {
-        const bool active = i == static_cast<uint8_t>(_tab);
-        const int16_t x = i * kTabW;
-        if (active) _lcd.fillRect(x + 2, top, kTabW - 4, 4, kCyan);
-        centered(kTabNames[i], x + kTabW / 2, top + kTabBarH / 2 + 2, active ? kCyan : kTextDim, kPanel, kFontSmall);
+        const bool active = i == static_cast<uint8_t>(_tab) && !_btScreen;
+        const int16_t x = static_cast<int16_t>(i * kTabW + 2);
+        const int16_t y = static_cast<int16_t>(top + 4);
+        const int16_t w = kTabW - 4;
+        const int16_t h = kTabBarH - 7;
+        const uint16_t fill = active ? kCyan : kPanel;
+        _lcd.fillRoundRect(x, y, w, h, 7, fill);
+        _lcd.drawRoundRect(x, y, w, h, 7, kOutline);
+        _lcd.drawRoundRect(x + 1, y + 1, w - 2, h - 2, 6, kOutline);
+        centered(kTabNames[i], x + w / 2, y + h / 2, active ? kBackground : kText, fill, kFontSmall);
     }
 }
 
@@ -429,6 +437,7 @@ void Ui::onButton(uint8_t id) {
     } else if (id == kIdBluetooth) {
         _btScreen = true;
         drawHeader();
+        drawTabBar();
         drawContent();
     } else if (id >= kIdBtDevice && id < kIdBtDevice + 5) {
         _eventArg = static_cast<uint8_t>(id - kIdBtDevice);

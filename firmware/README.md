@@ -98,5 +98,6 @@ Settings screen.
 | "Radio off: power dropped at start" on the Home screen | The board lost power three times in a row while the radio was starting, and the firmware skipped the radio once so as not to loop. Restart; if it returns, use a USB port directly on the computer, a shorter cable, or connect a battery |
 | The serial port disappears and returns repeatedly | The same power loss, seen from the computer |
 | Touch does nothing | Set `-DRESONANCE_TOUCH_DEBUG=1` in `platformio.ini`: every press is then printed as `TOUCH x,y` and marked on the screen. The report line `REPORT touch chip` shows what the controller says about itself |
+| Screen black, serial shows "No bootable app partitions" | An upload was interrupted (the board was restarted or unplugged while flashing). Flash again and leave the board alone until it finishes |
 | `SD: no card` | No card, or not FAT32. The board cannot sense a card; it finds out by trying |
 | Display stays dark | Brightness cannot go below 5 %; check the report line `REPORT display` |
