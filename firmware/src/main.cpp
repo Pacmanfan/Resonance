@@ -154,6 +154,7 @@ void refreshStatus() {
     status.radioBlocked = radioBlocked;
     status.audioOn = audioOn;
     status.volume = volume;
+    btaudio::updateList();
     status.btState = static_cast<uint8_t>(btaudio::state());
     strlcpy(status.btPeer, btaudio::peerName(), sizeof(status.btPeer));
     // The folder is shown relative to the library root.

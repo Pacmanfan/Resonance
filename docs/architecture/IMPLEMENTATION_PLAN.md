@@ -50,7 +50,8 @@ from Stage 8.
 | Ceiling | Output never exceeds half of full scale | Host test |
 | Invalid values | Clamped; non-finite ignored | Host test |
 | Bluetooth A2DP on the board | Starts and scans; 84 kB of heap free; image 1.89 MB | Serial report |
-| Scan list, connect, the tone in a headset, clicks, reconnect at start | **Not verified: no audio device was in pairing mode** | Needs a headset |
+| Scan list, connect, reconnect at start | Works since 0.4.1: at start the device reconnected to the operator's television (remembered from an earlier pairing); after Disconnect the scan restarted and listed the operator's headset, which was then chosen. In 0.3.0-0.4.0 the list filled with the first five devices and a disconnect ended scanning | Library log and the operator |
+| The tone in a headset, clicks | **Not yet reported** | Needs ears |
 
 ### Stage 4 — what was verified, and how
 

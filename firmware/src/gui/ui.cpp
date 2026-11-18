@@ -301,6 +301,8 @@ void Ui::drawBluetooth() {
         label("Connected to", 12, y, kTextDim, kFontSmall);
         label(_status.btPeer[0] ? _status.btPeer : "a remembered device", 12, y + 16, kTeal, kFontText);
         addButton(8, y + 48, 224, 38, "Disconnect", kIdBtDisconnect);
+        label("Disconnect to choose another", 12, y + 96, kTextDim, kFontSmall);
+        label("device from the list.", 12, y + 112, kTextDim, kFontSmall);
         return;
     }
     if (_status.btState == kBtConnecting) {

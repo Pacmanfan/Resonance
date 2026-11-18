@@ -213,9 +213,12 @@ planned (ADR-000204).
   values that the engine picks up once per block.
 - The MP3 decoder (about 33 kB) is allocated for a track and freed after
   it. A track that ends is followed by the next sound file of its folder.
-- `audio/bt_audio` scans for audio devices, lists up to five by name,
-  connects to the one chosen on the screen, and lets the library reconnect
-  to the last device at start. Link keys stay in the Bluetooth stack's own
+- `audio/bt_audio` scans for audio devices and lists the five with the
+  strongest signal; a device not seen for 45 seconds drops out, and one that
+  sends no name is listed by the end of its address. It connects to the one
+  chosen on the screen and lets the library reconnect to the last device at
+  start. After a disconnect it starts the scan again itself: the library
+  stops scanning for good once a disconnect was requested. Link keys stay in the Bluetooth stack's own
   storage (RES-BT-003).
 - Audio is off at every start; only the Home screen's control or a serial
   command turns the tone on, and a track plays only when chosen

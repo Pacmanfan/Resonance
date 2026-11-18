@@ -28,11 +28,17 @@ bool begin(const char* localName, rc::AudioEngine& engine);
 
 State state();
 
-// Devices found so far, strongest first is not guaranteed; order of discovery.
+// Brings the list below up to date and restarts a scan that a disconnect
+// stopped. Call about once a second from the interface task.
+void updateList();
+
+// Audio devices in range, strongest signal first. Devices that have not
+// been seen for 45 seconds are dropped.
 uint8_t deviceCount();
 const char* deviceName(uint8_t index);
 
-// Connects to a found device as soon as it is seen again by the scan.
+// Connects to a listed device as soon as the scan sees it again. A device
+// that is connected at the time is dropped first.
 void connect(uint8_t index);
 
 // Drops the connection and goes back to scanning.
