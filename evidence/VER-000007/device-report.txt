@@ -1,0 +1,47 @@
+Resonance firmware 0.4.0, ESP32-2432S032C, 2026-11-17. Lines as printed by the device over serial.
+
+== Stock libraries (before custom_sdkconfig), Play mode ==
+HEAP boot                   free 155344  min 152392  largest 110580
+HEAP display + ui           free 149736  min 149680  largest 110580
+HEAP sd                     free 129532  min 125612  largest 110580
+HEAP bluetooth started      free  42200  min  42144  largest  38900
+HEAP now                    free  38524  min  36108  largest  32756
+MKTEST wrote /RESONANCE/AUDIO/CUSTOM/test.wav (220544 bytes)
+PLAYER playing /RESONANCE/AUDIO/CUSTOM/test.wav
+PLAYER state 1 track 'test.wav' position 0 s of 5 s, ring 4096 of 4096 frames, underruns 0, error ''
+HEAP now                    free  29188  min  28612  largest  25588
+PLAYER error: cannot open the file
+PLAYER state 3 track 'nothere.wav' position 0 s of 5 s, ring 0 of 4096 frames, underruns 0, error 'cannot open the file'
+
+== Reduced libraries (Bluetooth Classic only), Play mode ==
+HEAP boot                   free 193040  min 190088  largest 110580
+HEAP display + ui           free 187432  min 187376  largest 110580
+HEAP sd                     free 167228  min 164252  largest 110580
+HEAP bluetooth started      free  99192  min  99136  largest  65524
+HEAP now                    free  95536  min  92604  largest  61428
+PLAYER playing /RESONANCE/AUDIO/CUSTOM/test.wav
+PLAYER state 1 track 'test.wav' position 0 s of 5 s, ring 4096 of 4096 frames, underruns 0, error ''
+HEAP now                    free  86396  min  86180  largest  53236
+BT state 1 peer '', 0 device(s) found
+
+== Reduced libraries, MP3 files sent with tools/serial_put.py ==
+HEAP now                    free  94924  min  91824  largest  61428
+PLAYER playing /RESONANCE/AUDIO/CUSTOM/a128.mp3
+PLAYER state 1 track 'a128.mp3' position 0 s of 0 s, ring 4096 of 4096 frames, underruns 0, error ''
+HEAP now                    free  53152  min  52928  largest  29684
+PLAYER playing /RESONANCE/AUDIO/CUSTOM/b320_48k.mp3
+PLAYER state 1 track 'b320_48k.mp3' position 0 s of 0 s, ring 4096 of 4096 frames, underruns 0, error ''
+HEAP now                    free  53148  min  52208  largest  29684
+PLAYER playing /RESONANCE/AUDIO/CUSTOM/c_mono22k.mp3
+PLAYER state 1 track 'c_mono22k.mp3' position 0 s of 0 s, ring 4096 of 4096 frames, underruns 0, error ''
+PLAYER playing /RESONANCE/AUDIO/CUSTOM/test.wav
+PLAYER state 1 track 'test.wav' position 0 s of 5 s, ring 4096 of 4096 frames, underruns 0, error ''
+
+== Reduced libraries, Setup mode ==
+REPORT flash image 1582016 bytes
+SCAN 5 network(s)
+HEAP after wifi scan        free 143944  min 142492  largest 110580
+
+Reading: "position 0 s" and a full ring in every case because no Bluetooth device
+was connected: the decoder filled the ring and nothing drained it. The files were
+opened and decoded; they were not heard.

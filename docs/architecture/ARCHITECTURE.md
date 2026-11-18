@@ -2,8 +2,8 @@
 
 **Requirement:** RES-ARCH-001..005 and the domains they structure (`docs/requirements/resonance.md`)
 **Decision:** ADR-000204 (Bluetooth-only output, space first, operating modes)
-**Work:** WORK-000001 (design), WORK-000002 and WORK-000003 (Stage 2), WORK-000004 (Stage 3)
-**Status:** Stages 2 and 3 are implemented: board, display, touch, SD, settings, operating modes, interface, the binaural tone engine and the Bluetooth audio output. The tone has not yet been heard through a headset. Sections marked *planned* describe code that does not exist yet.
+**Work:** WORK-000001 (design), WORK-000002 and WORK-000003 (Stage 2), WORK-000004 (Stage 3), WORK-000007 (Stage 4)
+**Status:** Stages 2 to 4 are implemented: board, display, touch, SD, settings, operating modes, interface, the binaural tone, the Bluetooth audio output, WAV and MP3 playback from the card, the mixer and the noise generator. Nothing has yet been heard through a headset. Sections marked *planned* describe code that does not exist yet.
 **Inputs:** `HARDWARE.md`, `GPIO_MAP.md`, `LIBRARY_EVALUATION.md`
 
 ## Principles
@@ -32,7 +32,7 @@ running, 50 kB remain before any audio code exists
 | Radio | Bluetooth Classic (A2DP) | Wi-Fi (station, or the set-up access point) |
 | Runs | Audio engine, SD playback, sessions, interface | Web server, file management, interface |
 | Never started | Wi-Fi | Bluetooth; its reserved memory is returned to the heap |
-| Free heap at start, measured | 84 kB with A2DP started and scanning | 157 kB |
+| Free heap at start, measured | 99 kB with A2DP started (reduced libraries) | 144 kB |
 
 - The mode is a field of the settings record. It changes only through a
   restart, requested on the Settings screen (two taps) or by the serial
@@ -75,13 +75,13 @@ The device therefore always reaches a usable screen.
                 │
 ┌───────────────▼──────────────────────────────────────────────────┐
 │ Core (portable)   rc_settings: settings, ranges, validation      │
-│                   rc_tone: oscillators, ramps, tone engine       │
-│                   mixer, limiter, sweep (planned)                │
+│                   rc_tone, rc_audio (mixer, limiter), rc_noise   │
+│                   rc_ring, rc_wav, rc_resample · sweep (planned) │
 └───────────────┬──────────────────────────────────────────────────┘
                 │
 ┌───────────────▼──────────────────────────────────────────────────┐
 │ Platform          hal/ board · gui/display · storage/ · radio/   │
-│                   audio/bt_audio (A2DP) · decoders (planned)     │
+│                   audio/bt_audio (A2DP) · audio/player (decoders)│
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -97,6 +97,11 @@ firmware/
   lib/resonance_core/src/     portable core
     rc_settings.h/.cpp        settings record, ranges, validation
     rc_tone.h/.cpp            oscillator, ramp, binaural tone engine
+    rc_audio.h/.cpp           engine: three layers, master volume, limiter
+    rc_noise.h/.cpp           white, pink and brown noise
+    rc_ring.h                 lock-free ring of stereo frames
+    rc_wav.h/.cpp             WAV header and PCM conversion
+    rc_resample.h/.cpp        conversion to 44.1 kHz
   src/
     main.cpp                  start-up, mode, status, serial diagnostics
     version.h
@@ -108,11 +113,14 @@ firmware/
     storage/settings_store    settings in NVS; radio start guard
     storage/sdcard            the card and its SPI bus; /RESONANCE tree
     audio/bt_audio            Bluetooth A2DP source: scan, connect, audio feed
+    audio/player              decoder task: WAV and MP3 from the card into the ring
     radio/bt_stack            Bluetooth memory hook and release (Setup mode)
     radio/wifi_link           station, set-up access point, mDNS
   tests/                      host tests of the portable core
   tools/host_tests.py         builds and runs them with the host compiler
   tools/serial_capture.py     reads the device's serial report
+  tools/serial_put.py         sends a sound file to the card over serial (development)
+  partitions.csv              one 3 MB application slot
 ```
 
 Modules named in the request that do not exist yet arrive with their stage
@@ -146,6 +154,10 @@ planned (ADR-000204).
 - Five tabs: Home, Frequency Studio, Sound Library, Sessions, Settings
   (RES-GUI-001). The tab bar is a row of five buttons, each outlined
   and filled; the open one is filled with the highlight colour. Controls that are not built yet say so on the screen.
+- The SND tab browses `RESONANCE/AUDIO` on the card: folders and `.wav` /
+  `.mp3` files, four to a page; tapping a file plays it. Below are
+  play/pause with the background volume and the track's elapsed time. The
+  noise control (type and volume) is on the FREQ tab.
 - Home has the audio on/off control with the volume beside it, and a
   Bluetooth button that opens the device list: found devices as buttons,
   tap one to connect, and Disconnect when connected.
@@ -168,37 +180,46 @@ planned (ADR-000204).
 ## Audio path
 
 ```text
- implemented:   ToneEngine (left f0, right f0 + fb) ──> Bluetooth A2DP
- planned:       + background player and noise through a mixer and limiter
+ SD card ──> player task ──> ring (4096 frames) ──┐
+             WAV / MP3, to 44.1 kHz stereo        ▼
+ ToneEngine (left f0, right f0 + fb) ────────> AudioEngine ──> Bluetooth A2DP
+ NoiseGenerator ──────────────────────────────────┘  mix, master, limiter
 ```
 
-- **44.1 kHz stereo, 16-bit at the output**, as A2DP fixes it. Internal
-  samples are 32-bit float; the ESP32 has a single-precision FPU.
-- Two independent oscillators, each a 32-bit phase accumulator read through
-  a 1024-entry sine table with linear interpolation. A frequency change
-  alters only the phase increment, so it is phase-continuous by
-  construction; the change itself glides over 50 ms.
-- Left carries f0, right carries f0 + fb. The channels are never summed.
-- Volume (square law) and on/off are ramped: 50 ms for a volume step,
-  500 ms for start and stop. When off, the oscillators rest at phase zero,
-  so the next start rises from a zero crossing.
-- The tone is limited to half of full scale, which leaves headroom for the
-  layers to come, and one bit of triangular dither is added.
+- **44.1 kHz stereo, 16-bit at the output**, as A2DP fixes it. Mixing is in
+  32-bit float; the ESP32 has a single-precision FPU.
+- **Tone:** two independent oscillators, each a 32-bit phase accumulator
+  read through a 1024-entry sine table with linear interpolation. A
+  frequency change alters only the phase increment, so it is
+  phase-continuous by construction, and glides over 50 ms. Left carries f0,
+  right f0 + fb; the two are never summed. Start and stop fade over 500 ms.
+- **Background:** the player task reads the card, decodes WAV (8/16/24/32-bit
+  PCM, mono or stereo) or MP3 (Helix), converts to stereo at 44.1 kHz by
+  linear interpolation, and writes into a lock-free ring. The render only
+  reads the ring. An empty ring silences the background for that block,
+  counts an underrun, and leaves tone and noise untouched.
+- **Pause** stops the render reading the ring, after a 50 ms fade; the ring
+  fills and the player task waits where it is, so the track keeps its place.
+- **Noise:** white, pink (three-pole filter) or brown (leaky integrator), the
+  same in both ears. The type changes only while its gain is at zero.
+- **Mixer:** each layer has its own ramped gain (tone ceiling 0.5 of full
+  scale, background 0.6, noise 0.3), then the master volume (square law).
+- **Limiter:** transparent below 0.7 of full scale, bending smoothly towards
+  a ceiling of 0.98 above it. All layers at maximum stay under the ceiling
+  and never wrap (RES-AUDIO-008).
 - **The Bluetooth stack pulls audio through a callback, and the callback
-  renders directly from the tone engine.** There is no render task and no
-  ring buffer yet: rendering two sines is far cheaper than the callback's
-  period, never blocks, allocates or logs (RES-AUDIO-012), and costs no
-  extra RAM. The interface passes parameters to the engine through atomic
-  values, which the engine picks up once per block.
+  renders directly from the engine.** Rendering never blocks, allocates or
+  logs (RES-AUDIO-012). The interface passes parameters through atomic
+  values that the engine picks up once per block.
+- The MP3 decoder (about 33 kB) is allocated for a track and freed after
+  it. A track that ends is followed by the next sound file of its folder.
 - `audio/bt_audio` scans for audio devices, lists up to five by name,
   connects to the one chosen on the screen, and lets the library reconnect
   to the last device at start. Link keys stay in the Bluetooth stack's own
   storage (RES-BT-003).
-- Audio is off at every start; only the Home screen's control or the serial
-  command turns it on (RES-CFG-003).
-- *Planned (Stage 4):* a decoder task reads the card and decodes into a ring
-  buffer; a mixer and limiter combine it and the noise layer with the tone.
-  An empty ring silences only the background layer.
+- Audio is off at every start; only the Home screen's control or a serial
+  command turns the tone on, and a track plays only when chosen
+  (RES-CFG-003).
 - `AudioOutput` as a formal interface arrives when a second output exists;
   until then the engine's `render()` is the boundary, and nothing in the
   core knows about Bluetooth.
@@ -220,13 +241,13 @@ planned (ADR-000204).
 | Bluetooth controller and host (core 0) | exists | Started only in Play mode |
 | Wi-Fi and network (core 0) | exists | Started only in Setup mode |
 | Bluetooth audio callback (inside the stack's task) | exists | Renders the tone; no blocking, no logging |
-| Decoder (core 1, below audio) | planned | SD reads and MP3/WAV decoding |
+| Player (core 1, priority 4, 6 kB stack) | exists | SD reads, WAV/MP3 decoding, resampling; waits when the ring is full |
 
 ## Open decisions
 
 | Decision | Depends on |
 |---|---|
-| A combined mode beside Play and Setup | A2DP heap in Stage 3; unlikely at 50 kB |
-| Custom library build without BLE and HFP | Whether Play mode runs short of heap with the decoder |
+| A combined mode beside Play and Setup | Play-mode heap with a device connected and an MP3 playing; then whether Wi-Fi still fits |
+| OTA | The image now fits a 1.875 MB slot; decide when the web interface exists |
 | Second decoder for crossfade | Play-mode heap in Stage 4 |
 | Return of the wired output | The operator |

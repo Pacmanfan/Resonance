@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-#include "rc_tone.h"
+#include "rc_audio.h"
 
 namespace btaudio {
 
@@ -24,7 +24,7 @@ constexpr uint8_t kNameLength = 24;
 // Starts Bluetooth and begins looking for audio devices. A device used
 // before is reconnected automatically when it is in range. `engine` supplies
 // the audio and must outlive the stack.
-bool begin(const char* localName, rc::ToneEngine& engine);
+bool begin(const char* localName, rc::AudioEngine& engine);
 
 State state();
 

@@ -12,7 +12,7 @@ struct Device {
     esp_bd_addr_t address;
 };
 
-rc::ToneEngine* engine = nullptr;
+rc::AudioEngine* engine = nullptr;
 bool started = false;
 
 // Written by the Bluetooth task (scan results), read by the interface task.
@@ -53,9 +53,9 @@ bool onDeviceFound(const char* name, esp_bd_addr_t address, int /*rssi*/) {
 
 }  // namespace
 
-bool begin(const char* localName, rc::ToneEngine& toneEngine) {
+bool begin(const char* localName, rc::AudioEngine& audioEngine) {
     if (started) return true;
-    engine = &toneEngine;
+    engine = &audioEngine;
     BluetoothA2DPSource& s = source();
     s.set_local_name(localName);
     s.set_ssid_callback(onDeviceFound);

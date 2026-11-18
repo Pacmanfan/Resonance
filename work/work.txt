@@ -8,3 +8,4 @@ WORK-000003 | completed | Resonance Stage 2 fixes: touch input and display contr
 WORK-000004 | completed | Resonance Stage 3: binaural tone over Bluetooth A2DP | completed/WORK-000004-resonance-stage-3-binaural-tone-over-blu.md | RES-AUDIO-001, RES-AUDIO-002, RES-AUDIO-003, RES-AUDIO-005, RES-AUDIO-011, RES-AUDIO-012, RES-BT-001, RES-BT-002, RES-CFG-003, RES-GUI-003 | VER-000004
 WORK-000005 | completed | Resonance: tab bar drawn as buttons | completed/WORK-000005-resonance-tab-bar-drawn-as-buttons.md | RES-GUI-001, RES-GUI-002 | VER-000005
 WORK-000006 | completed | Resonance: shorter Sound tab label | completed/WORK-000006-resonance-shorter-sound-tab-label.md | RES-GUI-001 | VER-000006
+WORK-000007 | completed | Resonance Stage 4: SD playback (WAV, MP3), mixer, noise | completed/WORK-000007-resonance-stage-4-sd-playback-wav-mp3-mi.md | RES-PLAY-001, RES-PLAY-002, RES-PLAY-003, RES-PLAY-005, RES-AUDIO-007, RES-AUDIO-008, RES-AUDIO-010, RES-AUDIO-012 | VER-000007

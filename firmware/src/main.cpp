@@ -9,20 +9,44 @@
 #include "gui/ui.h"
 #include "hal/board.h"
 #include "audio/bt_audio.h"
+#include "audio/player.h"
 #include "radio/bt_stack.h"
 #include "radio/wifi_link.h"
 #include "rc_settings.h"
-#include "rc_tone.h"
+#include "rc_audio.h"
 #include "storage/sdcard.h"
 #include "storage/settings_store.h"
 #include "version.h"
 
+#include <SD.h>
+
 namespace {
 
 rc::Settings settings;
-rc::ToneEngine toneEngine;
-bool audioOn = false;   // never on at start (RES-CFG-003)
-uint8_t volume = 0;     // percent; starts at the settings' start-up volume
+// The engine and the ring that carries decoded sound to it. 4096 frames are
+// 93 ms of audio and 16 kB.
+constexpr uint32_t kRingFrames = 4096;
+int16_t ringStorage[kRingFrames * 2];
+rc::FrameRing ring(ringStorage, kRingFrames);
+rc::AudioEngine audio(ring);
+
+bool audioOn = false;         // never on at start (RES-CFG-003)
+uint8_t volume = 0;           // master, percent; starts at the settings' start-up volume
+uint8_t backgroundVolume = 70;
+rc::NoiseType noiseType = rc::NoiseType::Off;
+uint8_t noiseVolume = 40;
+
+// Sound library browsing. One page of four entries is kept; the directory is
+// read again for every page.
+constexpr uint8_t kPageSize = 4;
+char soundDir[128];
+uint16_t soundOffset = 0;
+sdcard::Entry soundPage[kPageSize];
+uint8_t soundCount = 0;
+bool soundMore = false;
+uint32_t listVersion = 1;
+char trackDir[128] = "";                 // folder of the track being played
+char trackName[sdcard::kNameLength] = "";
 // Display and interface are built on first use, inside setup(): objects that
 // configure drivers must not be constructed before the scheduler runs.
 gui::Display& lcd() {
@@ -41,6 +65,7 @@ bool radioBlocked = false;   // the radio was skipped at this start (see setup)
 bool radioPending = false;   // started, not yet confirmed stable
 uint32_t radioStartedMs = 0;
 uint32_t lastStatusMs = 0;
+uint32_t statusTicks = 0;
 char lineBuffer[120];
 uint8_t lineLength = 0;
 
@@ -95,9 +120,11 @@ void startRadio() {
         wifilink::begin(settings);
         printHeap("wifi started");
     } else {
-        toneEngine.setFrequencies(settings.primaryHz, settings.beatHz);
-        toneEngine.setVolume(volume);
-        btOk = btaudio::begin("Resonance", toneEngine);
+        audio.tone().setFrequencies(settings.primaryHz, settings.beatHz);
+        audio.setMasterVolume(volume);
+        audio.setBackgroundVolume(backgroundVolume);
+        player::begin(audio, ring);
+        btOk = btaudio::begin("Resonance", audio);
         printHeap("bluetooth started");
     }
 }
@@ -129,6 +156,27 @@ void refreshStatus() {
     status.volume = volume;
     status.btState = static_cast<uint8_t>(btaudio::state());
     strlcpy(status.btPeer, btaudio::peerName(), sizeof(status.btPeer));
+    // The folder is shown relative to the library root.
+    const char* shown = soundDir + strlen(sdcard::kAudioRoot);
+    const size_t shownLength = strlen(shown);
+    const size_t fits = sizeof(status.soundDir) - 1;
+    strlcpy(status.soundDir, shownLength == 0 ? "/" : (shownLength > fits ? shown + shownLength - fits : shown),
+            sizeof(status.soundDir));
+    status.soundAtRoot = shownLength == 0;
+    status.soundHasPrev = soundOffset > 0;
+    status.soundHasMore = soundMore;
+    status.soundCount = soundCount;
+    for (uint8_t i = 0; i < soundCount; ++i) {
+        strlcpy(status.soundEntries[i], soundPage[i].name, sizeof(status.soundEntries[i]));
+        status.soundIsDir[i] = soundPage[i].directory;
+    }
+    status.playerState = static_cast<uint8_t>(player::state());
+    strlcpy(status.trackName, trackName, sizeof(status.trackName));
+    status.trackPositionS = static_cast<uint16_t>(player::positionS());
+    status.backgroundVolume = backgroundVolume;
+    status.noiseType = static_cast<uint8_t>(noiseType);
+    status.noiseVolume = noiseVolume;
+    status.listVersion = listVersion;
     status.btCount = btaudio::deviceCount();
     for (uint8_t i = 0; i < status.btCount && i < 5; ++i) {
         strlcpy(status.btDevices[i], btaudio::deviceName(i), sizeof(status.btDevices[i]));
@@ -138,7 +186,7 @@ void refreshStatus() {
 
 void setAudio(bool on) {
     audioOn = on;
-    toneEngine.setEnabled(on);
+    audio.tone().setEnabled(on);
     Serial.printf("AUDIO %s\n", on ? "on" : "off");
     refreshStatus();
 }
@@ -147,12 +195,134 @@ void setVolume(int percent) {
     if (percent < 0) percent = 0;
     if (percent > rc::kVolumeMax) percent = rc::kVolumeMax;
     volume = static_cast<uint8_t>(percent);
-    toneEngine.setVolume(volume);
+    audio.setMasterVolume(volume);
     refreshStatus();
 }
 
+int clampPercent(int percent) { return percent < 0 ? 0 : (percent > rc::kVolumeMax ? rc::kVolumeMax : percent); }
+
+// Reads the current page of the current folder from the card.
+void loadSoundPage() {
+    soundCount = sdcard::list(soundDir, soundOffset, soundPage, kPageSize, &soundMore);
+    ++listVersion;
+}
+
+void playTrack(const char* directory, const char* name) {
+    char path[200];
+    snprintf(path, sizeof(path), "%s/%s", directory, name);
+    strlcpy(trackDir, directory, sizeof(trackDir));
+    strlcpy(trackName, name, sizeof(trackName));
+    player::play(path);
+}
+
+void openSoundEntry(uint8_t index) {
+    if (index >= soundCount) return;
+    const sdcard::Entry& entry = soundPage[index];
+    if (!entry.directory) {
+        playTrack(soundDir, entry.name);
+        return;
+    }
+    if (strlen(soundDir) + 1 + strlen(entry.name) >= sizeof(soundDir)) return;  // too deep to name
+    strlcat(soundDir, "/", sizeof(soundDir));
+    strlcat(soundDir, entry.name, sizeof(soundDir));
+    soundOffset = 0;
+    loadSoundPage();
+}
+
+void soundUp() {
+    if (strcmp(soundDir, sdcard::kAudioRoot) == 0) return;
+    char* slash = strrchr(soundDir, '/');
+    if (slash != nullptr) *slash = '\0';
+    soundOffset = 0;
+    loadSoundPage();
+}
+
+void applyNoise() { audio.setNoise(noiseType, noiseVolume); }
+
+// Writes a five-second 440 Hz test tone as a WAV file (22.05 kHz, 16-bit,
+// mono) to the card, so that the player can be exercised without a computer.
+void makeTestFile() {
+    const char path[] = "/RESONANCE/AUDIO/CUSTOM/test.wav";
+    const uint32_t rate = 22050, frames = rate * 5, bytes = frames * 2;
+    File f = SD.open(path, FILE_WRITE);
+    if (!f) {
+        Serial.println("MKTEST cannot create the file");
+        return;
+    }
+    uint8_t header[44] = {'R', 'I', 'F', 'F', 0, 0, 0, 0, 'W', 'A', 'V', 'E', 'f', 'm', 't', ' ', 16, 0, 0, 0, 1, 0, 1, 0};
+    auto put32 = [&](int at, uint32_t v) { for (int i = 0; i < 4; ++i) header[at + i] = static_cast<uint8_t>(v >> (8 * i)); };
+    put32(4, 36 + bytes);
+    put32(24, rate);
+    put32(28, rate * 2);
+    header[32] = 2; header[34] = 16;
+    memcpy(header + 36, "data", 4);
+    put32(40, bytes);
+    f.write(header, sizeof(header));
+    int16_t block[256];
+    for (uint32_t done = 0; done < frames;) {
+        uint32_t n = frames - done < 256 ? frames - done : 256;
+        for (uint32_t i = 0; i < n; ++i) block[i] = static_cast<int16_t>(12000.0f * sinf(6.2831853f * 440.0f * (done + i) / rate));
+        f.write(reinterpret_cast<const uint8_t*>(block), n * 2);
+        done += n;
+    }
+    f.close();
+    loadSoundPage();
+    Serial.printf("MKTEST wrote %s (%lu bytes)\n", path, static_cast<unsigned long>(bytes + 44));
+}
+
+// Development aid: receives a file over the serial port and stores it below
+// the library root, so that sound files can be put on the card without
+// taking it out. Usage: "put <path> <bytes>", then exactly that many raw
+// bytes. Used by firmware/tools/serial_put.py.
+void receiveFile(char* arguments) {
+    char* space = strrchr(arguments, ' ');
+    if (space == nullptr) {
+        Serial.println("PUT usage: put <path> <bytes>");
+        return;
+    }
+    *space = '\0';
+    const uint32_t size = strtoul(space + 1, nullptr, 10);
+    char path[200];
+    snprintf(path, sizeof(path), "%s/%s", sdcard::kAudioRoot, arguments);
+    if (strstr(arguments, "..") != nullptr || size == 0 || !sdcard::isSoundFile(path)) {
+        Serial.println("PUT refused");
+        return;
+    }
+    File f = SD.open(path, FILE_WRITE);
+    if (!f) {
+        Serial.println("PUT cannot create the file");
+        return;
+    }
+    Serial.println("PUT ready");
+    static uint8_t block[512];
+    uint32_t received = 0, lastByteMs = millis();
+    while (received < size && millis() - lastByteMs < 3000) {
+        const int available = Serial.available();
+        if (available <= 0) {
+            delay(1);
+            continue;
+        }
+        size_t want = size - received < sizeof(block) ? size - received : sizeof(block);
+        if (static_cast<size_t>(available) < want) want = static_cast<size_t>(available);
+        const size_t got = Serial.readBytes(block, want);
+        f.write(block, got);
+        received += got;
+        lastByteMs = millis();
+        // Flow control: the sender waits for this after every 4096 bytes.
+        if (received % 4096 == 0 || received == size) Serial.printf("PUT %lu\n", static_cast<unsigned long>(received));
+    }
+    f.close();
+    if (received != size) {
+        SD.remove(path);
+        Serial.printf("PUT failed after %lu of %lu bytes\n", static_cast<unsigned long>(received), static_cast<unsigned long>(size));
+        return;
+    }
+    loadSoundPage();
+    Serial.printf("PUT stored %s (%lu bytes)\n", path, static_cast<unsigned long>(size));
+}
+
 // Serial diagnostics, for development (RES-17 "serial diagnostic output").
-//   report | heap | scan | radio | bt | bt connect <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear
+//   report | heap | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | bt | bt connect <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear
 void runCommand(char* line) {
     if (strcmp(line, "report") == 0) {
         printReport();
@@ -166,6 +336,28 @@ void runCommand(char* line) {
         setAudio(true);
     } else if (strcmp(line, "audio off") == 0) {
         setAudio(false);
+    } else if (strncmp(line, "play ", 5) == 0) {
+        // A path below the library root, for example: play CUSTOM/test.wav
+        const char* slash = strrchr(line + 5, '/');
+        char directory[128];
+        if (slash != nullptr) {
+            snprintf(directory, sizeof(directory), "%s/%.*s", sdcard::kAudioRoot, static_cast<int>(slash - (line + 5)), line + 5);
+            playTrack(directory, slash + 1);
+        } else {
+            playTrack(sdcard::kAudioRoot, line + 5);
+        }
+    } else if (strncmp(line, "put ", 4) == 0) {
+        receiveFile(line + 4);
+    } else if (strcmp(line, "player") == 0) {
+        Serial.printf("PLAYER state %u track '%s' position %lu s of %lu s, ring %lu of %lu frames, underruns %lu, error '%s'\n",
+                      static_cast<unsigned>(player::state()), trackName, static_cast<unsigned long>(player::positionS()),
+                      static_cast<unsigned long>(player::durationS()), static_cast<unsigned long>(ring.available()),
+                      static_cast<unsigned long>(ring.capacity()), static_cast<unsigned long>(audio.underruns()),
+                      player::error());
+    } else if (strcmp(line, "stop") == 0) {
+        player::stop();
+    } else if (strcmp(line, "mktest") == 0) {
+        makeTestFile();
     } else if (strcmp(line, "bt") == 0) {
         Serial.printf("BT state %u peer '%s', %u device(s) found\n", static_cast<unsigned>(btaudio::state()),
                       btaudio::peerName(), static_cast<unsigned>(btaudio::deviceCount()));
@@ -192,7 +384,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | scan | radio | bt | bt connect <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | bt | bt connect <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 
@@ -226,6 +418,8 @@ void setup() {
     printHeap("display + ui");
 
     sdOk = sdcard::begin();
+    strlcpy(soundDir, sdcard::kAudioRoot, sizeof(soundDir));
+    loadSoundPage();
     printHeap("sd");
 
     // One radio per mode. The other one is never started, so it costs no RAM.
@@ -244,7 +438,8 @@ void setup() {
 }
 
 void loop() {
-    switch (screen().poll()) {
+    const gui::Event event = screen().poll();
+    switch (event) {
         case gui::Event::SettingsChanged:
             storage::save(settings);
             break;
@@ -252,7 +447,7 @@ void loop() {
             switchMode(settings.mode == rc::Mode::Setup ? rc::Mode::Play : rc::Mode::Setup);
             break;
         case gui::Event::ToneChanged:
-            toneEngine.setFrequencies(settings.primaryHz, settings.beatHz);
+            audio.tone().setFrequencies(settings.primaryHz, settings.beatHz);
             break;
         case gui::Event::AudioToggle:
             setAudio(!audioOn);
@@ -265,6 +460,49 @@ void loop() {
             break;
         case gui::Event::BluetoothConnect:
             btaudio::connect(screen().eventArg());
+            refreshStatus();
+            break;
+        case gui::Event::SoundOpen:
+            openSoundEntry(screen().eventArg());
+            refreshStatus();
+            break;
+        case gui::Event::SoundUp:
+            soundUp();
+            refreshStatus();
+            break;
+        case gui::Event::SoundPagePrev:
+            soundOffset = soundOffset >= kPageSize ? soundOffset - kPageSize : 0;
+            loadSoundPage();
+            refreshStatus();
+            break;
+        case gui::Event::SoundPageNext:
+            if (soundMore) soundOffset += kPageSize;
+            loadSoundPage();
+            refreshStatus();
+            break;
+        case gui::Event::SoundPlayPause:
+            if (player::state() == player::State::Playing) player::pause();
+            else if (player::state() == player::State::Paused) player::resume();
+            else if (trackName[0] != '\0') playTrack(trackDir, trackName);
+            else if (soundCount > 0 && !soundPage[0].directory) playTrack(soundDir, soundPage[0].name);
+            refreshStatus();
+            break;
+        case gui::Event::SoundVolumeUp:
+        case gui::Event::SoundVolumeDown:
+            backgroundVolume = static_cast<uint8_t>(
+                clampPercent(backgroundVolume + (event == gui::Event::SoundVolumeUp ? 5 : -5)));
+            audio.setBackgroundVolume(backgroundVolume);
+            refreshStatus();
+            break;
+        case gui::Event::NoiseCycle:
+            noiseType = static_cast<rc::NoiseType>((static_cast<uint8_t>(noiseType) + 1) & 3);
+            applyNoise();
+            refreshStatus();
+            break;
+        case gui::Event::NoiseVolumeUp:
+        case gui::Event::NoiseVolumeDown:
+            noiseVolume = static_cast<uint8_t>(clampPercent(noiseVolume + (event == gui::Event::NoiseVolumeUp ? 5 : -5)));
+            applyNoise();
             refreshStatus();
             break;
         case gui::Event::BluetoothDisconnect:
@@ -283,9 +521,16 @@ void loop() {
         storage::markRadioStable();
         Serial.println("RADIO stable");
     }
+    // The next track of the folder follows when one has played to its end.
+    if (player::takeEnded()) {
+        char next[sdcard::kNameLength];
+        if (sdcard::nextFile(trackDir, trackName, next, sizeof(next))) playTrack(trackDir, next);
+    }
     if (now - lastStatusMs >= 1000) {
         lastStatusMs = now;
         wifilink::tick();
+        // Card sizes are re-read now and then, but never while a track plays.
+        if (++statusTicks % 10 == 0 && player::state() != player::State::Playing) sdcard::refresh();
         refreshStatus();
     }
     delay(15);

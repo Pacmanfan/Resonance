@@ -24,6 +24,16 @@ enum class Event : uint8_t {
     VolumeDown,
     BluetoothConnect,     // connect to the found device number eventArg()
     BluetoothDisconnect,
+    SoundOpen,        // open the listed entry number eventArg(): enter a folder or play a file
+    SoundUp,          // to the parent folder
+    SoundPagePrev,
+    SoundPageNext,
+    SoundPlayPause,
+    SoundVolumeUp,
+    SoundVolumeDown,
+    NoiseCycle,       // off -> white -> pink -> brown -> off
+    NoiseVolumeUp,
+    NoiseVolumeDown,
 };
 
 // Everything the interface shows that it does not own.
@@ -46,6 +56,21 @@ struct Status {
     char btPeer[24] = "";       // connected or chosen device
     uint8_t btCount = 0;        // devices found by the scan
     char btDevices[5][24] = {};
+    // Sound library (Play mode).
+    char soundDir[28] = "";         // current folder, shortened for display
+    bool soundAtRoot = true;
+    bool soundHasPrev = false;      // an earlier page exists
+    bool soundHasMore = false;      // a later page exists
+    uint8_t soundCount = 0;         // entries on this page
+    char soundEntries[4][22] = {};  // names, shortened for display
+    bool soundIsDir[4] = {};
+    uint8_t playerState = 0;        // player::State
+    char trackName[22] = "";
+    uint16_t trackPositionS = 0;
+    uint8_t backgroundVolume = 0;   // percent
+    uint8_t noiseType = 0;          // rc::NoiseType
+    uint8_t noiseVolume = 0;        // percent
+    uint32_t listVersion = 0;       // changes whenever the listing changed
 };
 
 class Ui {
@@ -86,6 +111,7 @@ private:
     void drawFrequency();
     void drawFrequencyValues();
     void drawSound();
+    void drawSoundStatus();
     void drawSessions();
     void drawSettings();
     void drawSettingsValues();
@@ -112,6 +138,9 @@ private:
     uint8_t _eventArg = 0;
     char _audioLabel[12] = "";
     char _btLabel[36] = "";
+    char _playLabel[14] = "";
+    char _noiseLabel[14] = "";
+    char _entryLabels[4][24] = {};
     Event _pending = Event::None;
     uint32_t _lastActivityMs = 0;
     uint32_t _touchCount = 0;

@@ -20,7 +20,37 @@ bool begin();
 // Unmounts and mounts again; use after a failed operation or a card change.
 bool remount();
 
-// Current state. `mounted` is false after a failed mount.
+// Current state. `mounted` is false after a failed mount. The sizes are
+// read from the card on begin(), remount() and refresh(), not on every call.
 Info info();
+
+// Reads the sizes again. Scans the card's allocation table the first time,
+// which can take seconds on a large card: do not call it during playback.
+void refresh();
+
+// Root of the sound library on the card.
+extern const char kAudioRoot[];  // "/RESONANCE/AUDIO"
+
+constexpr uint8_t kNameLength = 64;
+
+struct Entry {
+    char name[kNameLength];  // file or directory name, without its path
+    bool directory;
+};
+
+// Lists the sub-directories and sound files (.wav, .mp3) of `directory`,
+// skipping the first `skip` of them, into `out` (at most `capacity`).
+// Returns the number written; `more` tells whether further entries follow.
+// Hidden entries and names too long for an Entry are left out.
+uint8_t list(const char* directory, uint16_t skip, Entry* out, uint8_t capacity, bool* more);
+
+// Finds the sound file that follows `current` in `directory` (the first one
+// when `current` is the last or is not found). Returns false when the
+// directory holds no sound file.
+bool nextFile(const char* directory, const char* current, char* out, uint8_t capacity);
+
+// True for a name ending in .wav or .mp3, in any letter case.
+bool isSoundFile(const char* name);
+bool isMp3(const char* name);
 
 }  // namespace sdcard

@@ -20,6 +20,8 @@ core 2.0.x, unless stated otherwise; none is a measurement of Resonance.
   configuration.
 - **Dual-slot OTA is in doubt** on 4 MB of flash. The A2DP library itself
   recommends the 3 MB single-slot layout.
+- **Since measured:** the reduced library build recovers 57 kB in Play mode
+  (section "Reduced library build").
 - A workable stack exists for every feature taken alone. Whether the
   features can run **at the same time** is the open question, and only
   measurement on the board answers it (`IMPLEMENTATION_PLAN.md`, gates G1–G3).
@@ -53,6 +55,33 @@ interface shell; no audio, no decoder, no web server) on the board,
   A2DP and the tone engine, 60 % of the 3 MB slot, already holding both
   radio stacks. It would leave under 90 kB in a 1.875 MB OTA slot, so
   OTA is not possible without removing BLE and HFP from the libraries.
+
+### Reduced library build (firmware 0.4.0)
+
+With sound playback added, the stock libraries left too little: 38 kB free
+in Play mode at start and 29 kB while a WAV file played, against about
+33 kB that the MP3 decoder allocates. The libraries are therefore rebuilt
+through pioarduino's `custom_sdkconfig` with Bluetooth Classic only (no BLE,
+no BLE Mesh, no hands-free or serial-port profile). Measured on the board,
+same firmware source, 2026-11-17 (evidence VER-000007):
+
+| Play mode | Stock libraries | Reduced libraries |
+|---|---|---|
+| Free heap after Bluetooth A2DP start | 42 kB | 99 kB |
+| While a WAV file plays | 29 kB | 86 kB |
+| While an MP3 file is decoded | not possible | 53 kB (largest block 30 kB) |
+| Image size | 1.94 MB | 1.58 MB |
+
+- Setup mode with the reduced libraries: Wi-Fi starts and scans, 144 kB free.
+- These figures are without a Bluetooth device connected; a connection and
+  streaming will take more, and that has not been measured.
+- The image would now fit a 1.875 MB OTA slot with about 290 kB to spare,
+  before the web server is added. OTA stays off (ADR-000204); the question
+  can be reopened when the web interface exists.
+- The MP3 decoder is the Helix decoder (arduino-libhelix 0.9.4, pinned to a
+  commit). It decoded 128 kbit/s stereo at 44.1 kHz, 320 kbit/s at 48 kHz and
+  48 kbit/s mono at 22.05 kHz on the board.
+- Mounting the SD card costs 20 kB of heap, more than estimated.
 
 ## Selected stack
 

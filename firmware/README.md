@@ -2,8 +2,9 @@
 
 Firmware for the ESP32-2432S032C-I. Architecture:
 `docs/architecture/ARCHITECTURE.md`. Requirements:
-`docs/requirements/resonance.md`. Current state: Stage 3 — the binaural tone plays over
-Bluetooth; no sound files, sessions or web interface yet.
+`docs/requirements/resonance.md`. Current state: Stage 4 — the binaural tone, sound files from
+the card (WAV, MP3) and noise, mixed, over Bluetooth; no sessions or web
+interface yet.
 
 ## Requirements
 
@@ -13,9 +14,16 @@ Bluetooth; no sound files, sessions or web interface yet.
   (`/dev/ttyUSB0` on Linux; the user must be in the `dialout` group).
 
 The platform and library versions are pinned in `platformio.ini`:
-pioarduino 55.03.313 (Arduino core 3.3.13), LovyanGFX 1.3.0 and ESP32-A2DP
-1.8.12. The build warns that the AudioTools library is missing; it is not
-needed. The first
+pioarduino 55.03.313 (Arduino core 3.3.13), LovyanGFX 1.3.0, ESP32-A2DP
+1.8.12 and the Helix MP3 decoder (arduino-libhelix 0.9.4). The build warns
+that the AudioTools library is missing; it is not needed.
+
+The ESP-IDF libraries are rebuilt without BLE (`custom_sdkconfig` in
+`platformio.ini`), which frees 57 kB of RAM on the device. **The first build
+compiles ESP-IDF and takes several minutes.** It generates `sdkconfig.*`,
+`CMakeLists.txt`, `managed_components/` and `dependencies.lock` here; they
+are not tracked. After changing a `custom_sdkconfig` option, delete
+`sdkconfig.resonance`, or the old one stays in force. The first
 build downloads the toolchain.
 
 ## Build and flash
@@ -62,6 +70,11 @@ wired.
 | `heap` | Free heap, minimum free heap, largest free block |
 | `scan` | Scan for Wi-Fi networks. In Play mode this starts Wi-Fi beside Bluetooth, which is only for measuring the heap |
 | `radio` | Start the current mode's radio, if it was skipped at start |
+| `mktest` | Write a 5-second test tone to `CUSTOM/test.wav` on the card |
+| `play <path>` | Play a file below `RESONANCE/AUDIO`, e.g. `play CUSTOM/test.wav` |
+| `player` | Player state, position, buffer fill, underruns, last error |
+| `stop` | Stop the player |
+| `put <path> <bytes>` | Receive a file over serial; use `tools/serial_put.py` |
 | `bt` | Bluetooth state and the audio devices found so far |
 | `bt connect <n>` | Connect to found device number n |
 | `audio on` / `audio off` | Start or stop the tone |
@@ -78,6 +91,20 @@ wired.
 
 The device reconnects to the last headset at start. Audio never starts by
 itself.
+
+## Sound files
+
+Copy `.wav` (PCM) and `.mp3` files into `RESONANCE/AUDIO` on the card, in
+its folders (`OCEAN`, `RAIN`, `CUSTOM`, ...) or your own. On the SND tab, tap
+a folder to open it and a file to play it; `UP` goes back, `<` and `>` turn
+pages. The button below shows `PLAY` or `PAUSE` and the background volume;
+`-` and `+` change it. Noise (white, pink, brown) is on the FREQ tab.
+
+For a test file without removing the card:
+
+```bash
+python3 tools/serial_put.py some.mp3 CUSTOM/some.mp3   # about 10 kB per second
+```
 
 ## Operating modes
 

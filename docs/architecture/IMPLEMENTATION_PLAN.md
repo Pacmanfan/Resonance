@@ -2,7 +2,7 @@
 
 **Requirement:** RES-PROC-001, RES-PROC-003, RES-PROC-004, RES-PROC-005 (`docs/requirements/resonance.md`)
 **Decision:** ADR-000204 (Bluetooth-only output, no battery measurement, space first, operating modes)
-**Work:** WORK-000001 (Stage 1), WORK-000002 and WORK-000003 (Stage 2), WORK-000004 (Stage 3)
+**Work:** WORK-000001 (Stage 1), WORK-000002 and WORK-000003 (Stage 2), WORK-000004 (Stage 3), WORK-000007 (Stage 4)
 **Inputs:** `HARDWARE.md`, `GPIO_MAP.md`, `ARCHITECTURE.md`, `LIBRARY_EVALUATION.md`
 
 ## Where the project stands
@@ -12,7 +12,7 @@
 | 1 | Hardware and software audit | Done |
 | 2 | Board foundation | Done on the board: picture, touch and both modes confirmed by the operator; SD card mounts |
 | 3 | Audio prototype over Bluetooth | **Implemented; the tone is verified in host tests, Bluetooth starts and scans on the board. Not yet heard: no audio device has been connected** |
-| 4 | Playback and mixing | Not started |
+| 4 | Playback and mixing | **Implemented. WAV and MP3 decode on the board into the mixer; mixer, limiter, noise, WAV and resampler verified in host tests. Not yet heard. Playlists, shuffle, repeat and previous/next are not built** |
 | 5 | Bluetooth device management | Not started |
 | 6 | Session engine | Not started |
 | 7 | Web interface (Setup mode) | Not started |
@@ -52,6 +52,19 @@ from Stage 8.
 | Bluetooth A2DP on the board | Starts and scans; 84 kB of heap free; image 1.89 MB | Serial report |
 | Scan list, connect, the tone in a headset, clicks, reconnect at start | **Not verified: no audio device was in pairing mode** | Needs a headset |
 
+### Stage 4 — what was verified, and how
+
+| Item | Result | Verified by |
+|---|---|---|
+| WAV header and PCM conversion | Plain, with extra chunks, extensible format; float, compressed, multichannel refused; truncated files refused | Host tests |
+| Sample-rate conversion | Pitch kept within 0.05 Hz from 8, 22.05, 32 and 48 kHz; no step at block boundaries | Host tests |
+| Mixer and limiter | Layers keep their channels; all layers at maximum stay under the ceiling without wrapping; pause fades and keeps the place; an empty buffer does not disturb the tone | Host tests |
+| Noise | White, pink, brown: no offset, in range, the expected colour | Host tests |
+| WAV on the board | A test file written by the device plays into the buffer; a missing file is reported | Serial (`mktest`, `play`, `player`) |
+| MP3 on the board | 128 kbit/s stereo 44.1 kHz, 320 kbit/s 48 kHz and 48 kbit/s mono 22.05 kHz decode into the buffer; 53 kB of heap free meanwhile | Serial |
+| Heap | Reduced libraries: 99 kB free in Play mode, 86 kB with a WAV, 53 kB with an MP3 | Serial |
+| The sound itself, underruns while streaming, the SND and noise controls, track following track | **Not verified: no Bluetooth device was connected, so nothing drained the buffer, and nobody has used the new screens** | Needs a headset and a finger |
+
 ### To check on the bench
 
 1. Put a Bluetooth headset or speaker in pairing mode. On HOME tap the
@@ -65,9 +78,13 @@ from Stage 8.
    and stay silent until audio is turned on.
 4. Colours: cyan, teal and violet on near-black. If red and blue look
    swapped, the colour order is wrong.
-5. With a FAT32 card inserted, the SND tab shows its size, and the card afterwards
+5. With sound files in `RESONANCE/AUDIO` on the card, the SND tab lists
+   them; tapping one plays it under the tone, `PAUSE`/`PLAY` and `-`/`+`
+   work, and the next file follows when one ends. On FREQ the noise button
+   cycles OFF, WHITE, PINK, BROWN.
+6. With a FAT32 card inserted, the Home screen shows its free space, and the card afterwards
    contains the `/RESONANCE` directory tree.
-6. A cold start from a direct USB port, and one with a battery connected,
+7. A cold start from a direct USB port, and one with a battery connected,
    to see whether the power loss at radio start returns (M11).
 
 ## Stage 3 — Audio prototype over Bluetooth
@@ -78,14 +95,10 @@ while a device is connected and streaming.
 
 ## Stage 4 — Playback and mixing
 
-| Step | Deliverable | Test |
-|---|---|---|
-| 4.1 | WAV parser and decoder task with ring buffer | Host tests on header variants; playback of 16-bit 44.1 kHz |
-| 4.2 | Helix MP3 decoding | 128, 192 and 320 kbit/s files; 44.1 and 48 kHz |
-| 4.3 | Sample-rate conversion to 44.1 kHz | Host test: tone in, tone out at the right frequency |
-| 4.4 | Three-layer mixer, noise generator | Host tests: all layers at maximum stay within the ceiling; noise spectra slope |
-| 4.5 | Transport, playlists, folder browsing, shuffle and repeat | On the device |
-| 4.6 | Sustained playback | Two hours with heap and underrun counters logged |
+Implemented (firmware 0.4.0); see the table above. Remaining for this
+stage: the bench checks; previous/next, repeat, shuffle and playlists
+(RES-PLAY-002); crossfade (optional); a two-hour playback run with heap and
+underrun counters logged.
 
 ## Stage 5 — Bluetooth device management
 
@@ -131,7 +144,7 @@ silent.
 |---|---|---|
 | Wired stereo output | On hold | ADR-000204 |
 | Battery status | None | ADR-000204; the board has no measurement circuit |
-| OTA update | USB update | The image does not fit two slots in 4 MB |
+| OTA update | USB update | Decided when the image did not fit two slots; it now would (1.58 MB), to be revisited with the web interface |
 | Web control of live playback; browser mirroring the touchscreen | Web administration only in Setup mode, where no audio runs | 50 kB of heap with both radios up |
 | LVGL-class interface | Own widget layer | Heap and flash |
 
@@ -152,7 +165,7 @@ silent.
 
 | Risk | Likelihood | Effect | Response |
 |---|---|---|---|
-| Play-mode heap too small once the MP3 decoder runs beside A2DP | Medium: 84 kB free while scanning, before a connection and the decoder (about 30 kB) | Dropouts or failure to start | Measure at 3.5; custom library build without BLE and HFP |
+| Play-mode heap too small with a device connected and an MP3 playing | Low to medium: 53 kB free with an MP3 decoding, before a connection | Dropouts or failure to start | Measure at 3.5; custom library build without BLE and HFP |
 | Power loss at radio start recurs | Seen once (16 events) | Device restarts; the guard skips the radio | Direct USB port, battery; M11 |
 | Board differs from schematic V1.0 | Medium | Wrong pins | So far the touch and display pins behave as drawn |
 | Dropouts from SD, display or radio contention | Medium | Audible glitches | Separate SPI buses; ring buffers; priorities; counters |

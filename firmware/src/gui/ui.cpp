@@ -32,6 +32,23 @@ constexpr uint8_t kIdVolumeUp = 22;
 constexpr uint8_t kIdBluetooth = 23;
 constexpr uint8_t kIdBtDevice = 30;      // 30..34: found devices
 constexpr uint8_t kIdBtDisconnect = 40;
+constexpr uint8_t kIdSoundEntry = 50;    // 50..53: listed entries
+constexpr uint8_t kIdSoundUp = 60;
+constexpr uint8_t kIdSoundPrev = 61;
+constexpr uint8_t kIdSoundNext = 62;
+constexpr uint8_t kIdSoundPlay = 63;
+constexpr uint8_t kIdSoundVolDown = 64;
+constexpr uint8_t kIdSoundVolUp = 65;
+constexpr uint8_t kIdNoise = 70;
+constexpr uint8_t kIdNoiseDown = 71;
+constexpr uint8_t kIdNoiseUp = 72;
+
+// Values of player::State.
+constexpr uint8_t kPlayerPlaying = 1;
+constexpr uint8_t kPlayerPaused = 2;
+constexpr uint8_t kPlayerError = 3;
+
+const char* const kNoiseNames[] = {"OFF", "WHITE", "PINK", "BROWN"};
 
 // Values of btaudio::State, which this file does not include.
 constexpr uint8_t kBtScanning = 1;
@@ -58,6 +75,11 @@ void Ui::setStatus(const Status& status) {
     const bool audioChanged = status.audioOn != _status.audioOn || status.volume != _status.volume ||
                               status.btState != _status.btState || status.btCount != _status.btCount ||
                               strcmp(status.btPeer, _status.btPeer) != 0;
+    const bool soundChanged = status.listVersion != _status.listVersion || status.playerState != _status.playerState ||
+                              status.backgroundVolume != _status.backgroundVolume ||
+                              strcmp(status.trackName, _status.trackName) != 0;
+    const bool positionChanged = status.trackPositionS != _status.trackPositionS;
+    const bool noiseChanged = status.noiseType != _status.noiseType || status.noiseVolume != _status.noiseVolume;
     const bool radioChanged = status.bluetoothRunning != _status.bluetoothRunning ||
                               status.wifiState != _status.wifiState || status.radioBlocked != _status.radioBlocked ||
                               strcmp(status.address, _status.address) != 0 || status.network != _status.network;
@@ -65,7 +87,9 @@ void Ui::setStatus(const Status& status) {
     if (_dimmed) return;
     if (_tab == Tab::Home && audioChanged) drawContent();
     else if (_tab == Tab::Home && !_btScreen && (sdChanged || radioChanged)) drawHomeStatus();
-    else if (_tab == Tab::Sound && sdChanged) drawContent();
+    else if (_tab == Tab::Sound && (sdChanged || soundChanged)) drawContent();
+    else if (_tab == Tab::Sound && positionChanged) drawSoundStatus();
+    else if (_tab == Tab::Frequency && noiseChanged) drawContent();
     // The free-memory figure on Settings is as of opening the screen; it
     // jitters, and following it would bring the flicker back.
     else if (_tab == Tab::Settings && radioChanged) drawSettingsValues();
@@ -141,7 +165,10 @@ void Ui::drawButton(const Button& b, bool pressed) {
     _lcd.fillRoundRect(b.x, b.y, b.w, b.h, 6, fill);
     _lcd.drawRoundRect(b.x, b.y, b.w, b.h, 6, kOutline);
     _lcd.drawRoundRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2, 5, kOutline);
-    centered(b.label, b.x + b.w / 2, b.y + b.h / 2, pressed ? kBackground : kText, fill, kFontText);
+    // A label too wide for its button is drawn in the small font.
+    _lcd.setFont(kFontText);
+    const lgfx::IFont* font = _lcd.textWidth(b.label) > b.w - 8 ? kFontSmall : kFontText;
+    centered(b.label, b.x + b.w / 2, b.y + b.h / 2, pressed ? kBackground : kText, fill, font);
 }
 
 void Ui::drawFrame() {
@@ -298,38 +325,83 @@ void Ui::drawBluetooth() {
 void Ui::drawFrequency() {
     static const char* const kPrimaryLabels[] = {"-10", "-1", "+1", "+10"};
     static const char* const kBeatLabels[] = {"-1", "-0.1", "+0.1", "+1"};
-    label("Primary (left ear)", 12, kContentTop + 8, kTextDim, kFontSmall);
-    label("Binaural beat", 12, kContentTop + 118, kTextDim, kFontSmall);
+    label("Primary (left ear)", 12, kContentTop + 4, kTextDim, kFontSmall);
+    label("Binaural beat", 12, kContentTop + 88, kTextDim, kFontSmall);
     for (uint8_t i = 0; i < 4; ++i) {
         const int16_t x = 8 + i * 57;
-        addButton(x, kContentTop + 62, 53, 40, kPrimaryLabels[i], i);
-        addButton(x, kContentTop + 172, 53, 40, kBeatLabels[i], static_cast<uint8_t>(4 + i));
+        addButton(x, kContentTop + 48, 53, 34, kPrimaryLabels[i], i);
+        addButton(x, kContentTop + 132, 53, 34, kBeatLabels[i], static_cast<uint8_t>(4 + i));
+    }
+    if (_settings.mode == rc::Mode::Play) {
+        label("Noise", 12, kContentTop + 174, kTextDim, kFontSmall);
+        snprintf(_noiseLabel, sizeof(_noiseLabel), "%s %u%%", kNoiseNames[_status.noiseType & 3],
+                 static_cast<unsigned>(_status.noiseVolume));
+        addButton(8, kContentTop + 192, 46, 34, "-", kIdNoiseDown);
+        addButton(58, kContentTop + 192, 124, 34, _noiseLabel, kIdNoise);
+        addButton(186, kContentTop + 192, 46, 34, "+", kIdNoiseUp);
     }
     drawFrequencyValues();
 }
 
 void Ui::drawFrequencyValues() {
     char text[24];
-    _lcd.fillRect(0, kContentTop + 22, kScreenW, 36, kBackground);
-    _lcd.fillRect(0, kContentTop + 132, kScreenW, 36, kBackground);
+    _lcd.fillRect(0, kContentTop + 18, kScreenW, 28, kBackground);
+    _lcd.fillRect(0, kContentTop + 102, kScreenW, 28, kBackground);
     snprintf(text, sizeof(text), "%.1f Hz", static_cast<double>(_settings.primaryHz));
-    centered(text, kScreenW / 2, kContentTop + 40, kCyan, kBackground, kFontValue);
+    centered(text, kScreenW / 2, kContentTop + 32, kCyan, kBackground, kFontValue);
     snprintf(text, sizeof(text), "%.1f Hz", static_cast<double>(_settings.beatHz));
-    centered(text, kScreenW / 2, kContentTop + 150, kViolet, kBackground, kFontValue);
+    centered(text, kScreenW / 2, kContentTop + 116, kViolet, kBackground, kFontValue);
 }
 
 void Ui::drawSound() {
-    char text[40];
-    if (_status.sdMounted) {
-        label("microSD card", 12, kContentTop + 12, kTextDim, kFontSmall);
-        snprintf(text, sizeof(text), "%lu MB free of %lu MB", static_cast<unsigned long>(_status.sdFreeMb),
-                 static_cast<unsigned long>(_status.sdTotalMb));
-        label(text, 12, kContentTop + 30, kText, kFontSmall);
-    } else {
+    if (_settings.mode != rc::Mode::Play) {
+        label("Sound plays in PLAY mode.", 12, kContentTop + 12, kTextDim, kFontSmall);
+        return;
+    }
+    if (!_status.sdMounted) {
         label("No microSD card", 12, kContentTop + 12, kWarning, kFontText);
         label("Insert a card for sound files.", 12, kContentTop + 38, kTextDim, kFontSmall);
+        return;
     }
-    label("Playback is not built yet.", 12, kContentTop + 76, kTextDim, kFontSmall);
+    // The folder, then up to four entries of it.
+    label(_status.soundDir, 8, kContentTop + 3, kTeal, kFontSmall);
+    if (_status.soundCount == 0) {
+        label("No sound files here.", 12, kContentTop + 28, kTextDim, kFontSmall);
+        label("Copy .wav or .mp3 files to", 12, kContentTop + 46, kTextDim, kFontSmall);
+        label("RESONANCE/AUDIO on the card.", 12, kContentTop + 62, kTextDim, kFontSmall);
+    }
+    for (uint8_t i = 0; i < _status.soundCount && i < 4; ++i) {
+        snprintf(_entryLabels[i], sizeof(_entryLabels[i]), "%s%s", _status.soundIsDir[i] ? "> " : "",
+                 _status.soundEntries[i]);
+        addButton(4, static_cast<int16_t>(kContentTop + 19 + i * 35), 232, 32, _entryLabels[i],
+                  static_cast<uint8_t>(kIdSoundEntry + i));
+    }
+    // Navigation: parent folder, previous page, next page.
+    const int16_t navY = kContentTop + 161;
+    if (!_status.soundAtRoot) addButton(4, navY, 74, 30, "UP", kIdSoundUp);
+    if (_status.soundHasPrev) addButton(83, navY, 74, 30, "<", kIdSoundPrev);
+    if (_status.soundHasMore) addButton(162, navY, 74, 30, ">", kIdSoundNext);
+    // Transport and the background layer's volume.
+    const char* action = _status.playerState == kPlayerPlaying ? "PAUSE" : "PLAY";
+    snprintf(_playLabel, sizeof(_playLabel), "%s %u%%", action, static_cast<unsigned>(_status.backgroundVolume));
+    const int16_t playY = kContentTop + 194;
+    addButton(4, playY, 46, 30, "-", kIdSoundVolDown);
+    addButton(54, playY, 132, 30, _playLabel, kIdSoundPlay);
+    addButton(190, playY, 46, 30, "+", kIdSoundVolUp);
+    drawSoundStatus();
+}
+
+void Ui::drawSoundStatus() {
+    char text[40];
+    const int16_t y = kContentTop + 226;
+    _lcd.fillRect(0, y, kScreenW, kContentBottom - y, kBackground);
+    if (_status.playerState == kPlayerError) {
+        label("Cannot play this file", 8, y, kWarning, kFontSmall);
+    } else if (_status.trackName[0] != '\0') {
+        snprintf(text, sizeof(text), "%u:%02u %s", static_cast<unsigned>(_status.trackPositionS / 60),
+                 static_cast<unsigned>(_status.trackPositionS % 60), _status.trackName);
+        label(text, 8, y, _status.playerState == kPlayerPaused ? kTextDim : kText, kFontSmall);
+    }
 }
 
 void Ui::drawSessions() {
@@ -444,6 +516,27 @@ void Ui::onButton(uint8_t id) {
         _pending = Event::BluetoothConnect;
     } else if (id == kIdBtDisconnect) {
         _pending = Event::BluetoothDisconnect;
+    } else if (id >= kIdSoundEntry && id < kIdSoundEntry + 4) {
+        _eventArg = static_cast<uint8_t>(id - kIdSoundEntry);
+        _pending = Event::SoundOpen;
+    } else if (id == kIdSoundUp) {
+        _pending = Event::SoundUp;
+    } else if (id == kIdSoundPrev) {
+        _pending = Event::SoundPagePrev;
+    } else if (id == kIdSoundNext) {
+        _pending = Event::SoundPageNext;
+    } else if (id == kIdSoundPlay) {
+        _pending = Event::SoundPlayPause;
+    } else if (id == kIdSoundVolDown) {
+        _pending = Event::SoundVolumeDown;
+    } else if (id == kIdSoundVolUp) {
+        _pending = Event::SoundVolumeUp;
+    } else if (id == kIdNoise) {
+        _pending = Event::NoiseCycle;
+    } else if (id == kIdNoiseDown) {
+        _pending = Event::NoiseVolumeDown;
+    } else if (id == kIdNoiseUp) {
+        _pending = Event::NoiseVolumeUp;
     }
 }
 
