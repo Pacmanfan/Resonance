@@ -171,6 +171,7 @@ Event Ui::poll() {
         }
     }
     _touching = down;
+    animateHome();
 
     const uint32_t timeoutMs = static_cast<uint32_t>(_settings.screenTimeoutS) * 1000u;
     if (!_dimmed && timeoutMs != 0 && millis() - _lastActivityMs > timeoutMs) {
@@ -293,12 +294,13 @@ void Ui::drawContent() {
 void Ui::drawHome() {
     char text[40];
     const int16_t cx = kScreenW / 2, cy = kContentTop + 62;
-    // Concentric rings: the still form of the frequency visualisation.
-    _lcd.drawCircle(cx, cy, 54, kViolet);
-    _lcd.drawCircle(cx, cy, 53, kViolet);
-    _lcd.drawCircle(cx, cy, 44, kTeal);
-    _lcd.drawCircle(cx, cy, 43, kTeal);
-    _lcd.drawCircle(cx, cy, 34, kCyan);
+    // Concentric rings. They rest while the audio is off and pulse at the
+    // beat frequency while it is on (animateHome).
+    if (!_status.audioOn) {
+        _pulse.reset();
+        for (uint8_t i = 0; i < rc::kPulseRings; ++i) _ringOffset[i] = 0;
+    }
+    for (uint8_t i = 0; i < rc::kPulseRings; ++i) drawRing(i, _ringOffset[i], false);
     snprintf(text, sizeof(text), "%.1f", static_cast<double>(_settings.beatHz));
     centered(text, cx, cy - 4, kText, kBackground, kFontValue);
     centered("Hz beat", cx, cy + 18, kTextDim, kBackground, kFontSmall);
@@ -332,6 +334,40 @@ void Ui::drawHome() {
         label("Switch mode under SET.", 12, kContentTop + 166, kTextDim, kFontSmall);
     }
     drawHomeStatus();
+}
+
+// One ring of the home screen, `offset` pixels outside its resting radius;
+// with `erase`, in the background colour. The resting radii leave room for
+// kPulseTravel between the rings, the number inside and the line below.
+void Ui::drawRing(uint8_t ring, uint8_t offset, bool erase) {
+    static const int16_t kRadius[rc::kPulseRings] = {34, 42, 50};
+    static const uint8_t kWidth[rc::kPulseRings] = {1, 2, 2};
+    static const uint16_t kColor[rc::kPulseRings] = {kCyan, kTeal, kViolet};
+    const int16_t cx = kScreenW / 2, cy = kContentTop + 62;
+    for (uint8_t w = 0; w < kWidth[ring]; ++w) {
+        _lcd.drawCircle(cx, cy, kRadius[ring] + offset + w, erase ? kBackground : kColor[ring]);
+    }
+}
+
+// Moves the rings to where the pulse stands now. Nothing is buffered: a
+// ring that moved is erased where it was and drawn where it is, and a ring
+// that did not move is left alone, so most passes draw nothing at all.
+void Ui::animateHome() {
+    if (_dimmed || setupMode() || _tab != Tab::Home || _btScreen || !_status.audioOn) return;
+    if (!_pulse.advance(millis(), _settings.beatHz)) return;
+    bool open = false;
+    for (uint8_t i = 0; i < rc::kPulseRings; ++i) {
+        const uint8_t o = _pulse.offset(i);
+        if (o == _ringOffset[i]) continue;
+        if (!open) {
+            _lcd.startWrite();  // one bus transaction for the whole frame
+            open = true;
+        }
+        drawRing(i, _ringOffset[i], true);
+        drawRing(i, o, false);
+        _ringOffset[i] = o;
+    }
+    if (open) _lcd.endWrite();
 }
 
 void Ui::drawHomeStatus() {

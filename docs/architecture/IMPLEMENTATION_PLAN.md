@@ -17,7 +17,7 @@
 | 5 | Bluetooth device management | Not started |
 | 6 | Session engine | **Core implemented: timers, four factory programs, sweeps, pause, stop, end fades; verified in host tests and started by the operator on the device. Not built: sessions made by the user, their storage on the card, the editor, session history** |
 | 7 | Web interface (Setup mode) | **First part built (0.7.0): login, status, sound library, upload, delete, folders, Wi-Fi, restart. The server starts on the device; not yet used from a browser. Not built: renaming, playlists, sessions and presets, settings, backup** |
-| 8 | Product refinement | Not started |
+| 8 | Product refinement | Started (0.8.0): the Home rings pulse at the beat frequency while the audio is on, drawn without a buffer; display clock raised from 24 to 40 MHz. Pulse logic verified in host tests; the look and the picture at 40 MHz are **not yet confirmed by the operator**. Reduced-animation setting not built |
 
 The stages of the request are kept, with two changes from ADR-000204: the
 audio prototype of Stage 3 plays over Bluetooth instead of an I2S DAC, so

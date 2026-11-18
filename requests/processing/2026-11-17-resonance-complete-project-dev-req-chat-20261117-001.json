@@ -419,7 +419,8 @@
       "WORK-000024",
       "WORK-000025",
       "WORK-000026",
-      "WORK-000027"
+      "WORK-000027",
+      "WORK-000028"
     ]
   },
   "follow_ups": [
@@ -576,6 +577,11 @@
     {
       "timestamp": "2026-11-18T06:22:26.540999+00:00",
       "text": "I like the main screen, and i WOULD like to see it animated.Right now, the refresh rate seems very low. audit and report about that.",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T16:01:29.649425+00:00",
+      "text": "go ahead with steps 1 and 2, pulse at the beat frequency (display clock to 40 MHz; animate the home-screen rings without a buffer)",
       "attachments": []
     }
   ]

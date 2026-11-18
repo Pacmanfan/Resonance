@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include "display.h"
+#include "rc_pulse.h"
 #include "rc_repeat.h"
 #include "rc_settings.h"
 
@@ -127,6 +128,8 @@ private:
     void drawContent();
     void drawHome();
     void drawHomeStatus();
+    void drawRing(uint8_t ring, uint8_t offset, bool erase);
+    void animateHome();
     void drawBluetooth();
     void drawFrequency();
     void drawFrequencyValues();
@@ -161,6 +164,8 @@ private:
     bool _modeArmed = false;
     rc::HoldRepeat _repeat;        // tap-and-hold on an adjustment button
     uint8_t _heldId = 0xFF;        // the button being held; 0xFF = none
+    rc::Pulse _pulse;              // the home-screen rings (rc_pulse.h)
+    uint8_t _ringOffset[rc::kPulseRings] = {};  // where each ring is drawn now
     bool _btScreen = false;  // the Bluetooth device list is open over Home
     uint8_t _eventArg = 0;
     char _audioLabel[12] = "";

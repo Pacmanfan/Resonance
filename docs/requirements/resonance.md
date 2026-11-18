@@ -430,6 +430,13 @@ Home SHALL have a prominent audio on/off control (§14.2); see RES-CFG-003.
 Visualisations SHALL NOT affect audio timing, and a dimmed or
 reduced-animation mode SHALL be available (§16).
 
+On Home, while the audio is on, the rings SHALL pulse at the beat frequency;
+a beat faster than 5 Hz is shown at that frequency halved until it is 5 Hz
+or slower, because the screen cannot draw a faster motion truthfully. The
+rings rest while the audio is off, and nothing is animated while the screen
+is dimmed, on another screen, or in Setup mode. A reduced-animation setting
+is not built yet.
+
 ### RES-GUI-005 — Responsiveness
 
 Touch response SHALL remain acceptable during playback (§17).

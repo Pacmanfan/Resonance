@@ -110,3 +110,13 @@ measured again first.
 - Whether 40 or 80 MHz gives a clean picture on this panel.
 - Frame times of a real animation: only its building blocks were timed.
 - The effect of animation on battery life.
+
+## What was done afterwards
+
+The operator chose options A and C with a pulse at the beat frequency
+(WORK-000028, firmware 0.8.0): the display clock is 40 MHz, and the Home
+rings are erased and redrawn in place when they move (`rc_pulse.h`,
+`Ui::animateHome`). With the tone streaming to a headset and the rings
+moving, the longest gap between audio requests over five seconds was 22 ms
+with no underrun. The picture at 40 MHz and the look of the pulse are for
+the operator to judge.

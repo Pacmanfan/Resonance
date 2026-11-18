@@ -21,9 +21,10 @@ Display::Display() {
         auto cfg = _bus.config();
         cfg.spi_host = HSPI_HOST;
         cfg.spi_mode = 0;
-        // 24 MHz is what the board-definition files use; a higher clock is
-        // not adopted before it has been tested on the panel.
-        cfg.freq_write = 24000000;
+        // The board-definition files use 24 MHz. 40 MHz halves every
+        // drawing time (docs/audits/display-refresh-audit-2026-11-18.md);
+        // go back to 24 MHz if the picture shows noise or wrong colours.
+        cfg.freq_write = 40000000;
         cfg.freq_read = 8000000;
         cfg.spi_3wire = false;
         cfg.use_lock = true;

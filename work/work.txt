@@ -29,3 +29,4 @@ WORK-000024 | completed | Resonance: single-screen interface in Setup mode | com
 WORK-000025 | completed | Resonance: trance and astral session programs | completed/WORK-000025-resonance-trance-and-astral-session-prog.md | RES-SESS-002, RES-PROC-006 | VER-000026
 WORK-000026 | completed | Resonance Stage 7 (first part): web interface - status, sound files, upload, Wi-Fi | completed/WORK-000026-resonance-stage-7-first-part-web-interfa.md | RES-WEB-001, RES-WEB-004, RES-WEB-005, RES-WEB-006, RES-NET-002, RES-NET-004 | VER-000027
 WORK-000027 | completed | Resonance: display refresh audit | completed/WORK-000027-resonance-display-refresh-audit.md | RES-GUI-004, RES-GUI-005 | VER-000028
+WORK-000028 | active | Home-screen rings pulse at the beat frequency; display clock 40 MHz | active/WORK-000028-home-screen-rings-pulse-at-the-beat-freq.md | RES-GUI-004, RES-GUI-005 | pending
