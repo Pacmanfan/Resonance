@@ -136,10 +136,11 @@ the fade.
 | Play | Bluetooth | Listening |
 | Setup | Wi-Fi | Administration from a browser (not built yet) |
 
-Change the mode on the Settings screen (tap the button twice) or with the
-serial command. In Setup mode without a stored network the device opens the
-access point `Resonance-Setup`; its password and address are on the
-Settings screen.
+Enter Setup from the SET tab (tap `Restart in SETUP` twice) and leave it
+with `Back to PLAY` (one tap), or use the serial command. Setup mode shows
+one screen only: without a stored network the device opens the access point
+`Resonance-Setup`, and the screen gives its password and the address to
+open in a browser.
 
 ## Troubleshooting
 

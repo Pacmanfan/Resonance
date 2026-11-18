@@ -27,6 +27,7 @@ constexpr uint8_t kDimPercent = 5;
 constexpr uint8_t kIdBrightnessDown = 10;
 constexpr uint8_t kIdBrightnessUp = 11;
 constexpr uint8_t kIdMode = 12;
+constexpr uint8_t kIdBackToPlay = 13;
 constexpr uint8_t kIdAudio = 20;
 constexpr uint8_t kIdVolumeDown = 21;
 constexpr uint8_t kIdVolumeUp = 22;
@@ -111,6 +112,10 @@ void Ui::setStatus(const Status& status) {
                               strcmp(status.address, _status.address) != 0 || status.network != _status.network;
     _status = status;
     if (_dimmed) return;
+    if (setupMode()) {
+        if (sdChanged || radioChanged) drawContent();
+        return;
+    }
     if (_tab == Tab::Home && audioChanged) drawContent();
     else if (_tab == Tab::Home && !_btScreen && (sdChanged || radioChanged)) drawHomeStatus();
     else if (_tab == Tab::Sound && (sdChanged || soundChanged)) drawContent();
@@ -232,15 +237,13 @@ void Ui::drawFrame() {
 void Ui::drawHeader() {
     _lcd.fillRect(0, 0, kScreenW, kHeaderH, kBackground);
     // Every screen's title is centred, in the same font.
-    centered(_btScreen ? "BLUETOOTH" : kTabTitles[static_cast<uint8_t>(_tab)], kScreenW / 2, kHeaderH / 2 - 1, kCyan,
-             kBackground, kFontTitle);
-    // Play mode is the normal state and is not marked. Setup mode is: in it
-    // nothing can play, and the user should see why at a glance.
-    if (_settings.mode == rc::Mode::Setup) {
-        _lcd.setFont(kFontSmall);
-        _lcd.setTextDatum(textdatum_t::bottom_right);
-        _lcd.setTextColor(kWarning, kBackground);
-        _lcd.drawString("SETUP", kScreenW - 4, kHeaderH - 3);
+    // Setup mode has one screen of its own, titled in the warning colour:
+    // nothing can play in it, and the user should see that at a glance.
+    if (setupMode()) {
+        centered("SETUP", kScreenW / 2, kHeaderH / 2 - 1, kWarning, kBackground, kFontTitle);
+    } else {
+        centered(_btScreen ? "BLUETOOTH" : kTabTitles[static_cast<uint8_t>(_tab)], kScreenW / 2, kHeaderH / 2 - 1,
+                 kCyan, kBackground, kFontTitle);
     }
     _lcd.fillRect(0, kHeaderH - 2, kScreenW, 2, kOutline);
 }
@@ -248,6 +251,7 @@ void Ui::drawHeader() {
 void Ui::drawTabBar() {
     // Each tab is drawn as a button: a filled, outlined rounded rectangle.
     // The open tab is filled with the highlight colour and dark text.
+    if (setupMode()) return;  // no tabs in Setup mode: its one screen uses the whole height
     const int16_t top = kContentBottom;
     _lcd.fillRect(0, top, kScreenW, kTabBarH, kBackground);
     for (uint8_t i = 0; i < static_cast<uint8_t>(Tab::Count); ++i) {
@@ -266,6 +270,11 @@ void Ui::drawTabBar() {
 
 void Ui::drawContent() {
     _buttonCount = 0;
+    if (setupMode()) {
+        _lcd.fillRect(0, kContentTop, kScreenW, kScreenH - kContentTop, kBackground);
+        drawSetup();
+        return;
+    }
     _lcd.fillRect(0, kContentTop, kScreenW, kContentBottom - kContentTop, kBackground);
     switch (_tab) {
         case Tab::Home:
@@ -549,14 +558,54 @@ void Ui::drawSessionStatus() {
     centered(text, kScreenW / 2, kContentTop + 124, kViolet, kBackground, kFontSmall);
 }
 
+// The whole interface of Setup mode: how to reach the device from a browser,
+// the state of the card, brightness, and the way back. Nothing that belongs
+// to listening is shown, because nothing can play in this mode.
+void Ui::drawSetup() {
+    char text[48];
+    int16_t y = kContentTop + 6;
+    const bool accessPoint = _status.wifiState == 3;
+    const bool station = _status.wifiState == 2;
+    if (accessPoint || station) {
+        label(accessPoint ? "1. Join this Wi-Fi network" : "Connected to Wi-Fi network", 8, y, kTextDim, kFontSmall);
+        label(_status.network, 8, y + 16, kText, kFontText);
+        y += 42;
+        if (accessPoint) {
+            label("Password", 8, y, kTextDim, kFontSmall);
+            label(_settings.apPass, 8, y + 16, kText, kFontText);
+            y += 42;
+        }
+        label(accessPoint ? "2. Open in a browser" : "Open in a browser", 8, y, kTextDim, kFontSmall);
+        snprintf(text, sizeof(text), "http://%s", _status.address);
+        label(text, 8, y + 16, kCyan, kFontText);
+        label("(web page not built yet)", 8, y + 38, kWarning, kFontSmall);
+    } else {
+        label("Wi-Fi is starting...", 8, y, kTextDim, kFontSmall);
+    }
+
+    y = kContentTop + 150;
+    if (_status.sdMounted) snprintf(text, sizeof(text), "SD card: %lu MB free", static_cast<unsigned long>(_status.sdFreeMb));
+    else snprintf(text, sizeof(text), "SD card: none");
+    label(text, 8, y, _status.sdMounted ? kTextDim : kWarning, kFontSmall);
+    snprintf(text, sizeof(text), "Firmware %s", RESONANCE_VERSION);
+    label(text, 8, y + 15, kTextDim, kFontSmall);
+
+    y = kContentTop + 186;
+    addButton(8, y, 56, 38, "-", kIdBrightnessDown);
+    addButton(176, y, 56, 38, "+", kIdBrightnessUp);
+    snprintf(text, sizeof(text), "Brightness %u%%", static_cast<unsigned>(_settings.brightness));
+    centered(text, kScreenW / 2, y + 19, kText, kBackground, kFontSmall);
+
+    addButton(8, kScreenH - 54, 224, 46, "Back to PLAY", kIdBackToPlay);
+}
+
 void Ui::drawSettings() {
     label("Brightness", 12, kContentTop + 10, kTextDim, kFontSmall);
     addButton(8, kContentTop + 26, 56, 38, "-", kIdBrightnessDown);
     addButton(176, kContentTop + 26, 56, 38, "+", kIdBrightnessUp);
 
     label("Operating mode", 12, kContentTop + 78, kTextDim, kFontSmall);
-    const bool setup = _settings.mode == rc::Mode::Setup;
-    const char* text = _modeArmed ? "Tap again to restart" : (setup ? "Restart in PLAY" : "Restart in SETUP");
+    const char* text = _modeArmed ? "Tap again to restart" : "Restart in SETUP";
     addButton(8, kContentTop + 94, 224, 38, text, kIdMode);
     drawSettingsValues();
 }
@@ -568,19 +617,7 @@ void Ui::drawSettingsValues() {
 
     int16_t y = kContentTop + 142;
     _lcd.fillRect(0, y, kScreenW, kContentBottom - y, kBackground);
-    if (_settings.mode == rc::Mode::Setup) {
-        snprintf(text, sizeof(text), "Network: %s", _status.network);
-        label(text, 12, y, kText, kFontSmall);
-        if (_status.wifiState == 3) {  // access point: show how to join it
-            snprintf(text, sizeof(text), "Password: %s", _settings.apPass);
-            label(text, 12, y + 15, kText, kFontSmall);
-        }
-        snprintf(text, sizeof(text), "Address: %s", _status.address);
-        label(text, 12, y + 30, kText, kFontSmall);
-        label("(web page not built yet)", 12, y + 45, kWarning, kFontSmall);
-    } else {
-        label("Wi-Fi is off in PLAY mode.", 12, y, kTextDim, kFontSmall);
-    }
+    label("Wi-Fi is off in PLAY mode.", 12, y, kTextDim, kFontSmall);
     snprintf(text, sizeof(text), "Firmware %s", RESONANCE_VERSION);
     label(text, 12, y + 62, kTextDim, kFontSmall);
     snprintf(text, sizeof(text), "Free memory %lu kB", static_cast<unsigned long>(_status.freeHeap / 1024));
@@ -590,7 +627,7 @@ void Ui::drawSettingsValues() {
 // ---- input -----------------------------------------------------------------
 
 void Ui::onPress(int16_t x, int16_t y) {
-    if (y >= kContentBottom) {
+    if (y >= kContentBottom && !setupMode()) {
         uint8_t index = static_cast<uint8_t>(x / kTabW);
         if (index >= static_cast<uint8_t>(Tab::Count)) index = static_cast<uint8_t>(Tab::Count) - 1;
         selectTab(static_cast<Tab>(index));
@@ -665,7 +702,11 @@ void Ui::onButton(uint8_t id) {
         _settings.brightness = static_cast<uint8_t>(value);
         _settingsDirty = true;
         _lcd.setBacklightPercent(_settings.brightness);
-        drawSettingsValues();
+        if (setupMode()) drawContent();
+        else drawSettingsValues();
+    } else if (id == kIdBackToPlay) {
+        // One tap: leaving Setup interrupts nothing.
+        _pending = Event::SwitchMode;
     } else if (id == kIdMode) {
         if (_modeArmed) {
             _pending = Event::SwitchMode;

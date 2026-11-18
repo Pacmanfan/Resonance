@@ -132,6 +132,8 @@ private:
     void drawSessions();
     void drawSessionStatus();
     void drawSettings();
+    void drawSetup();
+    bool setupMode() const { return _settings.mode == rc::Mode::Setup; }
     void drawSettingsValues();
     void addButton(int16_t x, int16_t y, int16_t w, int16_t h, const char* label, uint8_t id);
     void drawButton(const Button& b, bool pressed);

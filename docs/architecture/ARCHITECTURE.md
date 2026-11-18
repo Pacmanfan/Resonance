@@ -39,8 +39,13 @@ running, 50 kB remain before any audio code exists
   command `mode play` / `mode setup`. A restart takes about two seconds.
 - Stopping a radio at run time is not used: ESP-IDF releases Bluetooth
   memory one way only, and start/stop cycles fragment the heap.
-- Play mode is the normal state and is not marked on the screen; Setup mode
-  shows `SETUP` in the header of every screen.
+- Play mode is the normal state and is not marked on the screen. Setup mode
+  has a single screen of its own, titled `SETUP`, with no tab bar: the
+  network to join and its password (when the device is its own access
+  point), the address to open in a browser, the card's free space, the
+  firmware version, brightness, and `Back to PLAY` (one tap, since leaving
+  Setup interrupts nothing; entering it from Play takes two). Nothing that
+  belongs to listening is shown there.
 - Consequence: in Setup mode there is no audio, so the web interface manages
   files, presets, sessions and settings but cannot control live playback.
   This limits RES-WEB-003 and is reported as RES-PROC-005 requires.
