@@ -382,9 +382,13 @@ void Ui::drawFrequency() {
         addButton(x, kContentTop + 132, 53, 34, kBeatLabels[i], static_cast<uint8_t>(4 + i));
     }
     if (_settings.mode == rc::Mode::Play) {
-        label("Noise", 12, kContentTop + 174, kTextDim, kFontSmall);
-        snprintf(_noiseLabel, sizeof(_noiseLabel), "%s %u%%", kNoiseNames[_status.noiseType & 3],
-                 static_cast<unsigned>(_status.noiseVolume));
+        // The volume is shown beside the word, not inside the button: with it
+        // the longer type names did not fit and were drawn in a smaller font
+        // than the others.
+        char noiseLine[20];
+        snprintf(noiseLine, sizeof(noiseLine), "Noise  %u%%", static_cast<unsigned>(_status.noiseVolume));
+        label(noiseLine, 12, kContentTop + 174, kTextDim, kFontSmall);
+        snprintf(_noiseLabel, sizeof(_noiseLabel), "%s", kNoiseNames[_status.noiseType & 3]);
         addButton(8, kContentTop + 192, 46, 34, "-", kIdNoiseDown);
         addButton(58, kContentTop + 192, 124, 34, _noiseLabel, kIdNoise);
         addButton(186, kContentTop + 192, 46, 34, "+", kIdNoiseUp);

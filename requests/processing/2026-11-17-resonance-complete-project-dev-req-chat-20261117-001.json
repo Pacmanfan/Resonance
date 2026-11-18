@@ -406,7 +406,8 @@
       "WORK-000011",
       "WORK-000012",
       "WORK-000013",
-      "WORK-000014"
+      "WORK-000014",
+      "WORK-000015"
     ]
   },
   "follow_ups": [
@@ -488,6 +489,11 @@
     {
       "timestamp": "2026-11-18T04:57:20.451605+00:00",
       "text": "the +0.1 button looks right now. put some  '<' '>' buttons next to the primary selection.",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T05:04:17.492712+00:00",
+      "text": "So, I'm looking at the 3d models - at least the pngs - and I have questions and comments. Under Noise - the 'Brown' is a smaller font",
       "attachments": []
     }
   ]
