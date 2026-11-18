@@ -423,7 +423,8 @@
       "WORK-000028",
       "WORK-000029",
       "WORK-000030",
-      "WORK-000031"
+      "WORK-000031",
+      "WORK-000032"
     ]
   },
   "follow_ups": [
@@ -605,6 +606,11 @@
     {
       "timestamp": "2026-11-18T21:04:53.764010+00:00",
       "text": "Case version 2: the glass of the screen protrudes into the front panel so that it sits flush with the case; shell 0.5 mm thinner; holes sized for inserts; a 2-piece design that snap-fits together instead of screws; remove the inner divider between the battery and the electronics; button 0.5 mm longer; slight rounding on the bottom and top edges; renderings and an exploded view when done.",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T21:17:28.533325+00:00",
+      "text": "I measured the glass, and I'm getting 55x77.6x4, make a v3",
       "attachments": []
     }
   ]

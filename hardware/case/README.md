@@ -1,14 +1,31 @@
 # Resonance enclosure
 
 **Requirement:** RES-HW-007 (`docs/requirements/resonance.md`)
-**Sources:** `resonance_case_v2.scad` (the case), `resonance_case.scad` (version 1), `esp32_2432s032.scad` (reference
+**Sources:** `resonance_case_v3.scad` (the case), `resonance_case_v2.scad`, `resonance_case.scad` (earlier versions), `esp32_2432s032.scad` (reference
 model of the board), `battery.scad` (reference model of the cell). OpenSCAD,
 parametric.
-**Status:** version 2 (`resonance_case_v2.scad`) is the current design; it
+**Status:** version 3 (`resonance_case_v3.scad`) is the current design; it
 renders as valid solids and **has not been printed**. Version 1
 (`resonance_case.scad`) was printed once on 2026-11-18: its USB-C, microSD
 and button openings lined up with the board. The sections from "How it goes
 together" to "Hardware" and "The power button" below describe version 1.
+
+## Version 3
+
+`resonance_case_v3.scad`: version 2 with the window cut to the glass as the
+operator measured it on 2026-11-18, **77.6 × 55.0 mm, 4.0 mm above the
+board** (version 2 had 76.6 × 54.4 from the drawing). The glass is as wide
+as the board, so the window runs on to the wall on the microSD side: the
+bezel there is the 1.5 mm wall alone. Everything else is as in version 2,
+described below. Not printed.
+
+Still not measured: where the glass sits along the board's length. It is
+centred on the outline in the drawing, with 0.4 mm of room at each end; if
+the glass does not enter the window, change `glass_x`.
+
+![Version 3, front](v3_front.png)
+![Version 3, exploded](v3_exploded.png)
+![Version 3, front shell from inside](v3_front_inside.png)
 
 ## Version 2
 

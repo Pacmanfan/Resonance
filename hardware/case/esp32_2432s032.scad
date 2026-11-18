@@ -33,7 +33,7 @@ brd_t = 1.6;             // [E] usual thickness; one case's ledge implies it
 brd_hole_inset = 3.5;    // [D]
 brd_hole_d = 3.2;        // [D]
 brd_corner_r = 3.5;      // [E] rounded corners, radius not dimensioned
-brd_lcd_h = 4.0;         // [C] upper bound: screen + touch glass above the PCB
+brd_lcd_h = 4.0;         // measured: screen + touch glass above the PCB
 brd_rear_h = 4.0;        // [C] upper bound: tallest part on the back
 
 // Heights [E]
@@ -68,8 +68,10 @@ module board_pcb() {
 }
 
 module board_front() {
-    // Display module with its touch glass. Outline [P]; height [C] bound.
-    at_front(8.3, 84.9, 0.3, 54.7, brd_lcd_h, "black");
+    // Display module with its touch glass. Size measured by the operator
+    // (2026-11-18): 77.6 x 55.0, 4.0 above the board. Position along the
+    // length [P], centred on the outline in the drawing.
+    at_front(7.8, 85.4, 0.0, 55.0, brd_lcd_h, "black");
     // Lit area 64.8 x 48.6 (specification); position [P], +-0.5 along the length.
     color("lightskyblue") translate([brd_l - 76.0, brd_w - 51.9, -brd_lcd_h - 0.05]) cube([64.8 - 1.0, 48.4, 0.05]);
     // RGB LED (5050) and light sensor, beside the screen at the antenna end. [P][C]
