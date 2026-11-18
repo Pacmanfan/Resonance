@@ -1,0 +1,383 @@
+{
+ "run_id": "20261118T113245-2201198",
+ "runner_version": 2,
+ "started_at": "2026-11-18T16:32:57.956035+00:00",
+ "wall_seconds": 12.9,
+ "tier": "t2",
+ "scope": "all",
+ "changes_from": "request 2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+ "changed": [
+  "hardware/case/README.md",
+  "hardware/case/battery.scad",
+  "hardware/case/esp32_2432s032.scad",
+  "hardware/case/preview_assembly.png",
+  "hardware/case/preview_board.png",
+  "hardware/case/preview_button.png",
+  "hardware/case/preview_exploded.png",
+  "hardware/case/preview_front.png",
+  "hardware/case/preview_held_front.png",
+  "hardware/case/preview_left.png",
+  "hardware/case/preview_openings.png",
+  "hardware/case/preview_section.png",
+  "hardware/case/preview_tray.png",
+  "hardware/case/resonance_case.scad",
+  "requests/inbox/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.json",
+  "requests/inbox/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+  "requests/processing/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.json",
+  "requests/processing/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+  "work/active/WORK-000029-case-board-and-battery-reference-models.md",
+  "work/work.txt"
+ ],
+ "unmapped": [
+  "hardware/case/battery.scad",
+  "hardware/case/esp32_2432s032.scad",
+  "hardware/case/preview_assembly.png",
+  "hardware/case/preview_board.png",
+  "hardware/case/preview_button.png",
+  "hardware/case/preview_exploded.png",
+  "hardware/case/preview_front.png",
+  "hardware/case/preview_held_front.png",
+  "hardware/case/preview_left.png",
+  "hardware/case/preview_openings.png",
+  "hardware/case/preview_section.png",
+  "hardware/case/preview_tray.png",
+  "hardware/case/resonance_case.scad"
+ ],
+ "head": "dcb80d65a41316b9ca7ce9823909d5e203a3619f",
+ "describe": "dcb80d6",
+ "provenance": {
+  "dirty": true,
+  "dirty_paths": 12,
+  "diff_sha256": "e138f6ef1e633f8a4e5c22b4c183d8c53a905a8e87a35ce2cb3cbc5f63d09440",
+  "python": "3.12.3",
+  "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.39",
+  "git": "git version 2.43.0",
+  "manifest_sha256": "b1a5871bea32d3bdbc2bd098489ccf7c23aedf141559628278dbdb493bbc5c73",
+  "config_sha256": "df47285af156e1e87c8e8234907f0ec8ab9caf4a3dd3a1c8514394fb19a63f4d",
+  "build_system": "none"
+ },
+ "build_dir": "/home/dev/Resonance/build/debug",
+ "jobs": 8,
+ "host": "dev",
+ "request": "2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+ "request_fingerprint": "b551488b427d0d79d90e45b2a35ee97feef2291d2c844a88b8b22f2c1b409100",
+ "request_code_paths": [
+  "hardware/case/battery.scad",
+  "hardware/case/esp32_2432s032.scad",
+  "hardware/case/preview_assembly.png",
+  "hardware/case/preview_board.png",
+  "hardware/case/preview_button.png",
+  "hardware/case/preview_exploded.png",
+  "hardware/case/preview_front.png",
+  "hardware/case/preview_held_front.png",
+  "hardware/case/preview_left.png",
+  "hardware/case/preview_openings.png",
+  "hardware/case/preview_section.png",
+  "hardware/case/preview_tray.png",
+  "hardware/case/resonance_case.scad"
+ ],
+ "allow_stale": false,
+ "classification": "PASS",
+ "warnings": [],
+ "groups": [
+  {
+   "suite": "devsys",
+   "group": "structure",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 0.11579717404674739,
+   "wall": 0.11579717404674739,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "t0 (always)"
+   ],
+   "command": "python3 scripts/devsys.py verify-structure",
+   "status": "PASS"
+  },
+  {
+   "suite": "audits",
+   "group": "drift",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 0.16526604001410306,
+   "wall": 0.16526604001410306,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "t0 (always)"
+   ],
+   "command": "python3 scripts/drift_detect.py",
+   "status": "PASS"
+  },
+  {
+   "suite": "audits",
+   "group": "doc_integrity",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 0.064735432039015,
+   "wall": 0.064735432039015,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "t0 (always)"
+   ],
+   "command": "python3 scripts/doc_integrity.py",
+   "status": "PASS"
+  },
+  {
+   "suite": "audits",
+   "group": "invariants",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 0.06458530999952927,
+   "wall": 0.06458530999952927,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "t0 (always)"
+   ],
+   "command": "python3 scripts/invariant_check.py",
+   "status": "PASS"
+  },
+  {
+   "suite": "scripts",
+   "group": "unit",
+   "shards": 1,
+   "statuses": [
+    "CACHED"
+   ],
+   "seconds": 0.0,
+   "wall": 0.0,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [
+    "unchanged since run 20261117T214430-183455 (2026-11-18T02:47:48)"
+   ],
+   "reasons": [
+    "all scope"
+   ],
+   "command": "python3 -m unittest discover -s scripts/tests",
+   "status": "CACHED"
+  },
+  {
+   "suite": "audit_py",
+   "group": "unit",
+   "shards": 1,
+   "statuses": [
+    "CACHED"
+   ],
+   "seconds": 0.0,
+   "wall": 0.0,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [
+    "unchanged since run 20261117T214047-148078 (2026-11-18T02:44:05)"
+   ],
+   "reasons": [
+    "all scope"
+   ],
+   "command": "python3 -m unittest discover -s tools/audit_system/tests",
+   "status": "CACHED"
+  },
+  {
+   "suite": "resonance_core",
+   "group": "unit",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 12.906109531992115,
+   "wall": 12.906109531992115,
+   "cases": 89,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "all scope"
+   ],
+   "command": "python3 firmware/tools/host_tests.py",
+   "status": "PASS"
+  }
+ ],
+ "jobs_detail": [
+  {
+   "label": "devsys/structure",
+   "status": "PASS",
+   "seconds": 0.12,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/45-2201198/002/output.log",
+   "cases": []
+  },
+  {
+   "label": "audits/drift",
+   "status": "PASS",
+   "seconds": 0.17,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/45-2201198/004/output.log",
+   "cases": []
+  },
+  {
+   "label": "audits/doc_integrity",
+   "status": "PASS",
+   "seconds": 0.06,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/45-2201198/005/output.log",
+   "cases": []
+  },
+  {
+   "label": "audits/invariants",
+   "status": "PASS",
+   "seconds": 0.06,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/45-2201198/003/output.log",
+   "cases": []
+  },
+  {
+   "label": "scripts/unit",
+   "status": "CACHED",
+   "seconds": 0.0,
+   "rc": null,
+   "detail": "unchanged since run 20261117T214430-183455 (2026-11-18T02:47:48)",
+   "log": null,
+   "cases": []
+  },
+  {
+   "label": "audit_py/unit",
+   "status": "CACHED",
+   "seconds": 0.0,
+   "rc": null,
+   "detail": "unchanged since run 20261117T214047-148078 (2026-11-18T02:44:05)",
+   "log": null,
+   "cases": []
+  },
+  {
+   "label": "resonance_core/unit",
+   "status": "PASS",
+   "seconds": 12.91,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/45-2201198/001/output.log",
+   "cases": [
+    "PASS 0.000 the_session_level_scales_everything_smoothly",
+    "PASS 0.000 noise_off_is_silence_and_noise_fades_in",
+    "PASS 0.000 noise_types_have_the_expected_colour",
+    "PASS 0.000 all_layers_at_maximum_stay_under_the_ceiling",
+    "PASS 0.000 the_end_of_a_track_is_not_an_underrun",
+    "PASS 0.000 an_empty_ring_is_counted_and_does_not_disturb_the_tone",
+    "PASS 0.000 pausing_fades_out_and_keeps_the_place",
+    "PASS 0.000 background_keeps_its_channels_and_follows_its_volume",
+    "PASS 0.000 the_tone_passes_through_at_master_volume",
+    "PASS 0.000 the_engine_is_silent_by_default",
+    "PASS 0.000 limiter_is_transparent_below_the_knee_and_bounded_above",
+    "PASS 0.000 ring_refuses_more_than_it_holds_and_discard_empties_it",
+    "PASS 0.000 ring_delivers_what_was_written_in_order_across_the_wrap",
+    "PASS 0.000 json_escaping",
+    "PASS 0.000 the_extension_must_agree_with_the_content",
+    "PASS 0.000 other_content_is_not_mistaken_for_sound",
+    "PASS 0.000 content_is_recognised_by_its_first_bytes",
+    "PASS 0.000 sound_file_names_need_a_known_extension",
+    "PASS 0.000 relative_paths",
+    "PASS 0.000 names_that_could_leave_their_folder_or_break_fat_are_refused",
+    "PASS 0.000 ordinary_names_are_accepted",
+    "PASS 0.000 names_make_no_claims",
+    "PASS 0.000 a_value_on_a_preset_is_named_and_one_beside_it_is_not",
+    "PASS 0.000 stepping_back_mirrors_stepping_forward",
+    "PASS 0.000 cycling_from_a_value_set_by_hand_goes_to_the_next_one_up",
+    "PASS 0.000 cycling_visits_every_preset_and_wraps",
+    "PASS 0.000 every_band_of_the_requirement_has_a_beat_preset",
+    "PASS 0.000 presets_are_in_range_on_the_step_and_rising",
+    "PASS 0.000 a_stall_does_not_jump_and_reset_returns_to_rest",
+    "PASS 0.000 the_pulse_travels_outwards",
+    "PASS 0.000 frames_are_limited_and_offsets_stay_in_range",
+    "PASS 0.000 the_rings_pulse_as_often_as_the_beat",
+    "PASS 0.000 no_beat_and_bad_values_give_no_motion",
+    "PASS 0.000 a_fast_beat_is_halved_until_it_can_be_drawn",
+    "PASS 0.000 a_slow_beat_is_shown_at_its_own_rate",
+    "PASS 0.000 each_press_starts_its_own_pause_and_time_wrap_is_harmless",
+    "PASS 0.000 a_stalled_interface_does_not_burst",
+    "PASS 0.000 a_long_hold_speeds_up",
+    "PASS 0.000 a_hold_repeats_after_the_pause_at_a_steady_rate",
+    "PASS 0.000 an_ordinary_tap_never_repeats",
+    "PASS 0.000 scaling_leaves_endless_and_zero_alone_and_shapes_the_sweep",
+    "PASS 0.000 a_program_can_be_scaled_to_any_length",
+    "PASS 0.000 the_practice_programs_descend_and_hold_and_promise_nothing",
+    "PASS 0.000 factory_sessions_are_valid",
+    "PASS 0.000 invalid_sessions_are_refused",
+    "PASS 0.000 an_idle_runner_ignores_everything",
+    "PASS 0.000 stop_goes_through_the_same_fade_and_works_from_pause",
+    "PASS 0.000 the_end_fades_out_in_a_straight_line",
+    "PASS 0.000 pause_freezes_everything_exactly",
+    "PASS 0.000 one_long_step_crosses_several_stages_correctly",
+    "PASS 0.000 a_hold_stage_jumps_and_a_linear_stage_glides",
+    "PASS 0.000 a_continuous_timer_runs_until_stopped",
+    "PASS 0.000 a_timer_holds_the_current_frequencies_and_counts_down",
+    "PASS 0.000 a_short_access_point_password_is_dropped",
+    "PASS 0.000 a_password_without_a_network_is_dropped",
+    "PASS 0.000 a_control_character_empties_the_field",
+    "PASS 0.000 an_unterminated_text_field_is_emptied",
+    "PASS 0.000 an_invalid_hostname_is_replaced",
+    "PASS 0.000 hostname_rules",
+    "PASS 0.000 an_unknown_mode_falls_back_to_play",
+    "PASS 0.000 brightness_never_reaches_zero",
+    "PASS 0.000 layer_volumes_and_session_choices_are_kept_within_bounds",
+    "PASS 0.000 start_volume_can_never_be_loud",
+    "PASS 0.000 a_value_that_is_not_finite_is_replaced",
+    "PASS 0.000 frequencies_are_rounded_to_a_tenth_of_a_hertz",
+    "PASS 0.000 frequencies_are_clamped_to_their_ranges",
+    "PASS 0.000 a_record_of_garbage_becomes_valid",
+    "PASS 0.000 another_version_is_replaced_by_defaults",
+    "PASS 0.000 defaults_are_already_valid",
+    "PASS 0.000 out_of_range_and_non_finite_frequencies_are_handled",
+    "PASS 0.000 a_volume_step_is_ramped",
+    "PASS 0.000 volume_follows_a_square_law_and_zero_is_silent_apart_from_dither",
+    "PASS 0.000 the_output_never_exceeds_the_ceiling",
+    "PASS 0.000 start_and_stop_are_faded",
+    "PASS 0.000 a_frequency_change_is_phase_continuous",
+    "PASS 0.000 the_channels_are_independent",
+    "PASS 0.000 frequencies_are_accurate_across_the_range",
+    "PASS 0.000 left_is_the_primary_and_right_is_primary_plus_beat",
+    "PASS 0.000 it_is_silent_until_enabled",
+    "PASS 0.000 block_boundaries_leave_no_discontinuity",
+    "PASS 0.000 the_engine_rate_passes_through_unchanged",
+    "PASS 0.000 resampling_keeps_the_pitch",
+    "PASS 0.000 pcm_is_converted_to_stereo_16_bit",
+    "PASS 0.000 a_data_size_that_is_not_whole_frames_is_rounded_down",
+    "PASS 0.000 files_that_are_not_wav_or_are_cut_short_are_refused",
+    "PASS 0.000 unsupported_formats_are_refused",
+    "PASS 0.000 the_extensible_format_with_pcm_inside_is_accepted",
+    "PASS 0.000 chunks_before_the_data_are_skipped_including_padding",
+    "PASS 0.000 a_plain_16_bit_stereo_file_is_read"
+   ]
+  }
+ ]
+}

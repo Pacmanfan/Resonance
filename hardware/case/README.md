@@ -1,33 +1,69 @@
 # Resonance enclosure
 
 **Requirement:** RES-HW-007 (`docs/requirements/resonance.md`)
-**Source:** `resonance_case.scad` (OpenSCAD, parametric)
-**Status:** draft v0. Every part renders as a valid solid. **Nothing has been
-printed, and the openings are placed by guess**: the board must be measured
-first (table below).
+**Sources:** `resonance_case.scad` (the case), `esp32_2432s032.scad` (reference
+model of the board), `battery.scad` (reference model of the cell). OpenSCAD,
+parametric.
+**Status:** draft v1. Every printed part renders as a valid solid. **Nothing
+has been printed. The positions of the openings come from published pictures
+and from other people's cases, not from the board on the bench**: confirm
+the list below with a caliper first.
 
 A case for the ESP32-2432S032C with a 90 × 60 × 11 mm LiPo cell behind it.
 The cell is larger than the board (93.7 × 55 mm), so the case is sized by the
-cell: **104 × 65.6 × 30.2 mm** with the present numbers.
+cell: **106 × 67 × 30.3 mm** with the present numbers.
 
 As held: upright in the left hand, screen towards you, USB-C at the bottom.
 The microSD slot is on the left edge, the power button low on the right
 edge, and the RGB LED and the light sensor look out through two windows
-below the screen.
+**above** the screen.
 
 ![Front, as held](preview_held_front.png)
-![Right side: the power button in its finger dish](preview_button.png)
-![Left side: the microSD slot](preview_left.png)
-![Exploded: front shell and button, board, spacers, battery tray, cell, lid](preview_exploded.png)
-![Front shell from inside: the seat for the button's lip](preview_front.png)
+![Cut along the length: screen at the bottom, board, divider, cell, lid](preview_section.png)
+![The openings, straight on: USB-C end, microSD side, button side](preview_openings.png)
+![Exploded: front shell, board with its four screws, tray, cell, lid](preview_exploded.png)
+![The reference model of the board, back side up](preview_board.png)
+![Front shell from inside](preview_front.png)
 ![Battery tray](preview_tray.png)
+![Right side: the power button](preview_button.png)
+![Left side: the microSD slot](preview_left.png)
 
-The assembled back is closed: the only holes in it are the two for the lid
-screws. The holes visible in the picture of the battery tray are inside the
-case. They are in the tray's floor, which is the divider between the cell and
-the board: four countersunk holes for the screws that hold the stack
-together, and a slot for the battery lead. The cell lies on top of them and
-the lid covers the cell.
+## How it goes together
+
+The board is held to the front shell by four short screws into the bosses at
+its mounting holes, and by nothing else: **no post stands behind the
+board**. The tray is a separate part whose 2 mm floor lies between the
+board's components and the cell. It is held to the front shell by three
+screws that are beside the board in the front shell and beside the cell in
+the tray, so **no screw and no screw head is under or beside the cell's
+face** (draft v0 had four countersunk heads under the cell). A rim on the
+front shell's walls fits a groove in the tray's floor and keeps the fourth
+corner closed: there is no room for a column at the USB-C end on the
+microSD side, where the board reaches both walls.
+
+## The cell's room
+
+| Direction | Free space with a 90 × 60 × 11 cell |
+|---|---|
+| Each end | 6 mm (lid screws, tray screws, the leads) |
+| Each side | 1.5 mm |
+| Above, to the lid | 1.5 mm |
+| Below | Flat floor, no openings under the cell except the slot for its lead, which is beside it |
+
+The lid's rim is only at the two ends, so that it does not press on the
+cell's edges. A pouch cell grows thicker with age; 1.5 mm is room for that
+and for a strip of foam. "Approximately 90 × 60 × 11" is all that is known
+of the cell: measure it, including the taped strip at the lead end, and set
+`bat_l`, `bat_w`, `bat_t` in `battery.scad`.
+
+## The openings
+
+| Opening | Size | Notes |
+|---|---|---|
+| USB-C | 13 mm wide notch, open to the top of the wall and closed by the tray | Room for the moulding of a plug, not only the socket. Being open at the top, it lets the board drop straight in although its socket stands 1.1 mm over the board's edge |
+| microSD | 15 × 3.2 mm slot with a scallop for a fingernail | The card's centre line is about 1.2 mm off the socket's; the slot is centred on the card |
+| Power button | 5 mm shaft in a 9 mm finger dish | See below. The source checks that the dish stays inside the wall |
+| RGB LED, light sensor | 4 mm and 3.5 mm windows, widening outwards | In the front face, above the screen |
 
 ## Parts
 
@@ -35,122 +71,123 @@ All parts print flat on the bed without supports.
 
 | Part | Count | What it is |
 |---|---|---|
-| `front` | 1 | Bezel shell: screen window, four bosses the board rests on, openings for USB-C, the microSD card and the power button |
-| `spacer` | 4 | Tubes between the back of the board and the tray |
-| `tray` | 1 | Battery tray. Its 2 mm floor is the divider between the cell and the board's components |
+| `front` | 1 | Bezel shell: screen window, four bosses for the board, three columns for the tray, the openings |
+| `tray` | 1 | Battery tray. Its floor is the divider between the cell and the board |
 | `lid` | 1 | Back cover over the cell |
-| `button` | 1 | Separate push-button for the board's power switch: a shaft that shows in a finger dish on the side of the case, a lip that sits in a seat inside the wall and keeps it captive, and a stem that presses the switch |
-
-Access: USB-C (bottom end), microSD (left edge, with a scallop for a
-fingernail), power button (right edge, low). Two windows in the front let
-the RGB LED shine out and light reach the sensor. The expansion connectors,
-the speaker connector and the reset and boot buttons are covered, as asked.
+| `button` | 1 | Separate push-button: shaft, lip that keeps it captive, stem that reaches the switch |
 
 ## Hardware
 
 | Item | Count | Notes |
 |---|---|---|
-| M3 × 14 countersunk screw | 4 | Through tray floor, spacer and board into the front bosses, cutting their own thread. No longer than 16 mm |
+| M3 × 6 pan-head screw | 4 | Board to the front bosses, cutting their own thread |
+| M3 × 10 countersunk screw | 3 | Tray to the front shell |
 | M3 × 6 screw | 2 | Lid to tray |
-| Thin foam or tape | — | Between cell and lid if the cell is loose |
+| Thin foam | — | Between cell and lid if the cell is loose |
 
 ## Assembly
 
 1. Put the button into its hole from the inside of the front shell, shaft
-   first, so that its lip lies in the seat. The board then keeps it in.
-2. Lay the board, screen down, on the four bosses.
-3. Stand a spacer on each mounting hole.
-4. Put the tray on, feed the battery lead through the slot in its floor, and
-   drive the four countersunk screws. Their heads must sit flush.
-5. Plug the battery in **only after checking its polarity with a meter**
-   (`docs/architecture/HARDWARE.md`, section 8), lay the cell in the tray,
-   and screw the lid on.
+   first, so that its lip lies in the seat.
+2. Lay the board, screen down, on the four bosses and drive the four short
+   screws.
+3. Plug the battery lead into the board **only after checking its polarity
+   with a meter** (`docs/architecture/HARDWARE.md`, section 8). The lead goes through
+   the slot in the tray's floor, so feed it through before plugging it in.
+4. Put the tray on and drive its three screws.
+5. Lay the cell in the tray and screw the lid on.
 
-## Measure before printing
+## Where the board's numbers come from
 
-These are the values in the "TO BE MEASURED" block of the source. The
-defaults are guesses, not data (RES-PROC-002). A caliper is enough.
+No 3D model of the bare board was found (searched 2026-11-18: Printables,
+Thingiverse, Cults, GitHub; GrabCAD and MakerWorld only through a web
+search). `esp32_2432s032.scad` is built from:
 
-| Parameter | What to measure | Default |
+| Mark | Source | Good for |
 |---|---|---|
-| `pcb_t` | Board thickness | 1.6 |
-| `lcd_h` | Front of the board to the top of the screen glass | 4.6 |
-| `rear_h` | Tallest part on the back of the board, plus 1 mm | 7.0 |
-| `lcd_offset_x` | Board edge at the USB-C end to the edge of the lit screen area | 14.4 |
-| `lcd_offset_y` | Board edge on the microSD side to the edge of the lit screen area | 3.2 |
-| `usb_y` | Centre of the USB-C socket, from the board edge on the microSD side | 27.5 |
-| `usb_z` | Centre of the USB-C socket above the back of the board | 1.7 |
-| `sd_x` | Centre of the microSD slot, from the USB-C end | 56.0 |
-| `led_x`, `led_y` | Centre of the RGB LED, from the USB-C end and from the microSD-side edge | 6.0, 19.0 |
-| `ldr_x`, `ldr_y` | Centre of the light sensor, the same way | 6.0, 36.0 |
-| `btn_x` | Centre of the power button, from the USB-C end | 20.0 |
-| `btn_z` | Centre of the power button above the back of the board | 1.5 |
-| `btn_travel` | Not a measurement: free play between the button's stem and the switch. Lower it if the button rattles, raise it if the switch is held down | 0.5 |
-| `bat_lead_x` | Battery connector, from the USB-C end | 12.0 |
-| `bat_l`, `bat_w`, `bat_t` | The cell, exactly | 90, 60, 11 |
+| D | The manufacturer's dimension drawing, mirrored at `github.com/kpeeem/3.2inch_ESP32-2432S032` (`3-Structure_Diagram/3.2.jpg`) | Printed numbers: outline 93.7 × 55.0, holes 3.2 mm at 3.5 mm from the edges |
+| P | The same drawing (front) and the vendor's rendering of the back shown on `espboards.dev/esp32/cyd-esp32-2432s032`, scaled from the mounting holes | Positions in the plane, about ±0.3 mm. A rendering, not a photograph |
+| C | Two published cases, their files parsed: Printables models 1315032 and 832282 | Independent check of USB-C, microSD, power switch, RESET, BOOT and three connectors, within about 0.5 mm; the only source for heights, and then only as upper bounds |
 
-Also check, because the design assumes it:
+The back-view picture in the `platformio-espressif32-sunton` repository is of
+a different board (its silkscreen reads ESP32-2432S024) and was not used.
 
-- that the **power button is on the long side opposite the microSD slot**,
-  and points sideways (a button that points backwards needs a different
-  plunger);
-- that the microSD slot and the USB-C socket are on the back of the board;
-- that the **RGB LED and the light sensor are on the screen side** of the
-  board. If they are on the back, the windows belong in the lid or a side
-  wall instead, and a light pipe may be needed;
-- that nothing on the board stands in the way of the four bosses at the
-  mounting holes.
+## Confirm before printing
 
-From the manufacturer's drawing, and not in need of measuring: board
-93.7 × 55.0 mm; four 3.2 mm holes, 3.5 mm in from the edges; lit screen area
-64.8 × 48.6 mm.
+A caliper is enough. Positions are from the USB-C end (`_x`) and from the
+board's edge on the microSD side (`_y`).
+
+| Parameter | What it is | Value | From |
+|---|---|---|---|
+| `lcd_h` | Front of the board to the top of the screen glass | 4.0 | C, upper bound. **Measure** |
+| `pcb_t` | Board thickness | 1.6 | Usual value. **Measure** |
+| `rear_h` | Room behind the board | 7.0 | The parts need about 4.0 (C); the rest is for the battery plug and the button |
+| `lcd_offset_x`, `lcd_offset_y` | Lit screen area | 17.5, 3.2 | P; ±0.5 along the length |
+| `usb_y`, `usb_z` | USB-C socket | 27.5, 1.65 | P, C |
+| `sd_x` | Centre line of the card | 55.1 | C |
+| `btn_x`, `btn_z` | Power switch | 24.8, 1.6 | P, C |
+| `led_x`, `led_y` | RGB LED | 89.5, 11.7 | P, C |
+| `ldr_x`, `ldr_y` | Light sensor | 90.1, 42.4 | P, C |
+| `bat_lead_x` | Battery connector | 10.7 | P only |
+| `bat_l`, `bat_w`, `bat_t` | The cell | 90, 60, 11 | The operator, "approximately" |
+
+Not known from any source: the thickness of the screen with its touch
+glass, the outline of that glass (one case leaves 79.4 mm for it, the
+drawing shows 76.6), every component height, the board's corner radius.
+
+**The power switch.** The vendor's rendering draws it as a small switch with
+its actuator pointing out of the long edge opposite the microSD slot, and
+labels it a battery switch. The case assumes a push-button pressed sideways.
+If it is a slide switch, the printed button has to become a slider.
+
+**The battery plug** leaves the board sideways, towards the button-side
+wall, 10.7 mm from the USB-C end. There are 6 mm between the board and that
+wall for the plug and the bend of its wires: check that with the real lead.
 
 ## Rendering
 
 ```bash
 openscad -o front.stl  -D 'part="front"'  resonance_case.scad
-openscad -o spacer.stl -D 'part="spacer"' resonance_case.scad
 openscad -o tray.stl   -D 'part="tray"'   resonance_case.scad
 openscad -o lid.stl    -D 'part="lid"'    resonance_case.scad
 openscad -o button.stl -D 'part="button"' resonance_case.scad
 ```
 
 `part="assembly"` shows everything together with the board and the cell as
-ghosts. The STL files are not kept in the repository.
+ghosts, `"exploded"` pulls the stack apart, and `"section"` draws the cut
+along the length. Open `esp32_2432s032.scad` or `battery.scad` by itself to
+look at the board or the cell alone. The STL files are not kept in the
+repository.
 
 ## Suggested first print
 
 Print only `front`, in draft quality, and lay the board in it: that shows at
-once whether the window, the USB-C opening, the card slot and the button
-hole are where the board has them. Correct the numbers, then print the rest.
+once whether the window, the USB-C notch, the card slot, the button hole and
+the two small windows are where the board has them. Correct the numbers,
+then print the rest.
 
 ## The power button
 
 The wall is 3 mm thicker on the inside where the button goes through. From
-outside in: a 9.5 mm finger dish, 0.8 mm deep; the 5 mm shaft, standing
-0.4 mm above the floor of the dish so that it can be felt but does not
-catch; a 45-degree shoulder and an 8.5 mm lip in a matching seat; and a
-3.2 mm stem that ends 0.5 mm short of the switch on the board. The button
-prints standing on its shaft, without supports.
-
-Its position (`btn_x`, `btn_z`) is a guess until the board is measured, and
-the design assumes that the switch faces sideways, out of the long edge.
+outside in: a 9 mm finger dish, 0.8 mm deep; the 5 mm shaft, standing 0.4 mm
+above the floor of the dish; a 45-degree shoulder and an 8.5 mm lip in a
+matching seat; and a 3.2 mm stem that ends 0.5 mm (`btn_travel`) short of
+the switch. The button prints standing on its shaft, without supports.
 
 ## Known limits of this draft
 
-- The two halves are aligned only by the four screws; there is no lip
-  between front shell and tray.
-- The screen window is a plain opening sized to the lit area. A capacitive
-  glass larger than that will sit behind the bezel, which is intended, but
-  its outline has not been measured.
-- No stand. A bedside stand can be added to the lid.
+- Three tray screws, not four; the fourth corner relies on the rim.
+- The screen window is a plain opening sized to the lit area, and it is not
+  centred on the case, because the board sits against the microSD wall.
+- The LED and the sensor are 4 mm behind their windows, with no light pipe.
+- No stand.
 - The cell is charged at about 0.4 A by the board (reported by a reseller,
   not measured), so a cell of this size takes many hours to fill.
 
 ## Existing designs
 
-None found for this board with an internal battery bay. The closest, for
-reference: "Case for ESP32 LCD" by mfu on Printables (model 1232481, STEP
-files reported), its stand remix by MR (model 1315032), and
-"ESP32-2432S032C-I" by Peter Jakob on MakerWorld (model 1066899). Their
-licences were not verified.
+None found for this board with an internal battery bay. For reference:
+Printables models 1315032 (MR, with STEP files) and 832282 ("CYD 3.2 case"),
+Thingiverse thing 6290847 (machanzar), a case on Cults with a separate
+button part, and MakerWorld model 1066899 (Peter Jakob). Their licences were
+not verified; only dimensions were read from the two Printables files.

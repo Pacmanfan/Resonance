@@ -1,7 +1,7 @@
 // Resonance enclosure for the ESP32-2432S032C and a 90 x 60 x 11 mm LiPo cell.
 // RES-HW-007 (docs/requirements/resonance.md). Read README.md first.
 //
-// DRAFT v0: every part renders as a valid solid (OpenSCAD 2025.02.11), but
+// DRAFT v1: every part renders as a valid solid (OpenSCAD 2025.02.11), but
 // nothing has been printed, and the positions of the openings are guesses
 // until the board has been measured (the "TO BE MEASURED" block below).
 //
@@ -9,16 +9,18 @@
 // on the bed without supports:
 //
 //   front   the bezel shell: screen window, the board on four bosses, the
-//           openings for USB-C, the microSD card and the power button
-//   spacer  four tubes between the board and the tray (print four)
+//           openings for USB-C, the microSD card and the power button, and
+//           three columns the tray is screwed to
 //   tray    the battery tray: its floor is the divider between the cell and
 //           the board
 //   lid     the back cover over the cell
 //   button  the push-button that reaches the board's power switch
 //
-// Four countersunk M3 screws go through the tray floor, the spacers and the
-// board's mounting holes into the front bosses and hold everything; their
-// heads sit flush under the cell. Two more screws hold the lid.
+// The board is held to the front by four short M3 screws into the bosses
+// and by nothing else: no post stands behind it. The tray is held to the
+// front by three countersunk M3 screws in the strips beside the cell, so
+// that no screw head lies under the cell (v0 had four there). Two more
+// screws hold the lid.
 //
 // As held: upright in the left hand, screen towards you, USB-C at the bottom.
 // The microSD slot is then on the left edge and the power button low on the
@@ -28,9 +30,13 @@
 // the USB-C end; Y across, from the inside of the wall on the microSD side;
 // Z from the outer face of the screen side towards the back.
 //
-// Choose what to render:  "assembly", "exploded", "front", "spacer", "tray", "lid"
-// or "button".
+// Choose what to render:  "assembly", "exploded", "section", "front", "tray",
+// "lid" or "button".
 part = "assembly";
+
+include <battery.scad>          // bat_l, bat_w, bat_t and battery()
+battery_demo = false;
+use <esp32_2432s032.scad>       // board_reference()
 
 // ---- From the manufacturer's drawing (Jingcai specification, 2023) ---------
 pcb_l = 93.7;          // board length
@@ -41,28 +47,29 @@ lcd_active_l = 64.8;   // display active area, along X
 lcd_active_w = 48.6;   // display active area, along Y
 
 // ---- From the operator ------------------------------------------------------
-bat_l = 90;            // battery length ("approximately": measure)
-bat_w = 60;            // battery width
-bat_t = 11;            // battery thickness
+// The cell's size is in battery.scad (bat_l, bat_w, bat_t), with its model.
 
-// ---- TO BE MEASURED on the board (RES-PROC-002). The values are guesses. ----
+// ---- Positions on the board. From published pictures and cases, not from
+// ---- the bench (sources: esp32_2432s032.scad, README.md). TO BE CONFIRMED
+// ---- with a caliper before printing (RES-PROC-002).
 pcb_t = 1.6;           // board thickness
-lcd_h = 4.6;           // front of the board to the top of the screen glass
-rear_h = 7.0;          // tallest part on the back of the board, plus 1 mm
-lcd_offset_x = 14.4;   // board edge at the USB-C end to the active area
-lcd_offset_y = 3.2;    // board edge on the microSD side to the active area
-usb_y = 27.5;          // centre of the USB-C socket from the microSD-side edge
-usb_z = 1.7;           // centre of the USB-C socket above the back of the board
-sd_x = 56.0;           // centre of the microSD slot from the USB-C end ("centre / top" of the left edge)
-btn_x = 20.0;          // centre of the power button from the USB-C end ("lower right")
-btn_z = 1.5;           // centre of the power button above the back of the board
-bat_lead_x = 12.0;     // battery connector from the USB-C end (for the wire slot)
-// The RGB LED and the light sensor, assumed to be on the screen side of the
-// board, in the margin between the board's edge and the screen.
-led_x = 6.0;           // centre of the RGB LED from the USB-C end
-led_y = 19.0;          // centre of the RGB LED from the microSD-side edge
-ldr_x = 6.0;           // centre of the light sensor from the USB-C end
-ldr_y = 36.0;          // centre of the light sensor from the microSD-side edge
+lcd_h = 4.0;          // [case] front of the board to the top of the screen glass: upper bound from two published cases
+rear_h = 7.0;         // room behind the board. The parts need about 4.0 (a published case); 7.0 keeps the button's dish inside the wall and leaves room for the battery plug and its wires
+lcd_offset_x = 17.5;  // [picture, +-0.5] board edge at the USB-C end to the lit area
+lcd_offset_y = 3.2;   // [picture] board edge on the microSD side to the lit area
+usb_y = 27.5;         // [picture + cases] centre of the USB-C socket from the microSD-side edge
+usb_z = 1.65;         // [cases] centre of the USB-C socket above the back of the board
+sd_x = 55.1;          // [cases] centre line of the microSD card from the USB-C end
+btn_x = 24.8;         // [picture + cases] centre of the power switch from the USB-C end
+btn_z = 1.6;          // [cases] centre of the power switch above the back of the board
+bat_lead_x = 10.7;    // [picture] battery connector from the USB-C end (for the wire slot)
+// The RGB LED and the light sensor are on the screen side of the board, in
+// the margin beyond the screen at the end away from USB-C: above the screen
+// as the device is held.
+led_x = 89.5;         // [picture + case] centre of the RGB LED from the USB-C end: it is at the far end
+led_y = 11.7;         // [picture + case] centre of the RGB LED from the microSD-side edge
+ldr_x = 90.1;         // [picture + case] centre of the light sensor from the USB-C end
+ldr_y = 42.4;         // [picture + case] centre of the light sensor from the microSD-side edge
 
 // ---- Design choices ---------------------------------------------------------
 wall = 2.0;            // side walls
@@ -72,13 +79,17 @@ lid_t = 1.6;
 corner_r = 3.0;        // outer corner radius
 fit = 0.25;            // clearance between printed parts that slide together
 pcb_gap = 0.5;         // board to the walls at the USB-C end and the microSD side
-bat_gap = 0.8;         // room around and above the cell
+bat_gap = 1.5;         // room at each side of the cell and above it (a pouch cell swells with age)
 window_margin = 0.8;   // screen window larger than the active area by this, each side
 boss_d = 7.0;          // bosses and columns at the board's mounting holes
 pilot_d = 2.5;         // hole an M3 screw cuts its own thread into
 clear_d = 3.4;         // hole an M3 screw passes through
 head_d = 6.4;          // countersink / recess diameter for an M3 screw head
 csk_h = 1.7;           // depth of the countersink for a flat-head M3
+col_d = 5.6;           // columns in the front shell that the tray is screwed to
+col_edge = 2.8;        // their centres from the cavity walls
+tongue_h = 1.0;        // rim on the front shell's walls that the tray sits over
+tongue_t = 0.9;
 led_window_d = 4.0;    // opening over the RGB LED
 ldr_window_d = 3.5;    // opening over the light sensor
 usb_open_w = 13.0;     // opening for the plug's moulding, not just the socket
@@ -90,7 +101,7 @@ sd_open_h = 3.2;
 // for the button's lip inside.
 btn_pad_t = 3.0;       // extra wall thickness at the button
 btn_pad_w = 16.0;      // width of that thicker patch
-btn_dish_d = 9.5;      // finger dish on the outside of the wall; must stay inside the wall height
+btn_dish_d = 9.0;      // finger dish on the outside of the wall; must stay inside the wall height (checked below)
 btn_dish_depth = 0.8;
 btn_shaft_d = 5.0;     // the part of the button that shows in the dish
 btn_lip_d = 8.5;       // the button's lip, which keeps it in the case
@@ -100,7 +111,7 @@ btn_stem_d = 3.2;      // the part that reaches the switch on the board
 btn_travel = 0.5;      // free travel between the stem and the switch
 
 // ---- Derived ----------------------------------------------------------------
-cav_l = max(pcb_l + 2 * pcb_gap, bat_l + 2 * 5);       // 5 mm each end for the lid screws
+cav_l = max(pcb_l + 2 * pcb_gap, bat_l + 2 * 6);       // 6 mm each end: lid screws, and the tray screw heads clear of the cell
 cav_w = max(pcb_w + 2 * pcb_gap, bat_w + 2 * bat_gap);
 out_l = cav_l + 2 * wall;
 out_w = cav_w + 2 * wall;
@@ -123,6 +134,18 @@ holes = [
     [pcb_x0 + pcb_l - hole_inset, pcb_y0 + hole_inset],
     [pcb_x0 + hole_inset, pcb_y0 + pcb_w - hole_inset],
     [pcb_x0 + pcb_l - hole_inset, pcb_y0 + pcb_w - hole_inset]
+];
+// Where the tray is screwed to the front. Each point is beside the board in
+// the front shell and beside the cell in the tray: one in the strip along
+// the button side at the USB-C end, two beyond the far end of the board.
+// The corner at the USB-C end on the microSD side has no room for a column
+// (the board reaches both walls there); the rim keeps that corner closed.
+bat_x0 = (cav_l - bat_l) / 2;                          // the cell is centred in the tray
+bat_y0 = (cav_w - bat_w) / 2;
+tray_screws = [
+    [col_edge, cav_w - col_edge],
+    [cav_l - col_edge, col_edge + 1.5],
+    [cav_l - col_edge, cav_w - col_edge - 1.5]
 ];
 
 $fn = 48;
@@ -156,6 +179,18 @@ module front() {
             // Bosses the board rests on, at its mounting holes.
             for (p = holes)
                 translate([p[0], p[1], front_t - eps]) cylinder(d = boss_d, h = lcd_h + eps);
+            // Columns the tray is screwed to, each tied to the nearest wall.
+            for (p = tray_screws) hull() {
+                translate([p[0], p[1], front_t - eps]) cylinder(d = col_d, h = front_h - front_t + eps);
+                translate([p[0] < cav_l / 2 ? p[0] - col_d / 2 : cav_l - 1, p[1] < cav_w / 2 ? p[1] - col_d / 2 : p[1] - col_d / 2, front_t - eps])
+                    cube([p[0] < cav_l / 2 ? col_d : 1, col_d, front_h - front_t + eps]);
+                if (p[0] < cav_l / 2) translate([p[0] - col_d / 2, cav_w - 1, front_t - eps]) cube([col_d, 1, front_h - front_t + eps]);
+            }
+            // Rim on top of the walls; the tray's floor has a groove for it.
+            translate([0, 0, front_h - eps]) difference() {
+                translate([-tongue_t, -tongue_t, 0]) cube([cav_l + 2 * tongue_t, cav_w + 2 * tongue_t, tongue_h]);
+                translate([0, 0, -eps]) cube([cav_l, cav_w, tongue_h + 2 * eps]);
+            }
         }
         // Screen window.
         translate([pcb_x0 + lcd_offset_x - window_margin, pcb_y0 + lcd_offset_y - window_margin, -eps])
@@ -166,12 +201,18 @@ module front() {
             cylinder(d1 = led_window_d + 1.6, d2 = led_window_d, h = front_t + 2 * eps);
         translate([pcb_x0 + ldr_x, pcb_y0 + ldr_y, -eps])
             cylinder(d1 = ldr_window_d + 1.6, d2 = ldr_window_d, h = front_t + 2 * eps);
-        // Pilot holes for the four screws. They stop 0.8 mm short of the face.
+        // Pilot holes for the four board screws. They stop 0.8 mm short of the face.
         for (p = holes)
             translate([p[0], p[1], 0.8]) cylinder(d = pilot_d, h = front_h);
+        // Pilot holes for the three tray screws, 9 mm deep.
+        for (p = tray_screws)
+            translate([p[0], p[1], front_h - 9]) cylinder(d = pilot_d, h = 9 + tongue_h + eps);
         // USB-C, through the wall at X = 0.
+        // A notch open to the top of the wall (the tray closes it), so that
+        // the board, whose socket stands 1.1 mm over its edge, drops straight
+        // in, and so that nothing thin bridges over the plug.
         translate([-wall - eps, pcb_y0 + usb_y - usb_open_w / 2, pcb_rear_z + usb_z - usb_open_h / 2])
-            cube([wall + 2 * eps, usb_open_w, usb_open_h]);
+            cube([wall + 2 * eps, usb_open_w, front_h + tongue_h]);
         // microSD, through the wall at Y = 0.
         translate([pcb_x0 + sd_x - sd_open_w / 2, -wall - eps, pcb_rear_z - 0.6])
             cube([sd_open_w, wall + 2 * eps, sd_open_h]);
@@ -193,15 +234,6 @@ module front() {
     }
 }
 
-// ---- spacer -----------------------------------------------------------------
-// A tube between the back of the board and the tray floor. Print four.
-module spacer() {
-    difference() {
-        cylinder(d = boss_d, h = rear_h);
-        translate([0, 0, -eps]) cylinder(d = clear_d, h = rear_h + 2 * eps);
-    }
-}
-
 // ---- tray -------------------------------------------------------------------
 // Drawn in assembly position: its floor starts where the front shell ends.
 module tray() {
@@ -220,14 +252,19 @@ module tray() {
                         translate([x == 0 ? 0 : -4, -4, 0]) cube([4, 8, tray_h]);
                     }
         }
-        // Board screws: through the floor, countersunk on the cell's side so
-        // that nothing stands up under the cell.
-        for (p = holes) {
+        // Tray screws: through the floor into the front shell's columns,
+        // countersunk. They are in the strips beside the cell, not under it.
+        for (p = tray_screws) {
             translate([p[0], p[1], front_h - eps]) cylinder(d = clear_d, h = floor_t + 2 * eps);
             translate([p[0], p[1], front_h + floor_t - csk_h]) cylinder(d1 = clear_d, d2 = head_d, h = csk_h + eps);
         }
+        // Groove for the rim of the front shell.
+        translate([0, 0, front_h - eps]) difference() {
+            translate([-tongue_t - fit, -tongue_t - fit, 0]) cube([cav_l + 2 * (tongue_t + fit), cav_w + 2 * (tongue_t + fit), tongue_h + 0.2]);
+            translate([fit, fit, -eps]) cube([cav_l - 2 * fit, cav_w - 2 * fit, tongue_h + 0.2 + 2 * eps]);
+        }
         // Slot in the floor for the battery lead.
-        translate([pcb_x0 + bat_lead_x - 5, cav_w - 6, front_h - eps]) cube([10, 4, floor_t + 2 * eps]);
+        translate([pcb_x0 + bat_lead_x - 4, cav_w - 5.5, front_h - eps]) cube([10, 4, floor_t + 2 * eps]);
         // Pilot holes for the lid screws.
         for (x = [1.9, cav_l - 1.9])
             translate([x, cav_w / 2, front_h + floor_t + 1]) cylinder(d = pilot_d, h = tray_h);
@@ -242,11 +279,17 @@ module lid() {
     difference() {
         union() {
             translate([0, 0, z0]) shell(lid_t);
-            // Rim that sits inside the tray walls.
-            translate([fit, fit, z0 - lip_h]) difference() {
-                cube([cav_l - 2 * fit, cav_w - 2 * fit, lip_h + eps]);
-                translate([lip_t, lip_t, -eps])
-                    cube([cav_l - 2 * fit - 2 * lip_t, cav_w - 2 * fit - 2 * lip_t, lip_h + 3 * eps]);
+            // Rim that sits inside the tray walls. Only at the two ends: along
+            // the sides the cell is 0.8 mm from the wall and a rim would
+            // press on its edges (v0 had it all round).
+            translate([fit, fit, z0 - lip_h]) intersection() {
+                difference() {
+                    cube([cav_l - 2 * fit, cav_w - 2 * fit, lip_h + eps]);
+                    translate([lip_t, lip_t, -eps])
+                        cube([cav_l - 2 * fit - 2 * lip_t, cav_w - 2 * fit - 2 * lip_t, lip_h + 3 * eps]);
+                }
+                union() for (x = [0, cav_l - 2 * fit - (bat_x0 - 1)])
+                    translate([x, 0, -eps]) cube([bat_x0 - 1, cav_w, lip_h + 3 * eps]);
             }
         }
         // Room for the two screw bosses of the tray.
@@ -279,34 +322,64 @@ module button_in_place() {
         rotate([90, 0, 0]) button();
 }
 
+// ---- reference parts (not printed) -------------------------------------------
+// The board, screen side towards Z = 0, and the cell lying in the tray.
+module board_in_place() {
+    translate([pcb_x0, pcb_y0, pcb_front_z]) board_reference();
+}
+module battery_in_place(swollen = false) {
+    translate([bat_x0, bat_y0, front_h + floor_t]) battery(swollen);
+}
+// Heads of the four board screws (M3 pan head: 5.6 x 2.4 mm).
+module board_screws() {
+    color("dimgray") for (p = holes) translate([p[0], p[1], pcb_rear_z]) cylinder(d = 5.6, h = 2.4);
+}
+
+// The outline of a part where the section plane (Y = cut_y) goes through it.
+cut_y = pcb_y0 + hole_inset;
+module slice() {
+    mirror([0, 1, 0]) projection(cut = true) translate([0, 0, -cut_y]) rotate([90, 0, 0]) children();
+}
+
 // ---- output -----------------------------------------------------------------
 if (part == "front") front();
-else if (part == "spacer") spacer();
 else if (part == "tray") translate([0, 0, -front_h]) tray();          // floor on the bed
 else if (part == "lid") translate([0, out_w - 2 * wall, front_h + tray_h + lid_t]) rotate([180, 0, 0]) lid();  // outer face on the bed
 else if (part == "button") button();
 else if (part == "exploded") {
     // The parts pulled apart along the direction they are assembled in.
-    gap = 14;
-    front();
+    gap = 16;
+    color("steelblue") front();
     translate([0, 12, 0]) button_in_place();
-    translate([0, 0, gap]) %translate([pcb_x0, pcb_y0, pcb_front_z]) cube([pcb_l, pcb_w, pcb_t]);
-    translate([0, 0, 2 * gap]) for (p = holes) translate([p[0], p[1], pcb_rear_z]) spacer();
-    translate([0, 0, 3 * gap]) tray();
-    translate([0, 0, 4 * gap]) %translate([(cav_l - bat_l) / 2, (cav_w - bat_w) / 2, front_h + floor_t]) cube([bat_l, bat_w, bat_t]);
-    translate([0, 0, 5 * gap]) lid();
+    translate([0, 0, gap]) { board_in_place(); board_screws(); }
+    translate([0, 0, 2.2 * gap]) color("slategray") tray();
+    translate([0, 0, 3.2 * gap]) battery_in_place();
+    translate([0, 0, 4.4 * gap]) color("steelblue") lid();
+}
+else if (part == "section") {
+    // A flat drawing of the cut along the length through the mounting holes
+    // on the microSD side: screen at the bottom, back at the top.
+    color("steelblue") slice() front();
+    color("slategray") slice() tray();
+    color("lightsteelblue") slice() lid();
+    color("seagreen") slice() board_in_place();
+    color("black") slice() board_screws();
+    color("orange") slice() battery_in_place();
 }
 else {
     front();
-    for (p = holes) translate([p[0], p[1], pcb_rear_z]) spacer();
     tray();
     lid();
     button_in_place();
     // The board and the cell, for checking clearances.
-    %translate([pcb_x0, pcb_y0, pcb_front_z]) cube([pcb_l, pcb_w, pcb_t]);
-    %translate([(cav_l - bat_l) / 2, (cav_w - bat_w) / 2, front_h + floor_t]) cube([bat_l, bat_w, bat_t]);
+    %board_in_place();
+    %battery_in_place();
 }
 
 echo(str("Outer size: ", out_l, " x ", out_w, " x ", front_h + tray_h + lid_t, " mm"));
-echo(str("Board screws: countersunk M3, about ", floor_t + rear_h + pcb_t + 4, " mm long (no longer than ",
-         floor_t + rear_h + pcb_t + lcd_h + front_t - 0.8, ")"));
+echo(str("Cell ", bat_l, " x ", bat_w, " x ", bat_t, ": free at each end ", bat_x0, ", at each side ", bat_y0,
+         ", above (to the lid) ", tray_h - floor_t - bat_t, " mm"));
+echo(str("Tray screw heads reach ", col_edge + head_d / 2, " mm in from the end walls; the cell starts at ", bat_x0, " mm"));
+echo(str("Board screws: M3 x 6 pan head. Tray screws: M3 x 10 countersunk. Lid screws: M3 x 6."));
+assert(pcb_rear_z + btn_z + btn_dish_d / 2 + 0.6 <= front_h, "the button's finger dish breaks through the top of the front shell");
+assert(pcb_rear_z + btn_z + btn_lip_d / 2 + fit + 0.6 <= front_h, "the seat of the button's lip breaks through the top of the front shell");

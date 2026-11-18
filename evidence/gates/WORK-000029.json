@@ -1,0 +1,40 @@
+{
+ "work": "WORK-000029",
+ "runs": [
+  {
+   "at": "2026-11-18T16:33:04.735096+00:00",
+   "verdict": "PASS",
+   "gate_version": 3,
+   "work": "WORK-000029",
+   "request": "2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+   "request_id": "REQ-CHAT-20261117-001",
+   "request_fingerprint": "b551488b427d0d79d90e45b2a35ee97feef2291d2c844a88b8b22f2c1b409100",
+   "request_code_paths": [
+    "hardware/case/battery.scad",
+    "hardware/case/esp32_2432s032.scad",
+    "hardware/case/preview_assembly.png",
+    "hardware/case/preview_board.png",
+    "hardware/case/preview_button.png",
+    "hardware/case/preview_exploded.png",
+    "hardware/case/preview_front.png",
+    "hardware/case/preview_held_front.png",
+    "hardware/case/preview_left.png",
+    "hardware/case/preview_openings.png",
+    "hardware/case/preview_section.png",
+    "hardware/case/preview_tray.png",
+    "hardware/case/resonance_case.scad"
+   ],
+   "test_runs": [
+    "20261118T113245-2201198"
+   ],
+   "evidence": [
+    "VER-000030"
+   ],
+   "head": "dcb80d65a41316b9ca7ce9823909d5e203a3619f",
+   "agent_id": "agent-dev-20261117205050-9ef7a9",
+   "fails": [],
+   "warns": [],
+   "passes": 13
+  }
+ ]
+}
