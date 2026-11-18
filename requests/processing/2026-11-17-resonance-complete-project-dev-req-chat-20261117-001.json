@@ -414,7 +414,8 @@
       "WORK-000019",
       "WORK-000020",
       "WORK-000021",
-      "WORK-000022"
+      "WORK-000022",
+      "WORK-000023"
     ]
   },
   "follow_ups": [
@@ -541,6 +542,11 @@
     {
       "timestamp": "2026-11-18T05:26:56.978457+00:00",
       "text": "also - for the buttons - a 'tap and hold' on a button should repeat after a brief pause. research and implement",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T05:31:53.794812+00:00",
+      "text": "So - on the main 'Home' screen - the \"Resonance\" title sshould be centered. Remove the 'Play' from teh top. Make all other (Freq,snd,sess,set) the same size/font as 'resonance' on the home screen",
       "attachments": []
     }
   ]

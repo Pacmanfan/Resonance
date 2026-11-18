@@ -87,7 +87,7 @@ wired.
 
 ## Listening
 
-1. Start in Play mode (`PLAY` at the top right of the screen).
+1. Start in Play mode (no `SETUP` marker at the top of the screen).
 2. Put the headset or speaker in pairing mode.
 3. On HOME tap the `BT:` button, then tap the device in the list.
 4. Back on HOME, tap `OFF` to start the tone; `-` and `+` set the volume.

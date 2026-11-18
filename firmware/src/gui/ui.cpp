@@ -231,16 +231,17 @@ void Ui::drawFrame() {
 
 void Ui::drawHeader() {
     _lcd.fillRect(0, 0, kScreenW, kHeaderH, kBackground);
-    _lcd.setFont(_tab == Tab::Home ? kFontTitle : kFontSmall);
-    _lcd.setTextDatum(textdatum_t::middle_left);
-    _lcd.setTextColor(kCyan, kBackground);
-    _lcd.drawString(_btScreen ? "BLUETOOTH" : kTabTitles[static_cast<uint8_t>(_tab)], 10, kHeaderH / 2);
-    // The operating mode is always visible (ADR-000204).
-    const bool setup = _settings.mode == rc::Mode::Setup;
-    _lcd.setFont(kFontSmall);
-    _lcd.setTextDatum(textdatum_t::middle_right);
-    _lcd.setTextColor(setup ? kWarning : kTeal, kBackground);
-    _lcd.drawString(setup ? "SETUP" : "PLAY", kScreenW - 8, kHeaderH / 2);
+    // Every screen's title is centred, in the same font.
+    centered(_btScreen ? "BLUETOOTH" : kTabTitles[static_cast<uint8_t>(_tab)], kScreenW / 2, kHeaderH / 2 - 1, kCyan,
+             kBackground, kFontTitle);
+    // Play mode is the normal state and is not marked. Setup mode is: in it
+    // nothing can play, and the user should see why at a glance.
+    if (_settings.mode == rc::Mode::Setup) {
+        _lcd.setFont(kFontSmall);
+        _lcd.setTextDatum(textdatum_t::bottom_right);
+        _lcd.setTextColor(kWarning, kBackground);
+        _lcd.drawString("SETUP", kScreenW - 4, kHeaderH - 3);
+    }
     _lcd.fillRect(0, kHeaderH - 2, kScreenW, 2, kOutline);
 }
 
