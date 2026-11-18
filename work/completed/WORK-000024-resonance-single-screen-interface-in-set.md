@@ -4,7 +4,7 @@
 **Type:** feature
 **Request:** requests/processing/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md
 **Requirements:** RES-ARCH-005, RES-GUI-001, RES-NET-003
-**Evidence:** VER-000024
+**Evidence:** VER-000024, VER-000025
 
 ## Scope
 

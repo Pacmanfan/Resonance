@@ -25,4 +25,4 @@ WORK-000020 | completed | Resonance: every value the user adjusts is saved and r
 WORK-000021 | completed | Resonance enclosure: LED and light-sensor windows, views as held | completed/WORK-000021-resonance-enclosure-led-and-light-sensor.md | RES-HW-007 | VER-000021
 WORK-000022 | completed | Resonance: tap-and-hold repeat on adjustment buttons | completed/WORK-000022-resonance-tap-and-hold-repeat-on-adjustm.md | RES-GUI-005, RES-GUI-002 | VER-000022
 WORK-000023 | completed | Resonance: centred titles in one font, no PLAY marker | completed/WORK-000023-resonance-centred-titles-in-one-font-no.md | RES-GUI-002 | VER-000023
-WORK-000024 | completed | Resonance: single-screen interface in Setup mode | completed/WORK-000024-resonance-single-screen-interface-in-set.md | RES-ARCH-005, RES-GUI-001, RES-NET-003 | VER-000024
+WORK-000024 | completed | Resonance: single-screen interface in Setup mode | completed/WORK-000024-resonance-single-screen-interface-in-set.md | RES-ARCH-005, RES-GUI-001, RES-NET-003 | VER-000024, VER-000025
