@@ -114,7 +114,7 @@ private:
         const char* label;
         uint8_t id;
     };
-    static constexpr uint8_t kMaxButtons = 14;  // the FREQ tab has thirteen
+    static constexpr uint8_t kMaxButtons = 18;  // the FREQ tab has seventeen
 
     void drawFrame();
     void drawHeader();

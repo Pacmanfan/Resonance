@@ -49,6 +49,14 @@ const FrequencyPreset& next(const FrequencyPreset (&list)[N], float currentHz) {
 }
 
 template <uint8_t N>
+const FrequencyPreset& previous(const FrequencyPreset (&list)[N], float currentHz) {
+    for (uint8_t i = N; i > 0; --i) {
+        if (list[i - 1].hz < currentHz - kHalfStep) return list[i - 1];
+    }
+    return list[N - 1];
+}
+
+template <uint8_t N>
 const char* nameOf(const FrequencyPreset (&list)[N], float hz) {
     for (uint8_t i = 0; i < N; ++i) {
         const float d = list[i].hz - hz;
@@ -66,6 +74,9 @@ const FrequencyPreset& beatPreset(uint8_t index) { return kBeat[index < beatPres
 
 const FrequencyPreset& nextPrimaryPreset(float currentHz) { return next(kPrimary, currentHz); }
 const FrequencyPreset& nextBeatPreset(float currentHz) { return next(kBeat, currentHz); }
+
+const FrequencyPreset& previousPrimaryPreset(float currentHz) { return previous(kPrimary, currentHz); }
+const FrequencyPreset& previousBeatPreset(float currentHz) { return previous(kBeat, currentHz); }
 
 const char* primaryPresetName(float hz) { return nameOf(kPrimary, hz); }
 const char* beatPresetName(float hz) { return nameOf(kBeat, hz); }

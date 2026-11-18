@@ -65,6 +65,24 @@ TEST(cycling_from_a_value_set_by_hand_goes_to_the_next_one_up) {
     CHECK_NEAR(nextBeatPreset(7.8f).hz, 10.0, 1e-6);
 }
 
+TEST(stepping_back_mirrors_stepping_forward) {
+    float hz = 2000.0f;
+    for (uint8_t i = primaryPresetCount(); i > 0; --i) {
+        hz = previousPrimaryPreset(hz).hz;
+        CHECK_NEAR(hz, primaryPreset(static_cast<uint8_t>(i - 1)).hz, 1e-6);
+    }
+    CHECK_NEAR(previousPrimaryPreset(hz).hz, primaryPreset(static_cast<uint8_t>(primaryPresetCount() - 1)).hz, 1e-6);  // wraps to the highest
+    CHECK_NEAR(previousPrimaryPreset(433.0f).hz, 432.0, 1e-6);
+    CHECK_NEAR(previousPrimaryPreset(432.0f).hz, 417.0, 1e-6);
+    CHECK_NEAR(previousBeatPreset(10.0f).hz, 7.8, 1e-6);
+    CHECK_NEAR(previousBeatPreset(0.5f).hz, beatPreset(static_cast<uint8_t>(beatPresetCount() - 1)).hz, 1e-6);
+    // Forward then back returns to the start, from any preset.
+    for (uint8_t i = 0; i < beatPresetCount(); ++i) {
+        const float start = beatPreset(i).hz;
+        CHECK_NEAR(previousBeatPreset(nextBeatPreset(start).hz).hz, start, 1e-6);
+    }
+}
+
 TEST(a_value_on_a_preset_is_named_and_one_beside_it_is_not) {
     CHECK(primaryPresetName(528.0f) != nullptr && strstr(primaryPresetName(528.0f), "528") != nullptr);
     CHECK(primaryPresetName(528.1f) == nullptr);

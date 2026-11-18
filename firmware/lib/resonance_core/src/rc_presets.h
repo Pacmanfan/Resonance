@@ -29,6 +29,11 @@ const FrequencyPreset& beatPreset(uint8_t index);
 const FrequencyPreset& nextPrimaryPreset(float currentHz);
 const FrequencyPreset& nextBeatPreset(float currentHz);
 
+// The preset before `currentHz`: the first one below it, or the highest when
+// `currentHz` is at or below the lowest.
+const FrequencyPreset& previousPrimaryPreset(float currentHz);
+const FrequencyPreset& previousBeatPreset(float currentHz);
+
 // Name of the preset `hz` is on (within half a step), or nullptr.
 const char* primaryPresetName(float hz);
 const char* beatPresetName(float hz);

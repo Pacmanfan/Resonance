@@ -1246,6 +1246,12 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-18T04:57:20.451605+00:00
+
+> the +0.1 button looks right now. put some  '<' '>' buttons next to the primary selection.
+
+
+
 ### Follow-up 2026-11-18T04:53:02.965016+00:00
 
 > in the frequency studio - the +0.1 button is a smaller font.
@@ -1349,5 +1355,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014
 - Evidence: pending

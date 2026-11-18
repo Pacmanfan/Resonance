@@ -160,8 +160,9 @@ planned (ADR-000204).
   `.mp3` files, four to a page; tapping a file plays it. Below are
   play/pause with the background volume and the track's elapsed time. The
   noise control (type and volume) is on the FREQ tab.
-- On the FREQ tab the two frequency values are themselves buttons: a tap
-  steps to the next preset above the current value and wraps at the top
+- On the FREQ tab each frequency value sits between `<` and `>`, which step
+  to the preset below or above the current value and wrap at the ends; a
+  tap on the value itself also steps forward
   (fourteen carriers, nine beats covering every band of RES-AUDIO-006). The
   line above a value shows the preset's name while the value is on one. A
   preset only sets the value; the step buttons still move it freely. Names

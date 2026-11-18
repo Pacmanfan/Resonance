@@ -45,6 +45,10 @@ constexpr uint8_t kIdNoiseDown = 71;
 constexpr uint8_t kIdNoiseUp = 72;
 constexpr uint8_t kIdPrimaryPreset = 90;  // the value itself: tap to step through the presets
 constexpr uint8_t kIdBeatPreset = 91;
+constexpr uint8_t kIdPrimaryPrev = 92;
+constexpr uint8_t kIdPrimaryNext = 93;
+constexpr uint8_t kIdBeatPrev = 94;
+constexpr uint8_t kIdBeatNext = 95;
 constexpr uint8_t kIdSessionProgram = 80;
 constexpr uint8_t kIdSessionDuration = 81;
 constexpr uint8_t kIdSessionFade = 82;
@@ -364,9 +368,14 @@ void Ui::drawBluetooth() {
 void Ui::drawFrequency() {
     static const char* const kPrimaryLabels[] = {"-10", "-1", "+1", "+10"};
     static const char* const kBeatLabels[] = {"-1", "-0.1", "+0.1", "+1"};
-    // The two values are buttons: a tap steps to the next preset.
-    addButton(8, kContentTop + 18, 224, 28, _primaryLabel, kIdPrimaryPreset);
-    addButton(8, kContentTop + 102, 224, 28, _beatLabel, kIdBeatPreset);
+    // Presets: "<" and ">" step back and forward; a tap on the value itself
+    // also steps forward.
+    addButton(8, kContentTop + 18, 42, 28, "<", kIdPrimaryPrev);
+    addButton(54, kContentTop + 18, 132, 28, _primaryLabel, kIdPrimaryPreset);
+    addButton(190, kContentTop + 18, 42, 28, ">", kIdPrimaryNext);
+    addButton(8, kContentTop + 102, 42, 28, "<", kIdBeatPrev);
+    addButton(54, kContentTop + 102, 132, 28, _beatLabel, kIdBeatPreset);
+    addButton(190, kContentTop + 102, 42, 28, ">", kIdBeatNext);
     for (uint8_t i = 0; i < 4; ++i) {
         const int16_t x = 8 + i * 57;
         addButton(x, kContentTop + 48, 53, 34, kPrimaryLabels[i], i);
@@ -589,12 +598,18 @@ void Ui::onButton(uint8_t id) {
         _settingsDirty = true;
         _pending = Event::ToneChanged;
         drawFrequencyValues();
-    } else if (id == kIdPrimaryPreset) {
+    } else if (id == kIdPrimaryPrev || id == kIdBeatPrev) {
+        if (id == kIdPrimaryPrev) _settings.primaryHz = rc::previousPrimaryPreset(_settings.primaryHz).hz;
+        else _settings.beatHz = rc::previousBeatPreset(_settings.beatHz).hz;
+        _settingsDirty = true;
+        _pending = Event::ToneChanged;
+        drawFrequencyValues();
+    } else if (id == kIdPrimaryPreset || id == kIdPrimaryNext) {
         _settings.primaryHz = rc::nextPrimaryPreset(_settings.primaryHz).hz;
         _settingsDirty = true;
         _pending = Event::ToneChanged;
         drawFrequencyValues();
-    } else if (id == kIdBeatPreset) {
+    } else if (id == kIdBeatPreset || id == kIdBeatNext) {
         _settings.beatHz = rc::nextBeatPreset(_settings.beatHz).hz;
         _settingsDirty = true;
         _pending = Event::ToneChanged;
