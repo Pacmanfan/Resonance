@@ -65,7 +65,7 @@ from Stage 8.
    and stay silent until audio is turned on.
 4. Colours: cyan, teal and violet on near-black. If red and blue look
    swapped, the colour order is wrong.
-5. With a FAT32 card inserted, SOUND shows its size, and the card afterwards
+5. With a FAT32 card inserted, the SND tab shows its size, and the card afterwards
    contains the `/RESONANCE` directory tree.
 6. A cold start from a direct USB port, and one with a battery connected,
    to see whether the power loss at radio start returns (M11).

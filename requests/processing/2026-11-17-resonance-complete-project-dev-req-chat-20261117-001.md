@@ -1246,6 +1246,18 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-18T03:38:52.752938+00:00
+
+> I see it says "playback is not built yet" . What more need sto be done for this to be complete. Give a todo list and proceed
+
+
+
+### Follow-up 2026-11-18T03:37:24.093293+00:00
+
+> the 'sound' label is too long. Maybe make it "SND"
+
+
+
 ### Follow-up 2026-11-18T03:36:53.414238+00:00
 
 > I tapped twice to put it into setup mode, then the screen went black. it's still black after power cycling
@@ -1295,5 +1307,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006
 - Evidence: pending

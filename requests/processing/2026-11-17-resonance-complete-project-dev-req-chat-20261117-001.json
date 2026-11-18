@@ -397,7 +397,8 @@
       "WORK-000002",
       "WORK-000003",
       "WORK-000004",
-      "WORK-000005"
+      "WORK-000005",
+      "WORK-000006"
     ]
   },
   "follow_ups": [
@@ -429,6 +430,16 @@
     {
       "timestamp": "2026-11-18T03:36:53.414238+00:00",
       "text": "I tapped twice to put it into setup mode, then the screen went black. it's still black after power cycling",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T03:37:24.093293+00:00",
+      "text": "the 'sound' label is too long. Maybe make it \"SND\"",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T03:38:52.752938+00:00",
+      "text": "I see it says \"playback is not built yet\" . What more need sto be done for this to be complete. Give a todo list and proceed",
       "attachments": []
     }
   ]

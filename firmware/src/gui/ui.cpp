@@ -11,7 +11,7 @@ namespace {
 
 using namespace theme;
 
-const char* const kTabNames[] = {"HOME", "FREQ", "SOUND", "SESS", "SET"};
+const char* const kTabNames[] = {"HOME", "FREQ", "SND", "SESS", "SET"};
 const char* const kTabTitles[] = {"RESONANCE", "FREQUENCY STUDIO", "SOUND LIBRARY", "SESSIONS", "SETTINGS"};
 constexpr int16_t kTabW = kScreenW / 5;
 
