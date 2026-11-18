@@ -1,0 +1,52 @@
+{
+ "work": "WORK-000028",
+ "runs": [
+  {
+   "at": "2026-11-18T16:07:20.115354+00:00",
+   "verdict": "FAIL",
+   "gate_version": 3,
+   "work": "WORK-000028",
+   "request": "2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+   "request_id": "REQ-CHAT-20261117-001",
+   "request_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "request_code_paths": [],
+   "test_runs": [
+    "20261118T110644-2139574"
+   ],
+   "evidence": [
+    "VER-000029"
+   ],
+   "head": "358f3a6ca89c7b410351aeb20b9f562958632023",
+   "agent_id": "agent-dev-20261117205050-9ef7a9",
+   "fails": [
+    "the request's code changed after test run 20261118T110644-2139574: re-run scripts/run_tests.py --request <file> and link the new run (REQ-DEVOPS-046)"
+   ],
+   "warns": [
+    "2 unowned change(s) in the tree (not this request's; never committed by it)"
+   ],
+   "passes": 13
+  },
+  {
+   "at": "2026-11-18T16:07:39.997548+00:00",
+   "verdict": "PASS",
+   "gate_version": 3,
+   "work": "WORK-000028",
+   "request": "2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+   "request_id": "REQ-CHAT-20261117-001",
+   "request_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "request_code_paths": [],
+   "test_runs": [
+    "20261118T110644-2139574",
+    "20261118T110735-2142396"
+   ],
+   "evidence": [
+    "VER-000029"
+   ],
+   "head": "358f3a6ca89c7b410351aeb20b9f562958632023",
+   "agent_id": "agent-dev-20261117205050-9ef7a9",
+   "fails": [],
+   "warns": [],
+   "passes": 15
+  }
+ ]
+}

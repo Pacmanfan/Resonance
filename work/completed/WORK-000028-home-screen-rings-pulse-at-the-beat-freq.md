@@ -1,10 +1,10 @@
 # WORK-000028: Home-screen rings pulse at the beat frequency; display clock 40 MHz
 
-**Status:** active
+**Status:** completed
 **Type:** feature
 **Request:** requests/processing/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md
 **Requirements:** RES-GUI-004, RES-GUI-005
-**Evidence:** pending
+**Evidence:** VER-000029
 
 ## Scope
 
@@ -24,6 +24,7 @@ Home-screen rings pulse at the beat frequency; display clock 40 MHz
 - Not verified: the look of the pulse and the picture at 40 MHz (need the operator's eyes).
 
 **Test-Run:** 20261118T110644-2139574
+**Test-Run:** 20261118T110735-2142396
 
 ## Regression impact and documentation
 
@@ -37,3 +38,4 @@ REQ-CHAT-20261117-001 -> RES-GUI-004, RES-GUI-005 -> WORK-000028 -> evidence (pe
 ## Transitions
 
 - 2026-11-18T16:02:18.113733+00:00 created in active by agent-dev-20261117205050-9ef7a9
+- 2026-11-18T16:07:40.075043+00:00 active -> completed by agent-dev-20261117205050-9ef7a9
