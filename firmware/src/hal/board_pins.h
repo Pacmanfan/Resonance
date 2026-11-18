@@ -19,7 +19,7 @@ constexpr int8_t kLcdBacklight = 27;  // N-FET gate, active high
 constexpr int8_t kTouchSda = 33;
 constexpr int8_t kTouchScl = 32;
 constexpr int8_t kTouchRst = 25;
-constexpr int8_t kTouchInt = 21;  // also on connectors P3 and CN1
+constexpr int8_t kTouchInt = 21;  // wired to the controller and to connectors P3 and CN1; not used: touch is polled
 
 // microSD: SPI on the VSPI pins. No card-detect signal.
 constexpr int8_t kSdSclk = 18;

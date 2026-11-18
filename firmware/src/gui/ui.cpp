@@ -27,6 +27,16 @@ constexpr uint8_t kIdBrightnessDown = 10;
 constexpr uint8_t kIdBrightnessUp = 11;
 constexpr uint8_t kIdMode = 12;
 constexpr uint8_t kIdAudio = 20;
+constexpr uint8_t kIdVolumeDown = 21;
+constexpr uint8_t kIdVolumeUp = 22;
+constexpr uint8_t kIdBluetooth = 23;
+constexpr uint8_t kIdBtDevice = 30;      // 30..34: found devices
+constexpr uint8_t kIdBtDisconnect = 40;
+
+// Values of btaudio::State, which this file does not include.
+constexpr uint8_t kBtScanning = 1;
+constexpr uint8_t kBtConnecting = 2;
+constexpr uint8_t kBtConnected = 3;
 
 const float kPrimarySteps[] = {-10.0f, -1.0f, 1.0f, 10.0f};
 const float kBeatSteps[] = {-1.0f, -0.1f, 0.1f, 1.0f};
@@ -45,12 +55,16 @@ void Ui::setStatus(const Status& status) {
     // the lines that show it: a periodic full redraw is visible as flicker.
     const bool sdChanged = status.sdMounted != _status.sdMounted || status.sdFreeMb != _status.sdFreeMb ||
                            status.sdTotalMb != _status.sdTotalMb;
+    const bool audioChanged = status.audioOn != _status.audioOn || status.volume != _status.volume ||
+                              status.btState != _status.btState || status.btCount != _status.btCount ||
+                              strcmp(status.btPeer, _status.btPeer) != 0;
     const bool radioChanged = status.bluetoothRunning != _status.bluetoothRunning ||
                               status.wifiState != _status.wifiState || status.radioBlocked != _status.radioBlocked ||
                               strcmp(status.address, _status.address) != 0 || status.network != _status.network;
     _status = status;
     if (_dimmed) return;
-    if (_tab == Tab::Home && (sdChanged || radioChanged)) drawHomeStatus();
+    if (_tab == Tab::Home && audioChanged) drawContent();
+    else if (_tab == Tab::Home && !_btScreen && (sdChanged || radioChanged)) drawHomeStatus();
     else if (_tab == Tab::Sound && sdChanged) drawContent();
     // The free-memory figure on Settings is as of opening the screen; it
     // jitters, and following it would bring the flicker back.
@@ -142,7 +156,7 @@ void Ui::drawHeader() {
     _lcd.setFont(_tab == Tab::Home ? kFontTitle : kFontSmall);
     _lcd.setTextDatum(textdatum_t::middle_left);
     _lcd.setTextColor(kCyan, kBackground);
-    _lcd.drawString(kTabTitles[static_cast<uint8_t>(_tab)], 10, kHeaderH / 2);
+    _lcd.drawString(_btScreen ? "BLUETOOTH" : kTabTitles[static_cast<uint8_t>(_tab)], 10, kHeaderH / 2);
     // The operating mode is always visible (ADR-000204).
     const bool setup = _settings.mode == rc::Mode::Setup;
     _lcd.setFont(kFontSmall);
@@ -167,7 +181,9 @@ void Ui::drawContent() {
     _buttonCount = 0;
     _lcd.fillRect(0, kContentTop, kScreenW, kContentBottom - kContentTop, kBackground);
     switch (_tab) {
-        case Tab::Home: drawHome(); break;
+        case Tab::Home:
+            if (_btScreen) drawBluetooth(); else drawHome();
+            break;
         case Tab::Frequency: drawFrequency(); break;
         case Tab::Sound: drawSound(); break;
         case Tab::Sessions: drawSessions(); break;
@@ -197,30 +213,77 @@ void Ui::drawHome() {
     snprintf(text, sizeof(text), "R %.1f Hz", static_cast<double>(_settings.primaryHz + _settings.beatHz));
     centered(text, 180, y, kViolet, kBackground, kFontSmall);
 
-    // Audio is off until the user turns it on (RES-CFG-003, RES-GUI-003).
-    addButton(40, kContentTop + 142, 160, 36, "AUDIO OFF", kIdAudio);
-
+    if (_settings.mode == rc::Mode::Play) {
+        // Audio is off until the user turns it on (RES-CFG-003, RES-GUI-003).
+        snprintf(_audioLabel, sizeof(_audioLabel), "%s %u%%", _status.audioOn ? "ON" : "OFF",
+                 static_cast<unsigned>(_status.volume));
+        addButton(8, kContentTop + 142, 46, 36, "-", kIdVolumeDown);
+        addButton(58, kContentTop + 142, 124, 36, _audioLabel, kIdAudio);
+        addButton(186, kContentTop + 142, 46, 36, "+", kIdVolumeUp);
+        if (_status.btState == kBtConnected) {
+            snprintf(_btLabel, sizeof(_btLabel), "BT: %s", _status.btPeer[0] ? _status.btPeer : "connected");
+        } else if (_status.btState == kBtConnecting) {
+            snprintf(_btLabel, sizeof(_btLabel), "BT: connecting...");
+        } else if (_status.btState == kBtScanning) {
+            snprintf(_btLabel, sizeof(_btLabel), "BT: choose device (%u)", static_cast<unsigned>(_status.btCount));
+        } else {
+            snprintf(_btLabel, sizeof(_btLabel), "BT: off");
+        }
+        addButton(8, kContentTop + 184, 224, 32, _btLabel, kIdBluetooth);
+    } else {
+        label("Audio plays in PLAY mode.", 12, kContentTop + 150, kTextDim, kFontSmall);
+        label("Switch mode under SET.", 12, kContentTop + 166, kTextDim, kFontSmall);
+    }
     drawHomeStatus();
 }
 
 void Ui::drawHomeStatus() {
     char text[40];
-    const int16_t y = kContentTop + 188;
+    const int16_t y = kContentTop + 220;
     _lcd.fillRect(0, y, kScreenW, kContentBottom - y, kBackground);
-    if (_settings.mode == rc::Mode::Play) {
-        label(_status.bluetoothRunning ? "Bluetooth: ready" : "Bluetooth: off", 12, y, kTextDim, kFontSmall);
-    } else {
+    if (_status.radioBlocked) {
+        label("Radio off: power dropped", 12, y, kWarning, kFontSmall);
+        return;
+    }
+    if (_settings.mode == rc::Mode::Setup) {
         snprintf(text, sizeof(text), "Wi-Fi: %s", _status.address[0] ? _status.address : "starting");
         label(text, 12, y, kTextDim, kFontSmall);
+        return;
+    }
+    if (_status.unexpectedReset) {
+        snprintf(text, sizeof(text), "Restarted: %s", _status.resetReason);
+        label(text, 12, y, kWarning, kFontSmall);
+        return;
     }
     if (_status.sdMounted) snprintf(text, sizeof(text), "SD: %lu MB free", static_cast<unsigned long>(_status.sdFreeMb));
     else snprintf(text, sizeof(text), "SD: no card");
-    label(text, 12, y + 15, _status.sdMounted ? kTextDim : kWarning, kFontSmall);
-    if (_status.radioBlocked) {
-        label("Radio off: power dropped", 12, y + 30, kWarning, kFontSmall);
-    } else if (_status.unexpectedReset) {
-        snprintf(text, sizeof(text), "Restarted: %s", _status.resetReason);
-        label(text, 12, y + 30, kWarning, kFontSmall);
+    label(text, 12, y, kTextDim, kFontSmall);
+}
+
+void Ui::drawBluetooth() {
+    int16_t y = kContentTop + 8;
+    if (_status.btState == kBtConnected) {
+        label("Connected to", 12, y, kTextDim, kFontSmall);
+        label(_status.btPeer[0] ? _status.btPeer : "a remembered device", 12, y + 16, kTeal, kFontText);
+        addButton(8, y + 48, 224, 38, "Disconnect", kIdBtDisconnect);
+        return;
+    }
+    if (_status.btState == kBtConnecting) {
+        label("Connecting to", 12, y, kTextDim, kFontSmall);
+        label(_status.btPeer, 12, y + 16, kCyan, kFontText);
+        label("Keep it in pairing mode.", 12, y + 44, kTextDim, kFontSmall);
+        addButton(8, y + 66, 224, 38, "Cancel", kIdBtDisconnect);
+        return;
+    }
+    if (_status.btState != kBtScanning) {
+        label("Bluetooth is off.", 12, y, kWarning, kFontSmall);
+        return;
+    }
+    label(_status.btCount ? "Tap a device to connect" : "Searching... put the headset", 12, y, kTextDim, kFontSmall);
+    if (_status.btCount == 0) label("or speaker in pairing mode.", 12, y + 16, kTextDim, kFontSmall);
+    y += 22;
+    for (uint8_t i = 0; i < _status.btCount && i < 5; ++i) {
+        addButton(8, static_cast<int16_t>(y + i * 42), 224, 38, _status.btDevices[i], static_cast<uint8_t>(kIdBtDevice + i));
     }
 }
 
@@ -293,13 +356,14 @@ void Ui::drawSettingsValues() {
         }
         snprintf(text, sizeof(text), "Address: %s", _status.address);
         label(text, 12, y + 30, kText, kFontSmall);
+        label("(web page not built yet)", 12, y + 45, kWarning, kFontSmall);
     } else {
         label("Wi-Fi is off in PLAY mode.", 12, y, kTextDim, kFontSmall);
     }
     snprintf(text, sizeof(text), "Firmware %s", RESONANCE_VERSION);
-    label(text, 12, y + 50, kTextDim, kFontSmall);
+    label(text, 12, y + 62, kTextDim, kFontSmall);
     snprintf(text, sizeof(text), "Free memory %lu kB", static_cast<unsigned long>(_status.freeHeap / 1024));
-    label(text, 12, y + 65, kTextDim, kFontSmall);
+    label(text, 12, y + 77, kTextDim, kFontSmall);
 }
 
 // ---- input -----------------------------------------------------------------
@@ -333,11 +397,13 @@ void Ui::onButton(uint8_t id) {
         _settings.primaryHz = rc::sanitizeFrequency(_settings.primaryHz + kPrimarySteps[id], rc::kPrimaryMinHz,
                                                     rc::kPrimaryMaxHz, rc::kPrimaryDefaultHz);
         _settingsDirty = true;
+        _pending = Event::ToneChanged;
         drawFrequencyValues();
     } else if (id < 8) {
         _settings.beatHz = rc::sanitizeFrequency(_settings.beatHz + kBeatSteps[id - 4], rc::kBeatMinHz,
                                                  rc::kBeatMaxHz, rc::kBeatDefaultHz);
         _settingsDirty = true;
+        _pending = Event::ToneChanged;
         drawFrequencyValues();
     } else if (id == kIdBrightnessDown || id == kIdBrightnessUp) {
         int value = _settings.brightness + (id == kIdBrightnessUp ? 10 : -10);
@@ -355,14 +421,26 @@ void Ui::onButton(uint8_t id) {
             drawContent();
         }
     } else if (id == kIdAudio) {
-        // The audio engine is not built yet; the control says so rather than
-        // pretending to work.
-        centered(" Audio is not built yet ", kScreenW / 2, kContentTop + 160, kWarning, kPanel, kFontSmall);
+        _pending = Event::AudioToggle;
+    } else if (id == kIdVolumeDown) {
+        _pending = Event::VolumeDown;
+    } else if (id == kIdVolumeUp) {
+        _pending = Event::VolumeUp;
+    } else if (id == kIdBluetooth) {
+        _btScreen = true;
+        drawHeader();
+        drawContent();
+    } else if (id >= kIdBtDevice && id < kIdBtDevice + 5) {
+        _eventArg = static_cast<uint8_t>(id - kIdBtDevice);
+        _pending = Event::BluetoothConnect;
+    } else if (id == kIdBtDisconnect) {
+        _pending = Event::BluetoothDisconnect;
     }
 }
 
 void Ui::selectTab(Tab tab) {
-    if (tab == _tab) return;
+    if (tab == _tab && !_btScreen) return;
+    _btScreen = false;
     _tab = tab;
     _modeArmed = false;
     // Edits are stored when the user leaves the screen, not on every tap, to

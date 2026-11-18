@@ -2,7 +2,7 @@
 
 **Requirement:** RES-PROC-001, RES-PROC-003, RES-PROC-004, RES-PROC-005 (`docs/requirements/resonance.md`)
 **Decision:** ADR-000204 (Bluetooth-only output, no battery measurement, space first, operating modes)
-**Work:** WORK-000001 (Stage 1), WORK-000002 (Stage 2)
+**Work:** WORK-000001 (Stage 1), WORK-000002 and WORK-000003 (Stage 2), WORK-000004 (Stage 3)
 **Inputs:** `HARDWARE.md`, `GPIO_MAP.md`, `ARCHITECTURE.md`, `LIBRARY_EVALUATION.md`
 
 ## Where the project stands
@@ -10,8 +10,8 @@
 | Stage | Content | State |
 |---|---|---|
 | 1 | Hardware and software audit | Done |
-| 2 | Board foundation | **Implemented and running on the board.** Three checks need a person: the picture, touch, and a card in the slot |
-| 3 | Audio prototype over Bluetooth | Not started |
+| 2 | Board foundation | Done on the board: picture, touch, both modes confirmed by the operator. **Open: a card in the SD slot** |
+| 3 | Audio prototype over Bluetooth | **Implemented; the tone is verified in host tests, Bluetooth starts and scans on the board. Not yet heard: no audio device has been connected** |
 | 4 | Playback and mixing | Not started |
 | 5 | Bluetooth device management | Not started |
 | 6 | Session engine | Not started |
@@ -34,34 +34,47 @@ from Stage 8.
 | Bluetooth Classic | Starts; 101 kB free afterwards | Serial report |
 | Wi-Fi | Access point starts, scan finds networks; 157 kB free | Serial report |
 | Both radios at once | 50 kB free: not a basis for the product | Serial report |
-| Display | The operator saw the interface; the first colour scheme was too low in contrast and was replaced in 0.2.1. **The new scheme has not been seen yet** | Needs eyes |
+| Display | The operator saw the interface; the first colour scheme was too low in contrast and was replaced in 0.2.1, which the operator found brighter. The flashing of the first corrected build is gone | The operator |
 | Touch input | Did not work in 0.2.0 (the driver waited for an interrupt line that idles high). Fixed in 0.2.1 by polling: 30 presses by the operator, on the tabs and the audio button, registered at the right places | Serial log of presses |
 | microSD | **No card answered** | Needs a card |
 | Radio start guard | Built after the board lost power 16 times at the first radio start. The skip path was seen working once, set off by a reset from the USB adapter during the guard window; that false alarm is why three failed starts in a row are now required. The three-attempt version has not been triggered | Kernel log of USB disconnects; serial report |
 
+### Stage 3 — what was verified, and how
+
+| Item | Result | Verified by |
+|---|---|---|
+| Frequencies | Left f0 and right f0 + fb within 0.01 Hz at 20, 100.3, 200, 432 and 1000 Hz | Host tests (zero-crossing count over 10-20 s) |
+| Channel independence | The left channel's envelope is flat: nothing of the right leaks in | Host test |
+| Frequency change | Phase-continuous: no sample step larger than the sine itself makes | Host test |
+| Start, stop, volume step | Faded; silence before start and after stop | Host tests |
+| Ceiling | Output never exceeds half of full scale | Host test |
+| Invalid values | Clamped; non-finite ignored | Host test |
+| Bluetooth A2DP on the board | Starts and scans; 84 kB of heap free; image 1.89 MB | Serial report |
+| Scan list, connect, the tone in a headset, clicks, reconnect at start | **Not verified: no audio device was in pairing mode** | Needs a headset |
+
 ### To check on the bench
 
-1. The screen shows a dark blue interface titled RESONANCE with three rings,
-   a tab bar of five tabs, and `PLAY` at the top right. Colours: cyan,
-   teal and violet. If red and blue look swapped, the colour order is wrong.
-2. Each tab opens; on FREQ the buttons change the two frequencies; on SET
-   the brightness buttons work and "Restart in SETUP mode" (two taps)
-   restarts the device, which then shows the access point's name, password
-   and address.
-3. With a FAT32 card inserted, SOUND shows its size, and the card afterwards
+1. Put a Bluetooth headset or speaker in pairing mode. On HOME tap the
+   `BT:` button; the device should appear in the list within about half a
+   minute. Tap it; the button on HOME then shows its name.
+2. Tap `OFF 30%` to start the tone: 200 Hz in the left ear, 210 Hz in the
+   right, fading in over half a second with no click. `+` and `-` change
+   the volume in steps of 5 %. On FREQ the buttons change the tone while it
+   plays, without clicks.
+3. Restart the device with the headset on: it should reconnect by itself,
+   and stay silent until audio is turned on.
+4. Colours: cyan, teal and violet on near-black. If red and blue look
+   swapped, the colour order is wrong.
+5. With a FAT32 card inserted, SOUND shows its size, and the card afterwards
    contains the `/RESONANCE` directory tree.
-4. A cold start from a direct USB port, and one with a battery connected,
+6. A cold start from a direct USB port, and one with a battery connected,
    to see whether the power loss at radio start returns (M11).
 
 ## Stage 3 — Audio prototype over Bluetooth
 
-| Step | Deliverable | Test |
-|---|---|---|
-| 3.1 | Portable DSP: oscillator, gain ramp, limiter | Host tests: frequency accuracy by zero-crossing count, no discontinuity across a frequency change, ramp shape, limiter bound, channel independence |
-| 3.2 | `AudioOutput` interface and the Bluetooth A2DP implementation; render task and ring buffer | Tone in a headset: 200 Hz left, 210 Hz right |
-| 3.3 | Minimal pairing: scan, list on the screen, connect, reconnect to the last device | With one headset |
-| 3.4 | Home screen audio on/off, volume, mute, fades | No click on start, stop and mute, by ear |
-| 3.5 | Heap in Play mode with A2DP streaming | Recorded; decides whether a custom library build is needed |
+Implemented (firmware 0.3.0); see the table above for what is verified.
+Remaining for this stage: the bench checks 1-3, and the Play-mode heap
+while a device is connected and streaming.
 
 ## Stage 4 — Playback and mixing
 
@@ -139,7 +152,7 @@ silent.
 
 | Risk | Likelihood | Effect | Response |
 |---|---|---|---|
-| Play-mode heap too small once A2DP and the MP3 decoder run | Medium: 101 kB before both | Dropouts or failure to start | Measure at 3.5; custom library build without BLE and HFP |
+| Play-mode heap too small once the MP3 decoder runs beside A2DP | Medium: 84 kB free while scanning, before a connection and the decoder (about 30 kB) | Dropouts or failure to start | Measure at 3.5; custom library build without BLE and HFP |
 | Power loss at radio start recurs | Seen once (16 events) | Device restarts; the guard skips the radio | Direct USB port, battery; M11 |
 | Board differs from schematic V1.0 | Medium | Wrong pins | So far the touch and display pins behave as drawn |
 | Dropouts from SD, display or radio contention | Medium | Audible glitches | Separate SPI buses; ring buffers; priorities; counters |

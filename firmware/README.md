@@ -2,8 +2,8 @@
 
 Firmware for the ESP32-2432S032C-I. Architecture:
 `docs/architecture/ARCHITECTURE.md`. Requirements:
-`docs/requirements/resonance.md`. Current state: Stage 2 (board foundation);
-there is no audio yet.
+`docs/requirements/resonance.md`. Current state: Stage 3 — the binaural tone plays over
+Bluetooth; no sound files, sessions or web interface yet.
 
 ## Requirements
 
@@ -13,7 +13,9 @@ there is no audio yet.
   (`/dev/ttyUSB0` on Linux; the user must be in the `dialout` group).
 
 The platform and library versions are pinned in `platformio.ini`:
-pioarduino 55.03.313 (Arduino core 3.3.13) and LovyanGFX 1.3.0. The first
+pioarduino 55.03.313 (Arduino core 3.3.13), LovyanGFX 1.3.0 and ESP32-A2DP
+1.8.12. The build warns that the AudioTools library is missing; it is not
+needed. The first
 build downloads the toolchain.
 
 ## Build and flash
@@ -60,9 +62,22 @@ wired.
 | `heap` | Free heap, minimum free heap, largest free block |
 | `scan` | Scan for Wi-Fi networks. In Play mode this starts Wi-Fi beside Bluetooth, which is only for measuring the heap |
 | `radio` | Start the current mode's radio, if it was skipped at start |
+| `bt` | Bluetooth state and the audio devices found so far |
+| `bt connect <n>` | Connect to found device number n |
+| `audio on` / `audio off` | Start or stop the tone |
 | `mode play` / `mode setup` | Store the operating mode and restart |
 | `wifi <ssid> <password>` | Store a Wi-Fi network for Setup mode. The password is not echoed |
 | `wifi clear` | Forget the stored network |
+
+## Listening
+
+1. Start in Play mode (`PLAY` at the top right of the screen).
+2. Put the headset or speaker in pairing mode.
+3. On HOME tap the `BT:` button, then tap the device in the list.
+4. Back on HOME, tap `OFF 30%` to start the tone; `-` and `+` set the volume.
+
+The device reconnects to the last headset at start. Audio never starts by
+itself.
 
 ## Operating modes
 

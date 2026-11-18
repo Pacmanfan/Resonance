@@ -2,8 +2,8 @@
 
 **Requirement:** RES-ARCH-001..005 and the domains they structure (`docs/requirements/resonance.md`)
 **Decision:** ADR-000204 (Bluetooth-only output, space first, operating modes)
-**Work:** WORK-000001 (design), WORK-000002 (Stage 2 implementation)
-**Status:** Stage 2 is implemented: board, display, touch, SD, settings, operating modes, interface shell. Sections marked *planned* describe code that does not exist yet.
+**Work:** WORK-000001 (design), WORK-000002 and WORK-000003 (Stage 2), WORK-000004 (Stage 3)
+**Status:** Stages 2 and 3 are implemented: board, display, touch, SD, settings, operating modes, interface, the binaural tone engine and the Bluetooth audio output. The tone has not yet been heard through a headset. Sections marked *planned* describe code that does not exist yet.
 **Inputs:** `HARDWARE.md`, `GPIO_MAP.md`, `LIBRARY_EVALUATION.md`
 
 ## Principles
@@ -32,7 +32,7 @@ running, 50 kB remain before any audio code exists
 | Radio | Bluetooth Classic (A2DP) | Wi-Fi (station, or the set-up access point) |
 | Runs | Audio engine, SD playback, sessions, interface | Web server, file management, interface |
 | Never started | Wi-Fi | Bluetooth; its reserved memory is returned to the heap |
-| Free heap at start, measured | 101 kB | 157 kB |
+| Free heap at start, measured | 84 kB with A2DP started and scanning | 157 kB |
 
 - The mode is a field of the settings record. It changes only through a
   restart, requested on the Settings screen (two taps) or by the serial
@@ -75,12 +75,13 @@ The device therefore always reaches a usable screen.
                 │
 ┌───────────────▼──────────────────────────────────────────────────┐
 │ Core (portable)   rc_settings: settings, ranges, validation      │
-│                   oscillators, mixer, limiter, sweep (planned)   │
+│                   rc_tone: oscillators, ramps, tone engine       │
+│                   mixer, limiter, sweep (planned)                │
 └───────────────┬──────────────────────────────────────────────────┘
                 │
 ┌───────────────▼──────────────────────────────────────────────────┐
 │ Platform          hal/ board · gui/display · storage/ · radio/   │
-│                   Bluetooth audio output, decoders (planned)     │
+│                   audio/bt_audio (A2DP) · decoders (planned)     │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -95,6 +96,7 @@ firmware/
   platformio.ini              one environment: the device
   lib/resonance_core/src/     portable core
     rc_settings.h/.cpp        settings record, ranges, validation
+    rc_tone.h/.cpp            oscillator, ramp, binaural tone engine
   src/
     main.cpp                  start-up, mode, status, serial diagnostics
     version.h
@@ -105,7 +107,8 @@ firmware/
     gui/ui.h/.cpp             five screens, tab bar, buttons, dimming
     storage/settings_store    settings in NVS; radio start guard
     storage/sdcard            the card and its SPI bus; /RESONANCE tree
-    radio/bt_stack            Bluetooth Classic bring-up, memory release
+    audio/bt_audio            Bluetooth A2DP source: scan, connect, audio feed
+    radio/bt_stack            Bluetooth memory hook and release (Setup mode)
     radio/wifi_link           station, set-up access point, mDNS
   tests/                      host tests of the portable core
   tools/host_tests.py         builds and runs them with the host compiler
@@ -142,6 +145,9 @@ planned (ADR-000204).
   frame buffer. Screens are redrawn only where something changed.
 - Five tabs: Home, Frequency Studio, Sound Library, Sessions, Settings
   (RES-GUI-001). Controls that are not built yet say so on the screen.
+- Home has the audio on/off control with the volume beside it, and a
+  Bluetooth button that opens the device list: found devices as buttons,
+  tap one to connect, and Disconnect when connected.
 - Contrast comes first: near-black background, white text, bright outlines
   on every control, and no text smaller than 12 pixels. The first scheme
   (dim grey on dark blue) was unreadable on the panel.
@@ -158,32 +164,43 @@ planned (ADR-000204).
 - *Planned:* visualisations drawn from parameters in the status snapshot,
   never from audio samples.
 
-## Audio path (*planned*, Stage 3)
+## Audio path
 
 ```text
- SD card ──> decoder task ──> PCM ring ──┐
-                                         ▼
- BinauralGenerator ──────────────> AudioMixer ──> Limiter ──> AudioOutput
- NoiseGenerator ─────────────────────────┘                    (Bluetooth)
+ implemented:   ToneEngine (left f0, right f0 + fb) ──> Bluetooth A2DP
+ planned:       + background player and noise through a mixer and limiter
 ```
 
 - **44.1 kHz stereo, 16-bit at the output**, as A2DP fixes it. Internal
   samples are 32-bit float; the ESP32 has a single-precision FPU.
-- Two independent oscillators, each a 32-bit phase accumulator (resolution
-  about 0.00001 Hz). A frequency change alters only the phase increment, so
-  it is phase-continuous by construction.
-- Left carries f0, right carries f0 + fb. No stage sums the two channels of
-  the binaural layer.
-- Every gain is a ramped value; start, stop and mute are short fades, which
-  is what removes clicks. A soft limiter and a hard clamp follow the sum.
-- The Bluetooth stack pulls audio through a callback that must not block.
-  The engine renders into a ring buffer from its own task; the callback
-  drains the ring and delivers silence when it is empty.
-- A decoder task reads the card and decodes into a second ring. An empty
-  ring silences only the background layer; the tone continues.
-- `AudioOutput` stays an interface with one implementation, so the wired
-  output can return without touching the engine.
-- Buffer sizes are fixed in one header and allocated once at start.
+- Two independent oscillators, each a 32-bit phase accumulator read through
+  a 1024-entry sine table with linear interpolation. A frequency change
+  alters only the phase increment, so it is phase-continuous by
+  construction; the change itself glides over 50 ms.
+- Left carries f0, right carries f0 + fb. The channels are never summed.
+- Volume (square law) and on/off are ramped: 50 ms for a volume step,
+  500 ms for start and stop. When off, the oscillators rest at phase zero,
+  so the next start rises from a zero crossing.
+- The tone is limited to half of full scale, which leaves headroom for the
+  layers to come, and one bit of triangular dither is added.
+- **The Bluetooth stack pulls audio through a callback, and the callback
+  renders directly from the tone engine.** There is no render task and no
+  ring buffer yet: rendering two sines is far cheaper than the callback's
+  period, never blocks, allocates or logs (RES-AUDIO-012), and costs no
+  extra RAM. The interface passes parameters to the engine through atomic
+  values, which the engine picks up once per block.
+- `audio/bt_audio` scans for audio devices, lists up to five by name,
+  connects to the one chosen on the screen, and lets the library reconnect
+  to the last device at start. Link keys stay in the Bluetooth stack's own
+  storage (RES-BT-003).
+- Audio is off at every start; only the Home screen's control or the serial
+  command turns it on (RES-CFG-003).
+- *Planned (Stage 4):* a decoder task reads the card and decodes into a ring
+  buffer; a mixer and limiter combine it and the noise layer with the tone.
+  An empty ring silences only the background layer.
+- `AudioOutput` as a formal interface arrives when a second output exists;
+  until then the engine's `render()` is the boundary, and nothing in the
+  core knows about Bluetooth.
 
 ## Web administration (*planned*, Stage 7, Setup mode only)
 
@@ -201,11 +218,8 @@ planned (ADR-000204).
 | Arduino loop (core 1) | exists | Interface, status, serial diagnostics |
 | Bluetooth controller and host (core 0) | exists | Started only in Play mode |
 | Wi-Fi and network (core 0) | exists | Started only in Setup mode |
-| Audio render (core 1, highest of ours) | planned | Fills the output ring |
+| Bluetooth audio callback (inside the stack's task) | exists | Renders the tone; no blocking, no logging |
 | Decoder (core 1, below audio) | planned | SD reads and MP3/WAV decoding |
-
-Logging from the audio task will be forbidden; it increments counters that
-the loop task reports.
 
 ## Open decisions
 

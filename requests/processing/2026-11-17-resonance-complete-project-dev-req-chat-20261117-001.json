@@ -395,7 +395,8 @@
     "work": [
       "WORK-000001",
       "WORK-000002",
-      "WORK-000003"
+      "WORK-000003",
+      "WORK-000004"
     ]
   },
   "follow_ups": [
@@ -412,6 +413,11 @@
     {
       "timestamp": "2026-11-18T03:06:06.846657+00:00",
       "text": "OK, the screen is brighter - but I see a ~1Hz flashing of the screen. At the top of the screen - where it says 'Resonance' - if I touch there - it leaves yellow dots that stay. How do I scan and connect to a BT audio device?",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T03:14:15.593118+00:00",
+      "text": "I conencted to the wifi and went to the address, nothing happened. The flicker and yellow dots appear fixed.",
       "attachments": []
     }
   ]

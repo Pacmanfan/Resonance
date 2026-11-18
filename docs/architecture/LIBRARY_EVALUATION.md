@@ -38,6 +38,7 @@ interface shell; no audio, no decoder, no web server) on the board,
 | **Setup mode:** Bluetooth memory released | 218 kB | 111 kB |
 | **Setup mode:** Wi-Fi access point started | 157 kB | 111 kB |
 | Bluetooth host **and** Wi-Fi station together | **50 kB** | **47 kB** |
+| **Play mode, firmware 0.3.0:** A2DP source started and scanning, tone engine loaded | 84 kB | 78 kB |
 
 - The combined figure confirms the published reports: with both radios up,
   50 kB remain before A2DP, the decoder, the mixer and a web server are
@@ -45,8 +46,12 @@ interface shell; no audio, no decoder, no web server) on the board,
   not a fallback. Gate G1 is answered for stock libraries.
 - The display and the interface of our own cost about 6 kB of heap. LVGL
   was budgeted at 34-42 kB.
-- **Image size: 1,877,824 bytes**, 60 % of the 3 MB slot, already holding
-  both radio stacks. It would leave under 90 kB in a 1.875 MB OTA slot, so
+- ESP32-A2DP 1.8.12 builds and runs on core 3.3.13 without the AudioTools
+  library (it prints a build warning about it; nothing of it is needed for
+  the source with a frame callback).
+- **Image size: 1,877,824 bytes** at 0.2.0 and about 1.89 MB at 0.3.0 with
+  A2DP and the tone engine, 60 % of the 3 MB slot, already holding both
+  radio stacks. It would leave under 90 kB in a 1.875 MB OTA slot, so
   OTA is not possible without removing BLE and HFP from the libraries.
 
 ## Selected stack

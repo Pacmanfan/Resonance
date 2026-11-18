@@ -1246,6 +1246,12 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-18T03:14:15.593118+00:00
+
+> I conencted to the wifi and went to the address, nothing happened. The flicker and yellow dots appear fixed.
+
+
+
 ### Follow-up 2026-11-18T03:06:06.846657+00:00
 
 > OK, the screen is brighter - but I see a ~1Hz flashing of the screen. At the top of the screen - where it says 'Resonance' - if I touch there - it leaves yellow dots that stay. How do I scan and connect to a BT audio device?
@@ -1277,5 +1283,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004
 - Evidence: pending

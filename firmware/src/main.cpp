@@ -8,9 +8,11 @@
 #include "gui/display.h"
 #include "gui/ui.h"
 #include "hal/board.h"
+#include "audio/bt_audio.h"
 #include "radio/bt_stack.h"
 #include "radio/wifi_link.h"
 #include "rc_settings.h"
+#include "rc_tone.h"
 #include "storage/sdcard.h"
 #include "storage/settings_store.h"
 #include "version.h"
@@ -18,6 +20,9 @@
 namespace {
 
 rc::Settings settings;
+rc::ToneEngine toneEngine;
+bool audioOn = false;   // never on at start (RES-CFG-003)
+uint8_t volume = 0;     // percent; starts at the settings' start-up volume
 // Display and interface are built on first use, inside setup(): objects that
 // configure drivers must not be constructed before the scheduler runs.
 gui::Display& lcd() {
@@ -63,7 +68,7 @@ void printReport() {
                   touch.ok ? "" : " (READ FAILED)");
     Serial.printf("REPORT sd %s total %lu MB free %lu MB\n", sd.mounted ? "mounted" : "none",
                   static_cast<unsigned long>(sd.totalMb), static_cast<unsigned long>(sd.freeMb));
-    Serial.printf("REPORT bluetooth %s%s\n", btstack::running() ? "running" : "off",
+    Serial.printf("REPORT bluetooth %s%s\n", (btaudio::state() != btaudio::State::Off) ? "running" : "off",
                   radioBlocked ? " (radio skipped at this start)" : "");
     char address[20];
     wifilink::address(address, sizeof(address));
@@ -90,7 +95,9 @@ void startRadio() {
         wifilink::begin(settings);
         printHeap("wifi started");
     } else {
-        btOk = btstack::begin("Resonance");
+        toneEngine.setFrequencies(settings.primaryHz, settings.beatHz);
+        toneEngine.setVolume(volume);
+        btOk = btaudio::begin("Resonance", toneEngine);
         printHeap("bluetooth started");
     }
 }
@@ -110,7 +117,7 @@ void refreshStatus() {
     status.sdMounted = sd.mounted;
     status.sdTotalMb = sd.totalMb;
     status.sdFreeMb = sd.freeMb;
-    status.bluetoothRunning = btstack::running();
+    status.bluetoothRunning = (btaudio::state() != btaudio::State::Off);
     status.wifiState = static_cast<uint8_t>(wifilink::state());
     wifilink::address(status.address, sizeof(status.address));
     status.network = wifilink::networkName();
@@ -118,11 +125,34 @@ void refreshStatus() {
     status.resetReason = board::resetReason();
     status.unexpectedReset = board::resetWasUnexpected();
     status.radioBlocked = radioBlocked;
+    status.audioOn = audioOn;
+    status.volume = volume;
+    status.btState = static_cast<uint8_t>(btaudio::state());
+    strlcpy(status.btPeer, btaudio::peerName(), sizeof(status.btPeer));
+    status.btCount = btaudio::deviceCount();
+    for (uint8_t i = 0; i < status.btCount && i < 5; ++i) {
+        strlcpy(status.btDevices[i], btaudio::deviceName(i), sizeof(status.btDevices[i]));
+    }
     screen().setStatus(status);
 }
 
+void setAudio(bool on) {
+    audioOn = on;
+    toneEngine.setEnabled(on);
+    Serial.printf("AUDIO %s\n", on ? "on" : "off");
+    refreshStatus();
+}
+
+void setVolume(int percent) {
+    if (percent < 0) percent = 0;
+    if (percent > rc::kVolumeMax) percent = rc::kVolumeMax;
+    volume = static_cast<uint8_t>(percent);
+    toneEngine.setVolume(volume);
+    refreshStatus();
+}
+
 // Serial diagnostics, for development (RES-17 "serial diagnostic output").
-//   report | heap | scan | radio | mode play | mode setup | wifi <ssid> <password> | wifi clear
+//   report | heap | scan | radio | bt | bt connect <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear
 void runCommand(char* line) {
     if (strcmp(line, "report") == 0) {
         printReport();
@@ -132,6 +162,16 @@ void runCommand(char* line) {
         const int n = wifilink::scanToSerial();
         Serial.printf("SCAN %d network(s)\n", n);
         printHeap("after wifi scan");
+    } else if (strcmp(line, "audio on") == 0) {
+        setAudio(true);
+    } else if (strcmp(line, "audio off") == 0) {
+        setAudio(false);
+    } else if (strcmp(line, "bt") == 0) {
+        Serial.printf("BT state %u peer '%s', %u device(s) found\n", static_cast<unsigned>(btaudio::state()),
+                      btaudio::peerName(), static_cast<unsigned>(btaudio::deviceCount()));
+        for (uint8_t i = 0; i < btaudio::deviceCount(); ++i) Serial.printf("  %u: %s\n", i, btaudio::deviceName(i));
+    } else if (strncmp(line, "bt connect ", 11) == 0) {
+        btaudio::connect(static_cast<uint8_t>(atoi(line + 11)));
     } else if (strcmp(line, "radio") == 0) {
         startRadio();
     } else if (strcmp(line, "mode play") == 0) {
@@ -152,7 +192,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | scan | radio | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | scan | radio | bt | bt connect <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 
@@ -178,6 +218,7 @@ void setup() {
     printHeap("boot");
 
     loadResult = storage::load(settings);
+    volume = settings.startVolume;
 
     displayOk = lcd().begin();
     lcd().setBacklightPercent(settings.brightness);
@@ -209,6 +250,27 @@ void loop() {
             break;
         case gui::Event::SwitchMode:
             switchMode(settings.mode == rc::Mode::Setup ? rc::Mode::Play : rc::Mode::Setup);
+            break;
+        case gui::Event::ToneChanged:
+            toneEngine.setFrequencies(settings.primaryHz, settings.beatHz);
+            break;
+        case gui::Event::AudioToggle:
+            setAudio(!audioOn);
+            break;
+        case gui::Event::VolumeUp:
+            setVolume(volume + 5);
+            break;
+        case gui::Event::VolumeDown:
+            setVolume(volume - 5);
+            break;
+        case gui::Event::BluetoothConnect:
+            btaudio::connect(screen().eventArg());
+            refreshStatus();
+            break;
+        case gui::Event::BluetoothDisconnect:
+            setAudio(false);
+            btaudio::disconnect();
+            refreshStatus();
             break;
         default:
             break;

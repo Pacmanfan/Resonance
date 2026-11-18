@@ -18,6 +18,12 @@ enum class Event : uint8_t {
     None,
     SettingsChanged,  // the settings record was edited and should be stored
     SwitchMode,       // restart into the other operating mode
+    ToneChanged,      // the frequencies were edited: apply them to the running tone
+    AudioToggle,      // audio on / off
+    VolumeUp,
+    VolumeDown,
+    BluetoothConnect,     // connect to the found device number eventArg()
+    BluetoothDisconnect,
 };
 
 // Everything the interface shows that it does not own.
@@ -33,6 +39,13 @@ struct Status {
     const char* resetReason = "";
     bool unexpectedReset = false;
     bool radioBlocked = false;  // the radio was not started: the last start lost power
+    // Audio and Bluetooth (Play mode).
+    bool audioOn = false;
+    uint8_t volume = 0;         // percent
+    uint8_t btState = 0;        // btaudio::State
+    char btPeer[24] = "";       // connected or chosen device
+    uint8_t btCount = 0;        // devices found by the scan
+    char btDevices[5][24] = {};
 };
 
 class Ui {
@@ -46,6 +59,9 @@ public:
 
     // Replaces the status snapshot; the visible screen is refreshed.
     void setStatus(const Status& status);
+
+    // Argument of the last event returned by poll(), where it has one.
+    uint8_t eventArg() const { return _eventArg; }
 
     // Number of touch presses seen since start (diagnostics).
     uint32_t touchCount() const { return _touchCount; }
@@ -66,6 +82,7 @@ private:
     void drawContent();
     void drawHome();
     void drawHomeStatus();
+    void drawBluetooth();
     void drawFrequency();
     void drawFrequencyValues();
     void drawSound();
@@ -91,6 +108,10 @@ private:
     bool _dimmed = false;
     bool _settingsDirty = false;
     bool _modeArmed = false;
+    bool _btScreen = false;  // the Bluetooth device list is open over Home
+    uint8_t _eventArg = 0;
+    char _audioLabel[12] = "";
+    char _btLabel[36] = "";
     Event _pending = Event::None;
     uint32_t _lastActivityMs = 0;
     uint32_t _touchCount = 0;

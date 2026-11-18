@@ -1,0 +1,45 @@
+{
+ "work": "WORK-000004",
+ "runs": [
+  {
+   "at": "2026-11-18T03:14:38.314298+00:00",
+   "verdict": "PASS",
+   "gate_version": 3,
+   "work": "WORK-000004",
+   "request": "2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+   "request_id": "REQ-CHAT-20261117-001",
+   "request_fingerprint": "aef0a7db13b1811956fc34f6a4004e0c0262a658f65e474ea0a7f4d53c44251a",
+   "request_code_paths": [
+    "firmware/lib/resonance_core/src/rc_settings.h",
+    "firmware/lib/resonance_core/src/rc_tone.cpp",
+    "firmware/lib/resonance_core/src/rc_tone.h",
+    "firmware/platformio.ini",
+    "firmware/src/audio/bt_audio.cpp",
+    "firmware/src/audio/bt_audio.h",
+    "firmware/src/gui/display.cpp",
+    "firmware/src/gui/display.h",
+    "firmware/src/gui/theme.h",
+    "firmware/src/gui/ui.cpp",
+    "firmware/src/gui/ui.h",
+    "firmware/src/hal/board_pins.h",
+    "firmware/src/main.cpp",
+    "firmware/src/radio/bt_stack.cpp",
+    "firmware/src/radio/bt_stack.h",
+    "firmware/src/version.h",
+    "firmware/tests/test_settings.cpp",
+    "firmware/tests/test_tone.cpp"
+   ],
+   "test_runs": [
+    "20261117T221415-280173"
+   ],
+   "evidence": [
+    "VER-000004"
+   ],
+   "head": "dce0a6b0b2a4db523159422d653c35441d24c7b7",
+   "agent_id": "agent-dev-20261117205050-9ef7a9",
+   "fails": [],
+   "warns": [],
+   "passes": 14
+  }
+ ]
+}

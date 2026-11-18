@@ -1,0 +1,45 @@
+// Bluetooth A2DP source: the audio output of Play mode (RES-BT-001,
+// RES-AUDIO-011, ADR-000204). Owns the Bluetooth stack while it runs.
+//
+// The stack pulls audio through a callback in its own task; the callback
+// renders straight from the tone engine, which never blocks (RES-AUDIO-012).
+#pragma once
+
+#include <stdint.h>
+
+#include "rc_tone.h"
+
+namespace btaudio {
+
+enum class State : uint8_t {
+    Off,         // not started
+    Scanning,    // looking for audio devices
+    Connecting,  // a device was chosen and is being connected
+    Connected,
+};
+
+constexpr uint8_t kMaxDevices = 5;
+constexpr uint8_t kNameLength = 24;
+
+// Starts Bluetooth and begins looking for audio devices. A device used
+// before is reconnected automatically when it is in range. `engine` supplies
+// the audio and must outlive the stack.
+bool begin(const char* localName, rc::ToneEngine& engine);
+
+State state();
+
+// Devices found so far, strongest first is not guaranteed; order of discovery.
+uint8_t deviceCount();
+const char* deviceName(uint8_t index);
+
+// Connects to a found device as soon as it is seen again by the scan.
+void connect(uint8_t index);
+
+// Drops the connection and goes back to scanning.
+void disconnect();
+
+// Name of the connected or chosen device; empty when unknown (a device
+// reconnected from memory has no name until it is found by a scan).
+const char* peerName();
+
+}  // namespace btaudio
