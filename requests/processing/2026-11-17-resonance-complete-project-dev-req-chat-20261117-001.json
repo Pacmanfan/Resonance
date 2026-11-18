@@ -404,7 +404,8 @@
       "WORK-000009",
       "WORK-000010",
       "WORK-000011",
-      "WORK-000012"
+      "WORK-000012",
+      "WORK-000013"
     ]
   },
   "follow_ups": [
@@ -476,6 +477,11 @@
     {
       "timestamp": "2026-11-18T04:50:39.829647+00:00",
       "text": "I would like to see it. Where is the file? We need some preset frequencies when the user is in the frequency studio. something they can cycle through. There are lists of known good freqs for those in the know. (touches nose)",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T04:53:02.965016+00:00",
+      "text": "in the frequency studio - the +0.1 button is a smaller font.",
       "attachments": []
     }
   ]

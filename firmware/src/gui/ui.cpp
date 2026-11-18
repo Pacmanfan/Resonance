@@ -193,7 +193,9 @@ void Ui::drawButton(const Button& b, bool pressed) {
     _lcd.drawRoundRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2, 5, kOutline);
     // A label too wide for its button is drawn in the small font.
     _lcd.setFont(kFontText);
-    const lgfx::IFont* font = _lcd.textWidth(b.label) > b.w - 8 ? kFontSmall : kFontText;
+    // Two pixels of air each side are enough inside the outline; a wider
+    // margin made "+0.1" alone fall back to the small font in its row.
+    const lgfx::IFont* font = _lcd.textWidth(b.label) > b.w - 4 ? kFontSmall : kFontText;
     centered(b.label, b.x + b.w / 2, b.y + b.h / 2, pressed ? kBackground : kText, fill, font);
 }
 
