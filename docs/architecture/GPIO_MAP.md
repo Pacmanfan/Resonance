@@ -28,7 +28,7 @@ Resonance module that will drive the pin (`ARCHITECTURE.md`).
 | 17 | RGB LED blue, active low | board (status LED) | Reserved for I2S DIN if the wired output returns |
 | 18 | microSD SCLK | SD card | |
 | 19 | microSD MISO | SD card | |
-| 21 | GT911 interrupt through 0 Ω; P3 pin 1; CN1 pin 2; 10 kΩ pull-up | touch (interrupt, optional) | Shared with two connectors |
+| 21 | GT911 interrupt through 0 Ω; P3 pin 1; CN1 pin 2; 10 kΩ pull-up | none | Not used: touch is polled, because the line idles high on this board. Still wired to the controller, so nothing may be attached to it on the connectors |
 | 22 | P3 pin 2 and CN1 pin 3 only | none | The only free output-capable pin on a connector. Reserved for I2S BCK if the wired output returns |
 | 23 | microSD MOSI | SD card | |
 | 25 | GT911 reset | touch | DAC1 is therefore not available |

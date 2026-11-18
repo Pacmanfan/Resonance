@@ -36,8 +36,9 @@ that come from the board in hand.
 |---|---|---|
 | Processor | ESP32-D0WD-V3 revision 3.0, dual core, 40 MHz crystal, 4 MB flash | Section 1 |
 | USB bridge | CH340 (USB id 1a86:7523) | Section 1 |
-| Touch controller | Answers on IO33/IO32 at address **0x5D** | M6 |
-| Display | Initialises without error at 24 MHz, SPI mode 0. **Read-back returns zero** (display ID and status), so MISO on IO12 does not deliver data on this board. Whether the picture and colours are right has not been confirmed by eye | M7, partly |
+| Touch controller | Answers on IO33/IO32 at address **0x5D**; identifies as a GT911, configured for 240 × 320 and 5 points. Its coordinates match the display directly, with no scaling, mirroring or rotation: 30 presses by the operator landed on the tabs and the button they were aimed at (firmware 0.2.1, VER-000003) | M6 |
+| Touch interrupt | **IO21 idles high.** A driver that waits for it to be low never reads a touch; the firmware polls the controller instead and leaves IO21 alone | Section 3 |
+| Display | Initialises at 24 MHz, SPI mode 0, and shows the interface: the operator saw the dark blue screen, so inversion is right. The first colour scheme was too low in contrast and was replaced; the operator has not yet seen the new one. Colour order (red and blue not swapped) is not explicitly confirmed. **Read-back returns zero** (display ID and status), so MISO on IO12 does not deliver data on this board | M7, partly |
 | microSD | Mount failed with "card failed" on command 0: no card answered. Not yet tested with a card inserted | — |
 | Bluetooth Classic | Starts and stays up | — |
 | Wi-Fi | Access point starts; a scan found 8 networks | — |
@@ -110,7 +111,7 @@ Open points:
   describes IO21/IO22 as "associated with the capacitive touch interface".
   Per the schematic only IO21 is, and only as the interrupt line; the bus
   itself is IO33/IO32. IO22 has no on-board function.
-- Touch can be polled without the interrupt; openHASP does so.
+- Touch can be polled without the interrupt; openHASP does so. **On this board it has to be:** see "Measured on the board".
 
 ## 4. microSD
 

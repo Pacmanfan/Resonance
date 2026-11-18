@@ -1,0 +1,27 @@
+Resonance firmware 0.2.1 (touch polled, RESONANCE_TOUCH_DEBUG=1), ESP32-2432S032C, 2026-11-17.
+Serial output during 75 seconds while the operator used the touchscreen. Lines as printed by the device.
+
+Before the fix (pin_int = 21), 40 seconds, operator reported nothing could be selected:
+REPORT touch address 0x5D, 0 press(es), last -1,-1
+REPORT touch chip '911' configured 240x320, 5 point(s), status 0x80
+
+After the fix (pin_int = -1):
+REPORT touch address 0x5D, 0 press(es), last -1,-1
+REPORT touch chip '911' configured 240x320, 5 point(s), status 0x80
+TOUCH 75,305 (raw 75,305)
+TOUCH 132,302 (raw 132,302)
+TOUCH 170,283 (raw 170,283)
+TOUCH 224,291 (raw 224,291)
+TOUCH 173,290 (raw 173,290)
+TOUCH 118,291 (raw 118,291)
+TOUCH 83,293 (raw 83,293)
+TOUCH 24,283 (raw 24,283)
+TOUCH 153,192 (raw 153,192)
+(then 21 presses along the top edge, y 8-16, x 40-230)
+REPORT touch address 0x5D, 30 press(es), last 230,15
+REPORT touch chip '911' configured 240x320, 5 point(s), status 0x00
+
+Reading: the tab bar occupies y 274-320 in five 48-pixel columns; the first eight
+presses fall in tabs 2,3,4,5,4,3,2,1. Press nine falls inside the audio button
+(x 40-200, y 176-212). The following start reported "REPORT mode setup": the
+operator had switched mode on the Settings screen.

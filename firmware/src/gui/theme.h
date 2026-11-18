@@ -10,16 +10,19 @@ constexpr uint16_t rgb(uint8_t r, uint8_t g, uint8_t b) {
     return static_cast<uint16_t>(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
 }
 
-constexpr uint16_t kBackground = rgb(0x0B, 0x10, 0x20);
-constexpr uint16_t kPanel = rgb(0x16, 0x1D, 0x33);
-constexpr uint16_t kPanelPressed = rgb(0x24, 0x30, 0x52);
-constexpr uint16_t kOutline = rgb(0x2A, 0x35, 0x55);
-constexpr uint16_t kCyan = rgb(0x22, 0xD3, 0xEE);
-constexpr uint16_t kTeal = rgb(0x14, 0xB8, 0xA6);
-constexpr uint16_t kViolet = rgb(0x8B, 0x5C, 0xF6);
-constexpr uint16_t kText = rgb(0xE5, 0xE7, 0xEB);
-constexpr uint16_t kTextDim = rgb(0x8A, 0x93, 0xA6);
-constexpr uint16_t kWarning = rgb(0xF5, 0x9E, 0x0B);
+// Contrast comes first on this panel: a near-black background, white text,
+// and saturated highlights. Secondary text is light grey, not dim grey, and
+// every control has a bright outline.
+constexpr uint16_t kBackground = rgb(0x02, 0x04, 0x0C);
+constexpr uint16_t kPanel = rgb(0x12, 0x2A, 0x5C);
+constexpr uint16_t kPanelPressed = rgb(0x22, 0xD3, 0xEE);
+constexpr uint16_t kOutline = rgb(0x5C, 0xE1, 0xF5);
+constexpr uint16_t kCyan = rgb(0x40, 0xF0, 0xFF);
+constexpr uint16_t kTeal = rgb(0x2D, 0xF0, 0xC8);
+constexpr uint16_t kViolet = rgb(0xC4, 0xA0, 0xFF);
+constexpr uint16_t kText = rgb(0xFF, 0xFF, 0xFF);
+constexpr uint16_t kTextDim = rgb(0xD0, 0xD8, 0xE8);
+constexpr uint16_t kWarning = rgb(0xFF, 0xC0, 0x20);
 
 // Layout of the 240 x 320 portrait screen.
 constexpr int16_t kScreenW = 240;

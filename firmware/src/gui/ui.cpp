@@ -15,8 +15,8 @@ const char* const kTabNames[] = {"HOME", "FREQ", "SOUND", "SESS", "SET"};
 const char* const kTabTitles[] = {"RESONANCE", "FREQUENCY STUDIO", "SOUND LIBRARY", "SESSIONS", "SETTINGS"};
 constexpr int16_t kTabW = kScreenW / 5;
 
-const lgfx::IFont* const kFontSmall = &fonts::DejaVu9;
-const lgfx::IFont* const kFontText = &fonts::DejaVu12;
+const lgfx::IFont* const kFontSmall = &fonts::DejaVu12;
+const lgfx::IFont* const kFontText = &fonts::DejaVu18;
 const lgfx::IFont* const kFontTitle = &fonts::DejaVu18;
 const lgfx::IFont* const kFontValue = &fonts::DejaVu24;
 
@@ -41,11 +41,20 @@ void Ui::begin() {
 }
 
 void Ui::setStatus(const Status& status) {
+    // Nothing is redrawn unless something shown has changed, and then only
+    // the lines that show it: a periodic full redraw is visible as flicker.
+    const bool sdChanged = status.sdMounted != _status.sdMounted || status.sdFreeMb != _status.sdFreeMb ||
+                           status.sdTotalMb != _status.sdTotalMb;
+    const bool radioChanged = status.bluetoothRunning != _status.bluetoothRunning ||
+                              status.wifiState != _status.wifiState || status.radioBlocked != _status.radioBlocked ||
+                              strcmp(status.address, _status.address) != 0 || status.network != _status.network;
     _status = status;
-    // Only the screens that show status are redrawn, and only their content.
     if (_dimmed) return;
-    if (_tab == Tab::Home || _tab == Tab::Sound) drawContent();
-    else if (_tab == Tab::Settings) drawSettingsValues();
+    if (_tab == Tab::Home && (sdChanged || radioChanged)) drawHomeStatus();
+    else if (_tab == Tab::Sound && sdChanged) drawContent();
+    // The free-memory figure on Settings is as of opening the screen; it
+    // jitters, and following it would bring the flicker back.
+    else if (_tab == Tab::Settings && radioChanged) drawSettingsValues();
 }
 
 Event Ui::poll() {
@@ -55,6 +64,13 @@ Event Ui::poll() {
         ++_touchCount;
         _lastX = static_cast<int16_t>(x);
         _lastY = static_cast<int16_t>(y);
+#if RESONANCE_TOUCH_DEBUG
+        // Shows where the press was registered, on the screen and on serial.
+        int32_t rawX = -1, rawY = -1;
+        _lcd.rawTouch(&rawX, &rawY);
+        Serial.printf("TOUCH %d,%d (raw %ld,%ld)\n", _lastX, _lastY, static_cast<long>(rawX), static_cast<long>(rawY));
+        _lcd.fillCircle(_lastX, _lastY, 4, kWarning);
+#endif
         if (_dimmed) {
             wake();  // the first touch only wakes the screen
         } else {
@@ -110,7 +126,8 @@ void Ui::drawButton(const Button& b, bool pressed) {
     const uint16_t fill = pressed ? kPanelPressed : kPanel;
     _lcd.fillRoundRect(b.x, b.y, b.w, b.h, 6, fill);
     _lcd.drawRoundRect(b.x, b.y, b.w, b.h, 6, kOutline);
-    centered(b.label, b.x + b.w / 2, b.y + b.h / 2, kText, fill, kFontText);
+    _lcd.drawRoundRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2, 5, kOutline);
+    centered(b.label, b.x + b.w / 2, b.y + b.h / 2, pressed ? kBackground : kText, fill, kFontText);
 }
 
 void Ui::drawFrame() {
@@ -122,7 +139,7 @@ void Ui::drawFrame() {
 
 void Ui::drawHeader() {
     _lcd.fillRect(0, 0, kScreenW, kHeaderH, kBackground);
-    _lcd.setFont(_tab == Tab::Home ? kFontTitle : kFontText);
+    _lcd.setFont(_tab == Tab::Home ? kFontTitle : kFontSmall);
     _lcd.setTextDatum(textdatum_t::middle_left);
     _lcd.setTextColor(kCyan, kBackground);
     _lcd.drawString(kTabTitles[static_cast<uint8_t>(_tab)], 10, kHeaderH / 2);
@@ -132,7 +149,7 @@ void Ui::drawHeader() {
     _lcd.setTextDatum(textdatum_t::middle_right);
     _lcd.setTextColor(setup ? kWarning : kTeal, kBackground);
     _lcd.drawString(setup ? "SETUP" : "PLAY", kScreenW - 8, kHeaderH / 2);
-    _lcd.drawFastHLine(0, kHeaderH - 1, kScreenW, kOutline);
+    _lcd.fillRect(0, kHeaderH - 2, kScreenW, 2, kOutline);
 }
 
 void Ui::drawTabBar() {
@@ -141,7 +158,7 @@ void Ui::drawTabBar() {
     for (uint8_t i = 0; i < static_cast<uint8_t>(Tab::Count); ++i) {
         const bool active = i == static_cast<uint8_t>(_tab);
         const int16_t x = i * kTabW;
-        if (active) _lcd.fillRect(x + 6, top, kTabW - 12, 3, kCyan);
+        if (active) _lcd.fillRect(x + 2, top, kTabW - 4, 4, kCyan);
         centered(kTabNames[i], x + kTabW / 2, top + kTabBarH / 2 + 2, active ? kCyan : kTextDim, kPanel, kFontSmall);
     }
 }
@@ -172,18 +189,24 @@ void Ui::drawHome() {
     _lcd.drawCircle(cx, cy, 34, kCyan);
     snprintf(text, sizeof(text), "%.1f", static_cast<double>(_settings.beatHz));
     centered(text, cx, cy - 4, kText, kBackground, kFontValue);
-    centered("Hz beat", cx, cy + 16, kTextDim, kBackground, kFontSmall);
+    centered("Hz beat", cx, cy + 18, kTextDim, kBackground, kFontSmall);
 
     int16_t y = kContentTop + 126;
     snprintf(text, sizeof(text), "L %.1f Hz", static_cast<double>(_settings.primaryHz));
-    centered(text, 60, y, kCyan, kBackground, kFontText);
+    centered(text, 60, y, kCyan, kBackground, kFontSmall);
     snprintf(text, sizeof(text), "R %.1f Hz", static_cast<double>(_settings.primaryHz + _settings.beatHz));
-    centered(text, 180, y, kViolet, kBackground, kFontText);
+    centered(text, 180, y, kViolet, kBackground, kFontSmall);
 
     // Audio is off until the user turns it on (RES-CFG-003, RES-GUI-003).
     addButton(40, kContentTop + 142, 160, 36, "AUDIO OFF", kIdAudio);
 
-    y = kContentTop + 188;
+    drawHomeStatus();
+}
+
+void Ui::drawHomeStatus() {
+    char text[40];
+    const int16_t y = kContentTop + 188;
+    _lcd.fillRect(0, y, kScreenW, kContentBottom - y, kBackground);
     if (_settings.mode == rc::Mode::Play) {
         label(_status.bluetoothRunning ? "Bluetooth: ready" : "Bluetooth: off", 12, y, kTextDim, kFontSmall);
     } else {
@@ -192,12 +215,12 @@ void Ui::drawHome() {
     }
     if (_status.sdMounted) snprintf(text, sizeof(text), "SD: %lu MB free", static_cast<unsigned long>(_status.sdFreeMb));
     else snprintf(text, sizeof(text), "SD: no card");
-    label(text, 12, y + 14, _status.sdMounted ? kTextDim : kWarning, kFontSmall);
+    label(text, 12, y + 15, _status.sdMounted ? kTextDim : kWarning, kFontSmall);
     if (_status.radioBlocked) {
-        label("Radio off: power dropped at start", 12, y + 28, kWarning, kFontSmall);
+        label("Radio off: power dropped", 12, y + 30, kWarning, kFontSmall);
     } else if (_status.unexpectedReset) {
         snprintf(text, sizeof(text), "Restarted: %s", _status.resetReason);
-        label(text, 12, y + 28, kWarning, kFontSmall);
+        label(text, 12, y + 30, kWarning, kFontSmall);
     }
 }
 
@@ -230,12 +253,12 @@ void Ui::drawSound() {
         label("microSD card", 12, kContentTop + 12, kTextDim, kFontSmall);
         snprintf(text, sizeof(text), "%lu MB free of %lu MB", static_cast<unsigned long>(_status.sdFreeMb),
                  static_cast<unsigned long>(_status.sdTotalMb));
-        label(text, 12, kContentTop + 28, kText, kFontText);
+        label(text, 12, kContentTop + 30, kText, kFontSmall);
     } else {
         label("No microSD card", 12, kContentTop + 12, kWarning, kFontText);
-        label("Insert a card to play sound files.", 12, kContentTop + 32, kTextDim, kFontSmall);
+        label("Insert a card for sound files.", 12, kContentTop + 38, kTextDim, kFontSmall);
     }
-    label("Playback is not built yet.", 12, kContentTop + 70, kTextDim, kFontSmall);
+    label("Playback is not built yet.", 12, kContentTop + 76, kTextDim, kFontSmall);
 }
 
 void Ui::drawSessions() {
@@ -249,14 +272,14 @@ void Ui::drawSettings() {
 
     label("Operating mode", 12, kContentTop + 78, kTextDim, kFontSmall);
     const bool setup = _settings.mode == rc::Mode::Setup;
-    const char* text = _modeArmed ? "Tap again to restart" : (setup ? "Restart in PLAY mode" : "Restart in SETUP mode");
+    const char* text = _modeArmed ? "Tap again to restart" : (setup ? "Restart in PLAY" : "Restart in SETUP");
     addButton(8, kContentTop + 94, 224, 38, text, kIdMode);
     drawSettingsValues();
 }
 
 void Ui::drawSettingsValues() {
     char text[48];
-    snprintf(text, sizeof(text), " %u%% ", static_cast<unsigned>(_settings.brightness));
+    snprintf(text, sizeof(text), "  %u%%  ", static_cast<unsigned>(_settings.brightness));
     centered(text, kScreenW / 2, kContentTop + 45, kText, kBackground, kFontTitle);
 
     int16_t y = kContentTop + 142;
@@ -266,17 +289,17 @@ void Ui::drawSettingsValues() {
         label(text, 12, y, kText, kFontSmall);
         if (_status.wifiState == 3) {  // access point: show how to join it
             snprintf(text, sizeof(text), "Password: %s", _settings.apPass);
-            label(text, 12, y + 14, kText, kFontSmall);
+            label(text, 12, y + 15, kText, kFontSmall);
         }
         snprintf(text, sizeof(text), "Address: %s", _status.address);
-        label(text, 12, y + 28, kText, kFontSmall);
+        label(text, 12, y + 30, kText, kFontSmall);
     } else {
         label("Wi-Fi is off in PLAY mode.", 12, y, kTextDim, kFontSmall);
     }
     snprintf(text, sizeof(text), "Firmware %s", RESONANCE_VERSION);
-    label(text, 12, y + 48, kTextDim, kFontSmall);
+    label(text, 12, y + 50, kTextDim, kFontSmall);
     snprintf(text, sizeof(text), "Free memory %lu kB", static_cast<unsigned long>(_status.freeHeap / 1024));
-    label(text, 12, y + 62, kTextDim, kFontSmall);
+    label(text, 12, y + 65, kTextDim, kFontSmall);
 }
 
 // ---- input -----------------------------------------------------------------
@@ -334,7 +357,7 @@ void Ui::onButton(uint8_t id) {
     } else if (id == kIdAudio) {
         // The audio engine is not built yet; the control says so rather than
         // pretending to work.
-        centered(" Audio is not built yet ", kScreenW / 2, kContentTop + 160, kWarning, kBackground, kFontSmall);
+        centered(" Audio is not built yet ", kScreenW / 2, kContentTop + 160, kWarning, kPanel, kFontSmall);
     }
 }
 

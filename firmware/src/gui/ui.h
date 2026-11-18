@@ -65,6 +65,7 @@ private:
     void drawTabBar();
     void drawContent();
     void drawHome();
+    void drawHomeStatus();
     void drawFrequency();
     void drawFrequencyValues();
     void drawSound();

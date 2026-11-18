@@ -142,6 +142,12 @@ planned (ADR-000204).
   frame buffer. Screens are redrawn only where something changed.
 - Five tabs: Home, Frequency Studio, Sound Library, Sessions, Settings
   (RES-GUI-001). Controls that are not built yet say so on the screen.
+- Contrast comes first: near-black background, white text, bright outlines
+  on every control, and no text smaller than 12 pixels. The first scheme
+  (dim grey on dark blue) was unreadable on the panel.
+- Touch is polled over I2C on every pass of the loop. The controller's
+  interrupt line is not used: it idles high on this board, and the driver
+  reads only while it is low.
 - A button is at least 38 pixels high. Frequencies are adjusted in steps of
   0.1, 1 and 10 Hz and validated by the portable core.
 - The screen dims after the configured timeout; the first touch only wakes

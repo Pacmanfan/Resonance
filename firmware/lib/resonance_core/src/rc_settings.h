@@ -35,12 +35,12 @@ constexpr uint8_t kStartVolumeDefault = 30;
 
 constexpr uint8_t kBrightnessMin = 5;  // never fully dark: the screen is the only control
 constexpr uint8_t kBrightnessMax = 100;
-constexpr uint8_t kBrightnessDefault = 70;
+constexpr uint8_t kBrightnessDefault = 100;
 
 constexpr uint16_t kScreenTimeoutMaxS = 3600;  // 0 = never dim
 constexpr uint16_t kScreenTimeoutDefaultS = 60;
 
-constexpr uint8_t kSettingsVersion = 1;
+constexpr uint8_t kSettingsVersion = 2;  // 2: brightness default raised to 100
 
 // Stored as one fixed-size record. Every text field is NUL-terminated.
 struct Settings {

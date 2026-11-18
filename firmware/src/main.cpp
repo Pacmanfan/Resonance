@@ -56,6 +56,11 @@ void printReport() {
                   static_cast<unsigned long>(lcd().panelId()));
     Serial.printf("REPORT touch address 0x%02X, %lu press(es), last %d,%d\n", lcd().touchAddress(),
                   static_cast<unsigned long>(screen().touchCount()), screen().lastTouchX(), screen().lastTouchY());
+    const gui::Display::TouchInfo touch = lcd().touchInfo();
+    Serial.printf("REPORT touch chip '%s' configured %ux%u, %u point(s), status 0x%02X%s\n", touch.product,
+                  static_cast<unsigned>(touch.width), static_cast<unsigned>(touch.height),
+                  static_cast<unsigned>(touch.maxPoints), static_cast<unsigned>(touch.status),
+                  touch.ok ? "" : " (READ FAILED)");
     Serial.printf("REPORT sd %s total %lu MB free %lu MB\n", sd.mounted ? "mounted" : "none",
                   static_cast<unsigned long>(sd.totalMb), static_cast<unsigned long>(sd.freeMb));
     Serial.printf("REPORT bluetooth %s%s\n", btstack::running() ? "running" : "off",

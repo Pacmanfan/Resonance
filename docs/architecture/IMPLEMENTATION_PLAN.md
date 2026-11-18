@@ -34,8 +34,8 @@ from Stage 8.
 | Bluetooth Classic | Starts; 101 kB free afterwards | Serial report |
 | Wi-Fi | Access point starts, scan finds networks; 157 kB free | Serial report |
 | Both radios at once | 50 kB free: not a basis for the product | Serial report |
-| Display | Initialises without error. **Picture not confirmed**: the panel gives no read-back | Needs eyes |
-| Touch input | **No press has been made** | Needs a finger |
+| Display | The operator saw the interface; the first colour scheme was too low in contrast and was replaced in 0.2.1. **The new scheme has not been seen yet** | Needs eyes |
+| Touch input | Did not work in 0.2.0 (the driver waited for an interrupt line that idles high). Fixed in 0.2.1 by polling: 30 presses by the operator, on the tabs and the audio button, registered at the right places | Serial log of presses |
 | microSD | **No card answered** | Needs a card |
 | Radio start guard | Built after the board lost power 16 times at the first radio start. The skip path was seen working once, set off by a reset from the USB adapter during the guard window; that false alarm is why three failed starts in a row are now required. The three-attempt version has not been triggered | Kernel log of USB disconnects; serial report |
 

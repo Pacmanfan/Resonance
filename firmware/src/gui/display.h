@@ -28,6 +28,21 @@ public:
     // I2C address at which the touch controller answered, 0 when none did.
     uint8_t touchAddress() const { return _touchAddress; }
 
+    // What the touch controller says about itself. Diagnostics only.
+    struct TouchInfo {
+        bool ok;             // the registers could be read
+        char product[5];     // product id text, "911" for a GT911
+        uint16_t width;      // resolution the controller is configured for
+        uint16_t height;
+        uint8_t maxPoints;
+        uint8_t status;      // status register 0x814E: bit 7 = data ready, low bits = touch count
+    };
+    TouchInfo touchInfo();
+
+    // The touch point as the controller reports it, before any scaling or
+    // rotation. Returns false when nothing is touched.
+    bool rawTouch(int32_t* x, int32_t* y);
+
 private:
     lgfx::Panel_ST7789 _panel;
     lgfx::Bus_SPI _bus;

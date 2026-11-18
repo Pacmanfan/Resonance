@@ -1246,6 +1246,18 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-18T03:06:06.846657+00:00
+
+> OK, the screen is brighter - but I see a ~1Hz flashing of the screen. At the top of the screen - where it says 'Resonance' - if I touch there - it leaves yellow dots that stay. How do I scan and connect to a BT audio device?
+
+
+
+### Follow-up 2026-11-18T02:57:04.011826+00:00
+
+> I see the screen with dark blue. It is very low contrast. We need to make that higher contrast. I can not seem to select anything on screen. Check the touch controller? I don't have a sd card right now. Let me grab one and you can check the touchscreen and adjust colors to be brighter
+
+
+
 ### Follow-up 2026-11-18T02:13:23.907983+00:00
 
 > drop battery measurement. We are also going to put on hold the external stereo jack connected to i2s - we will rely on BT audio. Code conservatively for space. We may need to page swap in code. Begin implementation. The baord is plugged in
@@ -1265,5 +1277,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002
+- Work: WORK-000001, WORK-000002, WORK-000003
 - Evidence: pending

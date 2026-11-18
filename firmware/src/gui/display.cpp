@@ -63,7 +63,11 @@ Display::Display() {
         cfg.x_max = 239;
         cfg.y_min = 0;
         cfg.y_max = 319;
-        cfg.pin_int = pins::kTouchInt;
+        // Polled, not interrupt-driven: with an interrupt pin configured the
+        // driver reads the controller only while that line is low, and on
+        // this board IO21 idles high (10 k pull-up), so no touch was ever
+        // read. IO21 is left alone.
+        cfg.pin_int = -1;
         cfg.pin_rst = pins::kTouchRst;
         cfg.bus_shared = false;
         cfg.offset_rotation = 0;
@@ -88,6 +92,38 @@ bool Display::begin() {
     // possible addresses are probed rather than assumed.
     if (touchAnswers(0x5D)) _touchAddress = 0x5D;
     else if (touchAnswers(0x14)) _touchAddress = 0x14;
+    return true;
+}
+
+Display::TouchInfo Display::touchInfo() {
+    TouchInfo info = {};
+    if (_touchAddress == 0) return info;
+    uint8_t reg[2];
+    uint8_t buf[6];
+    reg[0] = 0x81; reg[1] = 0x40;  // product id, 4 characters
+    bool ok = lgfx::i2c::transactionWriteRead(kTouchI2cPort, _touchAddress, reg, 2, buf, 4, kTouchI2cHz).has_value();
+    memcpy(info.product, buf, 4);
+    info.product[4] = '\0';
+    for (char& c : info.product) {
+        if (c != '\0' && (c < 0x20 || c > 0x7e)) c = '?';
+    }
+    reg[0] = 0x80; reg[1] = 0x48;  // X resolution, Y resolution (little endian), touch number
+    ok = ok && lgfx::i2c::transactionWriteRead(kTouchI2cPort, _touchAddress, reg, 2, buf, 5, kTouchI2cHz).has_value();
+    info.width = static_cast<uint16_t>(buf[0] | (buf[1] << 8));
+    info.height = static_cast<uint16_t>(buf[2] | (buf[3] << 8));
+    info.maxPoints = buf[4] & 0x0F;
+    reg[0] = 0x81; reg[1] = 0x4E;
+    ok = ok && lgfx::i2c::transactionWriteRead(kTouchI2cPort, _touchAddress, reg, 2, buf, 1, kTouchI2cHz).has_value();
+    info.status = buf[0];
+    info.ok = ok;
+    return info;
+}
+
+bool Display::rawTouch(int32_t* x, int32_t* y) {
+    lgfx::touch_point_t point;
+    if (getTouchRaw(&point, 1) == 0) return false;
+    *x = point.x;
+    *y = point.y;
     return true;
 }
 
