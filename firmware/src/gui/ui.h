@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include "display.h"
+#include "rc_repeat.h"
 #include "rc_settings.h"
 
 namespace gui {
@@ -137,6 +138,7 @@ private:
     void label(const char* text, int16_t x, int16_t y, uint16_t color, const lgfx::IFont* font);
     void centered(const char* text, int16_t cx, int16_t cy, uint16_t color, uint16_t bg, const lgfx::IFont* font);
     void onPress(int16_t x, int16_t y);
+    static bool repeats(uint8_t id);
     void onButton(uint8_t id);
     void selectTab(Tab tab);
     void wake();
@@ -151,6 +153,8 @@ private:
     bool _dimmed = false;
     bool _settingsDirty = false;
     bool _modeArmed = false;
+    rc::HoldRepeat _repeat;        // tap-and-hold on an adjustment button
+    uint8_t _heldId = 0xFF;        // the button being held; 0xFF = none
     bool _btScreen = false;  // the Bluetooth device list is open over Home
     uint8_t _eventArg = 0;
     char _audioLabel[12] = "";

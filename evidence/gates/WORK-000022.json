@@ -1,0 +1,32 @@
+{
+ "work": "WORK-000022",
+ "runs": [
+  {
+   "at": "2026-11-18T05:29:05.510279+00:00",
+   "verdict": "PASS",
+   "gate_version": 3,
+   "work": "WORK-000022",
+   "request": "2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+   "request_id": "REQ-CHAT-20261117-001",
+   "request_fingerprint": "610dc566adc3ffe6a48367c757be7337566fc343921d665abfc59a81f9543583",
+   "request_code_paths": [
+    "firmware/lib/resonance_core/src/rc_repeat.h",
+    "firmware/src/gui/ui.cpp",
+    "firmware/src/gui/ui.h",
+    "firmware/src/version.h",
+    "firmware/tests/test_repeat.cpp"
+   ],
+   "test_runs": [
+    "20261118T002855-720835"
+   ],
+   "evidence": [
+    "VER-000022"
+   ],
+   "head": "92d169ff18cb174ba5e9b2b1555976b804254287",
+   "agent_id": "agent-dev-20261117205050-9ef7a9",
+   "fails": [],
+   "warns": [],
+   "passes": 13
+  }
+ ]
+}

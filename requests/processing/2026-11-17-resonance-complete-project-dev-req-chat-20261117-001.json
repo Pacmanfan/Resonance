@@ -413,7 +413,8 @@
       "WORK-000018",
       "WORK-000019",
       "WORK-000020",
-      "WORK-000021"
+      "WORK-000021",
+      "WORK-000022"
     ]
   },
   "follow_ups": [
@@ -535,6 +536,11 @@
     {
       "timestamp": "2026-11-18T05:25:32.104386+00:00",
       "text": "so, about the 3d model and usage - if I were to hold the device in my left hand and look at it, on the lower right side of the device, there is a button or the on/off  . the sdcard is on the left center/top. there are 2 devices - a rgb led and a photoresistor, make sure the case exposes these. show me some pics of the new, fixed rendered models",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T05:26:56.978457+00:00",
+      "text": "also - for the buttons - a 'tap and hold' on a button should repeat after a brief pause. research and implement",
       "attachments": []
     }
   ]

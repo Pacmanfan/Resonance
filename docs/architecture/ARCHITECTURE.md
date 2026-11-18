@@ -184,6 +184,12 @@ planned (ADR-000204).
 - Touch is polled over I2C on every pass of the loop. The controller's
   interrupt line is not used: it idles high on this board, and the driver
   reads only while it is low.
+- Tap-and-hold repeats on buttons that change a value by a step (frequency
+  steps, the preset `<` and `>`, the volumes, brightness): the first action
+  is immediate, repeats begin after 450 ms at about seven a second, and
+  after 2.5 s of holding at about sixteen a second (`rc::HoldRepeat`).
+  Sliding off the button ends the repeat. Buttons that switch, start, open
+  or cycle something never repeat.
 - A button is at least 38 pixels high. Frequencies are adjusted in steps of
   0.1, 1 and 10 Hz and validated by the portable core.
 - The screen dims after the configured timeout; the first touch only wakes

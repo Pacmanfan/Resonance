@@ -146,6 +146,25 @@ Event Ui::poll() {
             onPress(_lastX, _lastY);
         }
     }
+    // Tap-and-hold: while the finger stays on an adjustment button, its
+    // action repeats after a pause (rc_repeat.h).
+    if (!down) {
+        _repeat.release();
+        _heldId = 0xFF;
+    } else if (_touching && _heldId != 0xFF) {
+        bool stillOn = false;
+        for (uint8_t i = 0; i < _buttonCount; ++i) {
+            const Button& b = _buttons[i];
+            if (b.id == _heldId && x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) stillOn = true;
+        }
+        if (!stillOn) {
+            _repeat.release();  // the finger slid off: no more repeats for this press
+            _heldId = 0xFF;
+        } else if (_repeat.due(millis())) {
+            _lastActivityMs = millis();
+            onButton(_heldId);
+        }
+    }
     _touching = down;
 
     const uint32_t timeoutMs = static_cast<uint32_t>(_settings.screenTimeoutS) * 1000u;
@@ -583,6 +602,10 @@ void Ui::onPress(int16_t x, int16_t y) {
             drawButton(b, true);
             delay(60);  // long enough to be seen as a press
             drawButton(_buttons[i], false);
+            if (repeats(id)) {
+                _heldId = id;
+                _repeat.press(millis());
+            }
             onButton(id);
             return;
         }
@@ -591,6 +614,18 @@ void Ui::onPress(int16_t x, int16_t y) {
         _modeArmed = false;
         drawContent();
     }
+}
+
+// Buttons that change a value by a step repeat when held. Buttons that
+// switch, start, open or cycle something do not: holding "START" or a tab
+// must never act twice.
+bool Ui::repeats(uint8_t id) {
+    return id < 8 ||                                             // frequency steps
+           id == kIdBrightnessDown || id == kIdBrightnessUp ||
+           id == kIdVolumeDown || id == kIdVolumeUp ||
+           id == kIdSoundVolDown || id == kIdSoundVolUp ||
+           id == kIdNoiseDown || id == kIdNoiseUp ||
+           (id >= kIdPrimaryPrev && id <= kIdBeatNext);           // preset "<" and ">"
 }
 
 void Ui::onButton(uint8_t id) {

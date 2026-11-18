@@ -117,6 +117,9 @@ the pair beside the beat value steps through beat presets (Delta, Theta, Schuman
 SMR, Beta, Gamma). The buttons below still adjust in steps of 0.1 to 10 Hz.
 The lists are in `lib/resonance_core/src/rc_presets.cpp`.
 
+Holding any `-`, `+`, step, `<` or `>` button repeats it: after a short
+pause at a steady rate, faster if you keep holding.
+
 ## Sessions
 
 On the SESS tab choose the program (tap to cycle: Timer, then the built-in
