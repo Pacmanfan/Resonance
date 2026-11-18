@@ -255,8 +255,9 @@ planned (ADR-000204).
   audio frames; that would stop the clock whenever no Bluetooth device is
   connected, so it was not built that way.)
 - Four factory programs are compiled in. Their names state what the
-  frequencies do and their length, and nothing about effects on the
-  listener (RES-PROC-006).
+  frequencies do, and nothing about effects on the listener (RES-PROC-006).
+  A program can be run at its own length or at 10 to 60 minutes: every
+  stage keeps its share of the whole (`rc::scaledSession`).
 - The frequencies a session sets are the device's frequencies while it
   runs: the screens show them, and they stay when it ends, but they are not
   written to storage.

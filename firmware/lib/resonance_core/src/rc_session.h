@@ -38,6 +38,12 @@ struct Session {
 // stopped): the plain timer of RES-SESS-003.
 Session timerSession(uint16_t minutes);
 
+// The same session stretched or shortened to last `minutes` in all: every
+// stage keeps its share of the whole, and no stage becomes shorter than one
+// second. A session that runs until stopped, and a length of zero, are
+// returned unchanged.
+Session scaledSession(const Session& session, uint16_t minutes);
+
 // Total length in seconds; 0 for a session that runs until stopped.
 uint32_t sessionSeconds(const Session& session);
 

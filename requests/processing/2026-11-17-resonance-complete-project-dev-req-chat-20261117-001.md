@@ -1246,6 +1246,12 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-18T04:37:02.317773+00:00
+
+> In sessions -> programs, there should be a way to set the length - duration of the program.
+
+
+
 ### Follow-up 2026-11-18T04:35:39.341411+00:00
 
 > I'm using the UI, and there is a way to decrease the volume with a '-' button, but there is not corresponding "+" button. Also - start finding some free sounds for oceans, nature, rain, wind, etc. find substantial material and copy it to the sdcard. I also heard a stutter in the tone. Not sure if it was a connection error. Let's also launch a parallel effort to design a case. Start searching for existing designs. I have a battery (3.7V) that is almost the exact dimesions. Also - how do we turn on / off this device if the battery is plugged in? I didn't see a switch. How is battery charging and usage typically handled on this device?
@@ -1325,5 +1331,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010
 - Evidence: pending

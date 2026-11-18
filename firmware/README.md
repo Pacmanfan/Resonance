@@ -111,8 +111,9 @@ python3 tools/serial_put.py some.mp3 CUSTOM/some.mp3   # about 10 kB per second
 ## Sessions
 
 On the SESS tab choose the program (tap to cycle: Timer, then the built-in
-programs), the timer's length (10 to 60 minutes or Continuous) and the fade
-at the end, then START. The audio starts with the session and stops, after
+programs), its length (the timer: 10 to 60 minutes or Continuous; a program:
+its own length or 10 to 60 minutes, with every stage stretched in
+proportion) and the fade at the end, then START. The audio starts with the session and stops, after
 the fade, at its end. PAUSE holds the clock and the audio; STOP ends through
 the fade.
 

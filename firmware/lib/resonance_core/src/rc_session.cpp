@@ -8,13 +8,15 @@ namespace rc {
 
 namespace {
 
-// Factory sessions. The names say what the frequencies do and nothing about
-// what a listener may experience (RES-PROC-006).
+// Factory sessions, with lengths of 20, 30, 25 and 15 minutes as written;
+// the length can be changed with scaledSession(). The names say what the
+// frequencies do and nothing about what a listener may experience
+// (RES-PROC-006).
 const Session kFactory[] = {
-    {"10 to 6 Hz, 20 min", 3, {{120, 0, 10.0f, Sweep::Hold}, {840, 0, 6.0f, Sweep::Linear}, {240, 0, 6.0f, Sweep::Hold}}},
-    {"8 to 2 Hz, 30 min", 3, {{180, 0, 8.0f, Sweep::Hold}, {1200, 0, 2.0f, Sweep::Linear}, {420, 0, 2.0f, Sweep::Hold}}},
-    {"14 Hz hold, 25 min", 1, {{1500, 0, 14.0f, Sweep::Hold}}},
-    {"6-10-6 Hz, 15 min", 4, {{180, 0, 6.0f, Sweep::Hold}, {300, 0, 10.0f, Sweep::Linear}, {120, 0, 10.0f, Sweep::Hold}, {300, 0, 6.0f, Sweep::Linear}}},
+    {"10 to 6 Hz", 3, {{120, 0, 10.0f, Sweep::Hold}, {840, 0, 6.0f, Sweep::Linear}, {240, 0, 6.0f, Sweep::Hold}}},
+    {"8 to 2 Hz", 3, {{180, 0, 8.0f, Sweep::Hold}, {1200, 0, 2.0f, Sweep::Linear}, {420, 0, 2.0f, Sweep::Hold}}},
+    {"14 Hz hold", 1, {{1500, 0, 14.0f, Sweep::Hold}}},
+    {"6-10-6 Hz", 4, {{180, 0, 6.0f, Sweep::Hold}, {300, 0, 10.0f, Sweep::Linear}, {120, 0, 10.0f, Sweep::Hold}, {300, 0, 6.0f, Sweep::Linear}}},
 };
 
 bool frequencyOk(float hz, float lo, float hi) { return hz == 0.0f || (hz >= lo && hz <= hi); }
@@ -29,6 +31,26 @@ Session timerSession(uint16_t minutes) {
     if (minutes > 1092) minutes = 1092;
     s.stages[0] = {static_cast<uint16_t>(minutes * 60u), 0.0f, 0.0f, Sweep::Hold};
     return s;
+}
+
+Session scaledSession(const Session& session, uint16_t minutes) {
+    const uint32_t from = sessionSeconds(session);
+    const uint32_t to = static_cast<uint32_t>(minutes) * 60u;
+    if (from == 0 || to == 0 || from == to) return session;
+    Session out = session;
+    uint32_t given = 0;
+    for (uint8_t i = 0; i < out.stageCount && i < kMaxStages; ++i) {
+        const bool last = i + 1 == out.stageCount;
+        // The last stage takes what is left, so that rounding cannot change
+        // the total.
+        uint64_t seconds = last ? (to > given ? to - given : 1)
+                                : (static_cast<uint64_t>(session.stages[i].durationS) * to + from / 2) / from;
+        if (seconds < 1) seconds = 1;
+        if (seconds > 65535) seconds = 65535;
+        out.stages[i].durationS = static_cast<uint16_t>(seconds);
+        given += static_cast<uint32_t>(seconds);
+    }
+    return out;
 }
 
 uint32_t sessionSeconds(const Session& session) {

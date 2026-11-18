@@ -41,8 +41,10 @@ uint8_t noiseVolume = 40;
 rc::SessionRunner session;
 uint8_t sessionProgram = 0;
 uint8_t timerChoice = 2;  // index into kTimerMinutes
+uint8_t programLength = 0;  // index into kProgramMinutes; 0 = the program's own length
 uint8_t fadeChoice = 1;   // index into kFadeSeconds
 const uint16_t kTimerMinutes[] = {10, 15, 20, 30, 45, 60, 0};  // 0 = continuous
+const uint16_t kProgramMinutes[] = {0, 10, 15, 20, 30, 45, 60};  // 0 = as written
 const uint16_t kFadeSeconds[] = {0, 30, 60, 300};
 uint32_t sessionTickMs = 0;
 
@@ -263,7 +265,7 @@ void applyNoise() { audio.setNoise(noiseType, noiseVolume); }
 
 rc::Session chosenSession() {
     if (sessionProgram == 0) return rc::timerSession(kTimerMinutes[timerChoice]);
-    return rc::factorySession(static_cast<uint8_t>(sessionProgram - 1));
+    return rc::scaledSession(rc::factorySession(static_cast<uint8_t>(sessionProgram - 1)), kProgramMinutes[programLength]);
 }
 
 void startSession() {
@@ -584,10 +586,20 @@ void loop() {
             break;
         case gui::Event::SessionProgramNext:
             sessionProgram = static_cast<uint8_t>((sessionProgram + 1) % (rc::factorySessionCount() + 1));
+            programLength = 0;  // a newly chosen program starts at its own length
             refreshStatus();
             break;
         case gui::Event::SessionDurationNext:
-            timerChoice = static_cast<uint8_t>((timerChoice + 1) % (sizeof(kTimerMinutes) / sizeof(kTimerMinutes[0])));
+            if (sessionProgram == 0) {
+                timerChoice = static_cast<uint8_t>((timerChoice + 1) % (sizeof(kTimerMinutes) / sizeof(kTimerMinutes[0])));
+            } else {
+                // Skip a choice equal to the program's own length, which is
+                // already the first entry.
+                const uint32_t own = rc::sessionSeconds(rc::factorySession(static_cast<uint8_t>(sessionProgram - 1))) / 60u;
+                do {
+                    programLength = static_cast<uint8_t>((programLength + 1) % (sizeof(kProgramMinutes) / sizeof(kProgramMinutes[0])));
+                } while (programLength != 0 && kProgramMinutes[programLength] == own);
+            }
             refreshStatus();
             break;
         case gui::Event::SessionFadeNext:

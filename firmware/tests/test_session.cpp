@@ -3,6 +3,7 @@
 #include "rc_session.h"
 #include "rc_settings.h"
 
+#include <initializer_list>
 #include <limits>
 #include <stdlib.h>
 
@@ -151,19 +152,52 @@ TEST(invalid_sessions_are_refused) {
     s = sweepSession(); s.stages[0].sweep = static_cast<Sweep>(9); CHECK(!isValidSession(s));
 }
 
-TEST(factory_sessions_are_valid_and_their_names_state_their_length) {
+TEST(factory_sessions_are_valid) {
     CHECK(factorySessionCount() >= 3);
     for (uint8_t i = 0; i < factorySessionCount(); ++i) {
         const Session& s = factorySession(i);
         CHECK(isValidSession(s));
         CHECK(strlen(s.name) < sizeof(s.name));
-        // The name ends in "<n> min": check it against the stages.
-        const char* comma = strrchr(s.name, ',');
-        CHECK(comma != nullptr);
-        if (comma != nullptr) CHECK(static_cast<uint32_t>(atoi(comma + 1)) * 60u == sessionSeconds(s));
+        CHECK(sessionSeconds(s) % 60 == 0);  // whole minutes, so the screen can show them
     }
     CHECK(sessionSeconds(timerSession(45)) == 2700);
     CHECK(sessionSeconds(timerSession(0)) == 0);
+}
+
+TEST(a_program_can_be_scaled_to_any_length) {
+    for (uint8_t i = 0; i < factorySessionCount(); ++i) {
+        const Session& original = factorySession(i);
+        for (uint16_t minutes : {1, 10, 15, 20, 30, 45, 60, 240}) {
+            const Session scaled = scaledSession(original, minutes);
+            CHECK(isValidSession(scaled));
+            CHECK(sessionSeconds(scaled) == minutes * 60u);  // exact, whatever the rounding
+            CHECK(scaled.stageCount == original.stageCount);
+            for (uint8_t k = 0; k < scaled.stageCount; ++k) {
+                CHECK(scaled.stages[k].durationS >= 1);
+                CHECK(scaled.stages[k].beatHz == original.stages[k].beatHz);
+                CHECK(scaled.stages[k].sweep == original.stages[k].sweep);
+                // Each stage keeps its share of the whole, within a second or two.
+                const double share = static_cast<double>(original.stages[k].durationS) / sessionSeconds(original);
+                CHECK_NEAR(scaled.stages[k].durationS, share * minutes * 60.0, 2.5);
+            }
+        }
+    }
+}
+
+TEST(scaling_leaves_endless_and_zero_alone_and_shapes_the_sweep) {
+    const Session endless = timerSession(0);
+    CHECK(sessionSeconds(scaledSession(endless, 30)) == 0);
+    const Session same = scaledSession(sweepSession(), 0);
+    CHECK(sessionSeconds(same) == sessionSeconds(sweepSession()));
+
+    // The 200-second test session at three times its length: the glide is at
+    // its midpoint after 180 + 150 seconds instead of 60 + 50.
+    SessionRunner r;
+    const Session twice = scaledSession(sweepSession(), 10);  // 200 s -> 600 s: three times
+    CHECK(r.start(twice, 200.0f, 14.0f, 0));
+    r.advance(180000 + 150000);        // first stage (3 x 60 s) and half of the glide (3 x 100 s)
+    CHECK(r.stageIndex() == 1);
+    CHECK_NEAR(r.beatHz(), 8.0, 1e-3);
 }
 
 int main() { return host_test::runAll(); }

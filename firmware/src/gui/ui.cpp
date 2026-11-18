@@ -452,11 +452,7 @@ void Ui::drawSessions() {
         label("Length", 12, kContentTop + 60, kTextDim, kFontSmall);
         if (_status.sessionMinutes == 0) snprintf(_durationLabel, sizeof(_durationLabel), "Continuous");
         else snprintf(_durationLabel, sizeof(_durationLabel), "%u min", static_cast<unsigned>(_status.sessionMinutes));
-        if (_status.sessionIsTimer) {
-            addButton(8, kContentTop + 76, 224, 34, _durationLabel, kIdSessionDuration);
-        } else {
-            label(_durationLabel, 16, kContentTop + 84, kText, kFontText);
-        }
+        addButton(8, kContentTop + 76, 224, 34, _durationLabel, kIdSessionDuration);
         label("Fade out at the end", 12, kContentTop + 116, kTextDim, kFontSmall);
         if (_status.sessionFadeS == 0) snprintf(_fadeLabel, sizeof(_fadeLabel), "None");
         else if (_status.sessionFadeS < 60) snprintf(_fadeLabel, sizeof(_fadeLabel), "%u s", static_cast<unsigned>(_status.sessionFadeS));
