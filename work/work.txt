@@ -34,3 +34,4 @@ WORK-000029 | completed | Case: board and battery reference models; board screwe
 WORK-000030 | completed | Case: export STL files; button stem allows for the switch actuator's overhang | completed/WORK-000030-case-export-stl-files-button-stem-allows.md | RES-HW-007 | VER-000031
 WORK-000031 | completed | Enclosure version 2: snap-fit, flush glass, no divider | completed/WORK-000031-enclosure-version-2-snap-fit-flush-glass.md | RES-HW-007 | VER-000032
 WORK-000032 | completed | Enclosure version 3: window to the measured glass | completed/WORK-000032-enclosure-version-3-window-to-the-measur.md | RES-HW-007 | VER-000033
+WORK-000033 | completed | Enclosure v3: rounded USB-C hole, larger edge radii | completed/WORK-000033-enclosure-v3-rounded-usb-c-hole-larger-e.md | RES-HW-007 | VER-000034

@@ -62,8 +62,8 @@ ldr_y = 42.4;
 wall = 1.5;            // side walls (v1: 2.0)
 front_t = 1.5;         // face round the glass (v1: 1.6)
 back_t = 1.5;          // back face (v1: 1.6)
-corner_r = 3.0;        // corners, seen from the front
-edge_r = 1.2;          // rounding of the edges of the front and back faces
+corner_r = 4.5;        // corners, seen from the front (v2: 3.0)
+edge_r = 2.2;          // rounding of the edges of the front and back faces (v2: 1.2)
 fit = 0.2;             // clearance between printed parts
 pcb_gap = 0.5;         // board to the walls at the USB-C end and the microSD side
 bat_gap = 1.5;         // room at each side of the cell and above it
@@ -135,7 +135,7 @@ rib_len = 6.0;
 snaps = [
     ["y0", 25, 14], ["y0", 82, 14],
     ["y1", 57, 14], ["y1", 88, 14],
-    ["x0", 10, 10], ["x0", cav_w - 10, 10],
+    ["x0", 11, 10], ["x0", cav_w - 11, 10],
     ["x1", cav_w / 2, 18]
 ];
 
@@ -198,8 +198,11 @@ module front() {
         translate([pcb_x0 + ldr_x, pcb_y0 + ldr_y, -eps]) cylinder(d1 = ldr_window_d + 1.6, d2 = ldr_window_d, h = front_t + 2 * eps);
         // Holes for the heat-set inserts.
         for (p = holes) translate([p[0], p[1], lcd_h - insert_depth]) cylinder(d = insert_d, h = insert_depth + eps);
-        // USB-C: a notch open to the seam; a tab on the back shell closes it.
-        translate([-wall - eps, usb_yc - usb_open_w / 2, usb_z0]) cube([wall + 2 * eps, usb_open_w, front_h]);
+        // USB-C: a hole with round ends. The socket stands 1.1 mm over the
+        // board's edge, so the board goes in USB-C end first, at a slant.
+        hull() for (y = [-1, 1])
+            translate([-wall - eps, usb_yc + y * (usb_open_w - usb_open_h) / 2, usb_z0 + usb_open_h / 2])
+                rotate([0, 90, 0]) cylinder(d = usb_open_h, h = wall + 2 * eps);
         // microSD slot and a scallop for the fingernail.
         translate([pcb_x0 + sd_x - sd_open_w / 2, -wall - eps, pcb_rear_z - 0.6]) cube([sd_open_w, wall + 2 * eps, sd_open_h]);
         translate([pcb_x0 + sd_x, -wall - 4.8, pcb_rear_z + 1]) sphere(d = 12);
@@ -242,8 +245,6 @@ module back() {
             }
             // Snap ridges on the skirt.
             for (s = snaps) wall_prism(s[0], s[1], s[2], fit + snap_grip, 0.6, fit + eps, front_h - snap_z);
-            // The tab that closes the top of the USB-C notch.
-            translate([-wall, usb_yc - usb_open_w / 2 + fit, usb_z1]) cube([wall + fit + eps, usb_open_w - 2 * fit, front_h - usb_z1 + eps]);
             // Stops that keep the cell from sliding lengthways, clear of its leads.
             for (x = [bat_x0 - 2.2, bat_x0 + bat_l + 1.0])
                 translate([x, cav_w / 2 - 7, front_h + 1]) cube([1.2, 14, back_h - back_t - 1 + eps]);
@@ -251,6 +252,8 @@ module back() {
         // The skirt gives way to the button's pad and to the ribs.
         translate([pcb_x0 + btn_x - btn_pad_w / 2 - 0.4, btn_y_in - 0.4, 0]) cube([btn_pad_w + 0.8, btn_pad_t + 1, cell_z + 0.3]);
         for (x = rib_x) translate([x - rib_t / 2 - 0.4, cav_w - rib_len - 0.4, 0]) cube([rib_t + 0.8, rib_len + 1, cell_z + 0.3]);
+        // The skirt stays clear of the USB-C hole.
+        translate([-eps, usb_yc - usb_open_w / 2, 0]) cube([fit + skirt_t + 1, usb_open_w, usb_z1 + 0.3]);
         // A slot at the seam, at the end away from USB-C, for a coin or a
         // fingernail to open the case.
         translate([cav_l + wall - 0.9, cav_w / 2 - 6, front_h - eps]) cube([1, 12, 1.2]);
@@ -319,3 +322,4 @@ assert(front_h - skirt_h >= pcb_rear_z + 4.0, "the skirt reaches down to the boa
 assert(btn_stem_len > 1, "no room for the button's stem");
 assert(pcb_x0 + glass_x - glass_fit >= holes[0][0] + boss_d / 2, "the window cuts into the bosses at the USB-C end");
 assert(pcb_x0 + glass_x + glass_l + glass_fit <= holes[2][0] - boss_d / 2, "the window cuts into the bosses at the far end");
+assert(usb_z1 + 1.2 <= front_h, "too little wall left over the USB-C hole");

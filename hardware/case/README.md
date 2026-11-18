@@ -19,6 +19,17 @@ as the board, so the window runs on to the wall on the microSD side: the
 bezel there is the 1.5 mm wall alone. Everything else is as in version 2,
 described below. Not printed.
 
+Changed afterwards (operator, same day): the USB-C opening is a hole with
+round ends, 13 × 7 mm, in the front shell alone, so the board goes in USB-C
+end first at a slant (its socket stands 1.1 mm over the board's edge). The
+radii are larger: 4.5 mm at the corners (`corner_r`) and 2.2 mm at the edges
+of the two faces (`edge_r`). The inside corners are now rounded to 3.0 mm;
+the board's own corner radius is an estimate (3.5 mm), so if the board does
+not go into the corners, reduce `corner_r`. On the microSD side the rounded
+edge leaves the wall about 0.1 mm below the glass.
+
+![Version 3, back](v3_back.png)
+
 Still not measured: where the glass sits along the board's length. It is
 centred on the outline in the drawing, with 0.4 mm of room at each end; if
 the glass does not enter the window, change `glass_x`.
