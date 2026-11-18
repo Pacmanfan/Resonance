@@ -122,6 +122,12 @@ pause at a steady rate, faster if you keep holding.
 
 ## Sessions
 
+The built-in programs are four plain sweeps (10 to 6 Hz, 8 to 2 Hz, 14 Hz
+hold, 6-10-6 Hz) and three practice programs: Trance (10 down to 4.5 Hz,
+30 min), Deep trance (8 down to 3.5 Hz, 40 min) and Astral (10 down to
+6.3 Hz, then 4 Hz, 45 min). The device plays the frequencies; it makes no
+claim about what they do.
+
 On the SESS tab choose the program (tap to cycle: Timer, then the built-in
 programs), its length (the timer: 10 to 60 minutes or Continuous; a program:
 its own length or 10 to 60 minutes, with every stage stretched in

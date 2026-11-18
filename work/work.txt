@@ -26,3 +26,4 @@ WORK-000021 | completed | Resonance enclosure: LED and light-sensor windows, vie
 WORK-000022 | completed | Resonance: tap-and-hold repeat on adjustment buttons | completed/WORK-000022-resonance-tap-and-hold-repeat-on-adjustm.md | RES-GUI-005, RES-GUI-002 | VER-000022
 WORK-000023 | completed | Resonance: centred titles in one font, no PLAY marker | completed/WORK-000023-resonance-centred-titles-in-one-font-no.md | RES-GUI-002 | VER-000023
 WORK-000024 | completed | Resonance: single-screen interface in Setup mode | completed/WORK-000024-resonance-single-screen-interface-in-set.md | RES-ARCH-005, RES-GUI-001, RES-NET-003 | VER-000024, VER-000025
+WORK-000025 | completed | Resonance: trance and astral session programs | completed/WORK-000025-resonance-trance-and-astral-session-prog.md | RES-SESS-002, RES-PROC-006 | VER-000026

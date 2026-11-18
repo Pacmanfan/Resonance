@@ -8,15 +8,27 @@ namespace rc {
 
 namespace {
 
-// Factory sessions, with lengths of 20, 30, 25 and 15 minutes as written;
-// the length can be changed with scaledSession(). The names say what the
-// frequencies do and nothing about what a listener may experience
-// (RES-PROC-006).
+// Factory sessions. The first four are named for what the frequencies do
+// (20, 30, 25 and 15 minutes as written). The last three are named for the
+// practice they are meant to accompany and follow the theta-range values
+// commonly used for it: a slow descent from alpha, with long holds. A name
+// says what a program is for; nothing here or on the screen claims that it
+// produces an effect (RES-PROC-006). Lengths can be changed with
+// scaledSession().
 const Session kFactory[] = {
     {"10 to 6 Hz", 3, {{120, 0, 10.0f, Sweep::Hold}, {840, 0, 6.0f, Sweep::Linear}, {240, 0, 6.0f, Sweep::Hold}}},
     {"8 to 2 Hz", 3, {{180, 0, 8.0f, Sweep::Hold}, {1200, 0, 2.0f, Sweep::Linear}, {420, 0, 2.0f, Sweep::Hold}}},
     {"14 Hz hold", 1, {{1500, 0, 14.0f, Sweep::Hold}}},
     {"6-10-6 Hz", 4, {{180, 0, 6.0f, Sweep::Hold}, {300, 0, 10.0f, Sweep::Linear}, {120, 0, 10.0f, Sweep::Hold}, {300, 0, 6.0f, Sweep::Linear}}},
+    // Trance, 30 minutes: 10 Hz, down to 6 Hz, hold, down to 4.5 Hz, hold.
+    {"Trance 10-4.5 Hz", 5, {{120, 0, 10.0f, Sweep::Hold}, {480, 0, 6.0f, Sweep::Linear}, {360, 0, 6.0f, Sweep::Hold},
+                              {360, 0, 4.5f, Sweep::Linear}, {480, 0, 4.5f, Sweep::Hold}}},
+    // Deep trance, 40 minutes: 8 Hz, down to 5 Hz, hold, down to 3.5 Hz, long hold.
+    {"Deep trance 3.5 Hz", 5, {{120, 0, 8.0f, Sweep::Hold}, {480, 0, 5.0f, Sweep::Linear}, {360, 0, 5.0f, Sweep::Hold},
+                               {480, 0, 3.5f, Sweep::Linear}, {960, 0, 3.5f, Sweep::Hold}}},
+    // Astral, 45 minutes: 10 Hz, down to 6.3 Hz, hold, down to 4 Hz, long hold.
+    {"Astral 6.3-4 Hz", 5, {{180, 0, 10.0f, Sweep::Hold}, {600, 0, 6.3f, Sweep::Linear}, {600, 0, 6.3f, Sweep::Hold},
+                            {420, 0, 4.0f, Sweep::Linear}, {900, 0, 4.0f, Sweep::Hold}}},
 };
 
 bool frequencyOk(float hz, float lo, float hi) { return hz == 0.0f || (hz >= lo && hz <= hi); }

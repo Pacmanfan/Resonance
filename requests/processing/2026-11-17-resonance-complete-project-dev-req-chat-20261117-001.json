@@ -416,7 +416,8 @@
       "WORK-000021",
       "WORK-000022",
       "WORK-000023",
-      "WORK-000024"
+      "WORK-000024",
+      "WORK-000025"
     ]
   },
   "follow_ups": [
@@ -553,6 +554,11 @@
     {
       "timestamp": "2026-11-18T05:39:46.685079+00:00",
       "text": "In the setup mode - we don not need to show the freq, snd, sess, right? remove those and anything else that is not specific to setup when in setup mode",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T06:03:22.852993+00:00",
+      "text": "Add some trance / astral projection settings for the session / program",
       "attachments": []
     }
   ]

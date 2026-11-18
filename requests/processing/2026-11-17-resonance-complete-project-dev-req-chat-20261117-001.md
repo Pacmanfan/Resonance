@@ -1246,6 +1246,12 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-18T06:03:22.852993+00:00
+
+> Add some trance / astral projection settings for the session / program
+
+
+
 ### Follow-up 2026-11-18T05:39:46.685079+00:00
 
 > In the setup mode - we don not need to show the freq, snd, sess, right? remove those and anything else that is not specific to setup when in setup mode
@@ -1421,5 +1427,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020, WORK-000021, WORK-000022, WORK-000023, WORK-000024
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020, WORK-000021, WORK-000022, WORK-000023, WORK-000024, WORK-000025
 - Evidence: pending

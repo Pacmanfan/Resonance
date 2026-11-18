@@ -164,6 +164,46 @@ TEST(factory_sessions_are_valid) {
     CHECK(sessionSeconds(timerSession(0)) == 0);
 }
 
+TEST(the_practice_programs_descend_and_hold_and_promise_nothing) {
+    // Find them by name, so that the test does not depend on their order.
+    const char* const wanted[] = {"Trance", "Deep trance", "Astral"};
+    const uint32_t minutes[] = {30, 40, 45};
+    for (int w = 0; w < 3; ++w) {
+        const Session* found = nullptr;
+        for (uint8_t i = 0; i < factorySessionCount(); ++i) {
+            if (strncmp(factorySession(i).name, wanted[w], strlen(wanted[w])) == 0 &&
+                factorySession(i).name[strlen(wanted[w])] == ' ') {
+                found = &factorySession(i);
+            }
+        }
+        CHECK(found != nullptr);
+        if (found == nullptr) continue;
+        CHECK(sessionSeconds(*found) == minutes[w] * 60u);
+        // The beat only ever goes down, ends in the theta/delta border, and
+        // the last stage is a hold of at least a quarter of the program.
+        float previous = 100.0f;
+        for (uint8_t k = 0; k < found->stageCount; ++k) {
+            CHECK(found->stages[k].beatHz <= previous);
+            CHECK(found->stages[k].primaryHz == 0.0f);  // the carrier is the user's
+            previous = found->stages[k].beatHz;
+        }
+        const Stage& last = found->stages[found->stageCount - 1];
+        CHECK(last.sweep == Sweep::Hold && last.beatHz >= 3.0f && last.beatHz <= 5.0f);
+        CHECK(last.durationS * 4u >= sessionSeconds(*found));
+    }
+    // RES-PROC-006: no program name promises an effect.
+    const char* const forbidden[] = {"heal", "cure", "guarantee", "therapy", "treat", "pain", "anxiety", "miracle"};
+    for (uint8_t i = 0; i < factorySessionCount(); ++i) {
+        char lower[24];
+        size_t n = 0;
+        for (const char* c = factorySession(i).name; *c != '\0' && n < sizeof(lower) - 1; ++c, ++n) {
+            lower[n] = static_cast<char>(*c >= 'A' && *c <= 'Z' ? *c + 32 : *c);
+        }
+        lower[n] = '\0';
+        for (const char* word : forbidden) CHECK(strstr(lower, word) == nullptr);
+    }
+}
+
 TEST(a_program_can_be_scaled_to_any_length) {
     for (uint8_t i = 0; i < factorySessionCount(); ++i) {
         const Session& original = factorySession(i);
