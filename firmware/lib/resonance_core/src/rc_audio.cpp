@@ -32,10 +32,11 @@ float limit(float x) {
 }
 
 AudioEngine::AudioEngine(FrameRing& background)
-    : _ring(background), _master(0.0f), _bgGain(0.0f), _bgPlaying(false), _noiseGain(0.0f),
+    : _ring(background), _master(0.0f), _sessionGain(1.0f), _bgGain(0.0f), _bgPlaying(false), _noiseGain(0.0f),
       _noiseType(static_cast<uint8_t>(NoiseType::Off)), _underruns(0), _bgFrames(0), _bgIdle(true) {
     _tone.setVolume(kVolumeMax);
     _masterRamp.jump(0.0f);
+    _sessionRamp.jump(1.0f);
     _bgRamp.jump(0.0f);
     _bgGate.jump(0.0f);
     _noiseRamp.jump(0.0f);
@@ -43,12 +44,19 @@ AudioEngine::AudioEngine(FrameRing& background)
 
 void AudioEngine::setMasterVolume(uint8_t percent) { _master.store(squareLaw(percent), std::memory_order_relaxed); }
 
+void AudioEngine::setSessionGain(float gain) {
+    if (!(gain >= 0.0f)) gain = 0.0f;  // also catches NaN
+    if (gain > 1.0f) gain = 1.0f;
+    _sessionGain.store(gain, std::memory_order_relaxed);
+}
+
 void AudioEngine::setBackgroundVolume(uint8_t percent) {
     _bgGain.store(squareLaw(percent) * kBackgroundCeiling, std::memory_order_relaxed);
 }
 
 void AudioEngine::setBackgroundPlaying(bool playing) {
     if (playing) _bgIdle.store(false, std::memory_order_relaxed);
+    else _bgEnding.store(false, std::memory_order_relaxed);
     _bgPlaying.store(playing, std::memory_order_relaxed);
 }
 
@@ -59,6 +67,9 @@ void AudioEngine::setNoise(NoiseType type, uint8_t percent) {
 
 void AudioEngine::render(int16_t* out, size_t frames) {
     _masterRamp.moveTo(_master.load(std::memory_order_relaxed), samplesFor(kRampS));
+    // The session level is updated about ten times a second; a ramp of twice
+    // that interval joins the updates into a smooth line.
+    _sessionRamp.moveTo(_sessionGain.load(std::memory_order_relaxed), samplesFor(0.2f));
     _bgRamp.moveTo(_bgGain.load(std::memory_order_relaxed), samplesFor(kRampS));
     _noiseRamp.moveTo(_noiseGain.load(std::memory_order_relaxed), samplesFor(kRampS * 4));
     const bool playing = _bgPlaying.load(std::memory_order_relaxed);
@@ -84,7 +95,9 @@ void AudioEngine::render(int16_t* out, size_t frames) {
         size_t got = 0;
         if (bgAudible) {
             got = _ring.read(background, static_cast<uint32_t>(n));
-            if (got < n && _bgGateOn) _underruns.fetch_add(1, std::memory_order_relaxed);
+            if (got < n && _bgGateOn && !_bgEnding.load(std::memory_order_relaxed)) {
+                _underruns.fetch_add(1, std::memory_order_relaxed);
+            }
             _bgFrames.fetch_add(static_cast<uint32_t>(got), std::memory_order_relaxed);
         } else if (!_bgIdle.load(std::memory_order_relaxed)) {
             _bgIdle.store(true, std::memory_order_relaxed);
@@ -95,7 +108,7 @@ void AudioEngine::render(int16_t* out, size_t frames) {
         for (size_t i = 0; i < n; ++i) {
             const float bg = _bgRamp.next() * _bgGate.next() * (1.0f / 32768.0f);
             const float noise = noiseOn ? _noise.next() * _noiseRamp.next() : (_noiseRamp.next(), 0.0f);
-            const float master = _masterRamp.next();
+            const float master = _masterRamp.next() * _sessionRamp.next();
             // Noise is the same in both ears; tone and background keep their
             // own channels.
             const float l = (static_cast<float>(out[2 * i]) * (1.0f / 32768.0f) +

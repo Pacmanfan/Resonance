@@ -38,11 +38,21 @@ public:
     // Master volume in percent; square law.
     void setMasterVolume(uint8_t percent);
 
+    // Level of the whole output as set by a running session: 1 normally,
+    // falling to 0 during the fade at a session's end. Ramped, so it may be
+    // updated a few times a second without steps.
+    void setSessionGain(float gain);
+
     // Background layer: volume in percent, and whether it is being played.
     // While not playing the ring is not read, so a paused track keeps its
     // place. Both changes are faded.
     void setBackgroundVolume(uint8_t percent);
     void setBackgroundPlaying(bool playing);
+
+    // Tells the engine that the track is ending: the ring running empty is
+    // then expected and is not counted as an underrun. Cleared by the next
+    // setBackgroundPlaying().
+    void setBackgroundEnding() { _bgEnding.store(true, std::memory_order_relaxed); }
 
     // Noise layer.
     void setNoise(NoiseType type, uint8_t percent);
@@ -67,6 +77,7 @@ private:
     NoiseGenerator _noise;
 
     std::atomic<float> _master;
+    std::atomic<float> _sessionGain;
     std::atomic<float> _bgGain;
     std::atomic<bool> _bgPlaying;
     std::atomic<float> _noiseGain;
@@ -74,9 +85,11 @@ private:
     std::atomic<uint32_t> _underruns;
     std::atomic<uint32_t> _bgFrames;
     std::atomic<bool> _bgIdle;
+    std::atomic<bool> _bgEnding{false};
 
     // Owned by render().
     Ramp _masterRamp;
+    Ramp _sessionRamp;
     Ramp _bgRamp;
     Ramp _bgGate;
     Ramp _noiseRamp;

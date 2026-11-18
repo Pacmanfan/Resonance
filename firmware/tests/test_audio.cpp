@@ -165,6 +165,22 @@ TEST(an_empty_ring_is_counted_and_does_not_disturb_the_tone) {
     CHECK_NEAR(during, before, 4.0);
 }
 
+TEST(the_end_of_a_track_is_not_an_underrun) {
+    Rig rig;
+    rig.engine.setMasterVolume(100);
+    rig.engine.setBackgroundVolume(100);
+    rig.engine.setBackgroundPlaying(true);
+    renderWithBackground(rig, 4410, 1000, 1000);
+    rig.engine.setBackgroundEnding();
+    render(rig.engine, 44100);  // the ring empties
+    CHECK(rig.engine.underruns() == 0);
+    rig.engine.setBackgroundPlaying(false);  // the track is over
+    render(rig.engine, 4410);
+    rig.engine.setBackgroundPlaying(true);   // the next one starts, with nothing buffered
+    render(rig.engine, 4410);
+    CHECK(rig.engine.underruns() > 0);       // and that is counted again
+}
+
 TEST(all_layers_at_maximum_stay_under_the_ceiling) {
     Rig rig;
     rig.engine.setMasterVolume(100);
@@ -232,6 +248,26 @@ TEST(noise_off_is_silence_and_noise_fades_in) {
     rig.engine.setNoise(NoiseType::Off, 0);
     render(rig.engine, 22050);
     CHECK(peak(render(rig.engine, 4410)) == 0);
+}
+
+TEST(the_session_level_scales_everything_smoothly) {
+    Rig rig;
+    rig.engine.setMasterVolume(100);
+    rig.engine.tone().setEnabled(true);
+    render(rig.engine, 44100);
+    const int full = peak(render(rig.engine, 22050));
+    rig.engine.setSessionGain(0.5f);
+    const auto step = render(rig.engine, 22050);
+    int worst = 0;
+    for (size_t i = 2; i < step.size(); ++i) worst = abs(step[i] - step[i - 2]) > worst ? abs(step[i] - step[i - 2]) : worst;
+    CHECK(worst < 600);  // no jump: the sine's own steps are about 500 at this level
+    CHECK_NEAR(peak(render(rig.engine, 22050)), full * 0.5, 30.0);
+    rig.engine.setSessionGain(0.0f);
+    render(rig.engine, 22050);
+    CHECK(peak(render(rig.engine, 4410)) <= 1);
+    rig.engine.setSessionGain(7.0f);  // out of range: treated as 1
+    render(rig.engine, 22050);
+    CHECK_NEAR(peak(render(rig.engine, 22050)), full, 30.0);
 }
 
 int main() { return host_test::runAll(); }

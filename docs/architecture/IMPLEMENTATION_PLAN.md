@@ -2,7 +2,7 @@
 
 **Requirement:** RES-PROC-001, RES-PROC-003, RES-PROC-004, RES-PROC-005 (`docs/requirements/resonance.md`)
 **Decision:** ADR-000204 (Bluetooth-only output, no battery measurement, space first, operating modes)
-**Work:** WORK-000001 (Stage 1), WORK-000002 and WORK-000003 (Stage 2), WORK-000004 (Stage 3), WORK-000007 (Stage 4)
+**Work:** WORK-000001 (Stage 1), WORK-000002 and WORK-000003 (Stage 2), WORK-000004 (Stage 3), WORK-000007 (Stage 4), WORK-000009 (Stage 6)
 **Inputs:** `HARDWARE.md`, `GPIO_MAP.md`, `ARCHITECTURE.md`, `LIBRARY_EVALUATION.md`
 
 ## Where the project stands
@@ -11,10 +11,10 @@
 |---|---|---|
 | 1 | Hardware and software audit | Done |
 | 2 | Board foundation | Done on the board: picture, touch and both modes confirmed by the operator; SD card mounts |
-| 3 | Audio prototype over Bluetooth | **Implemented; the tone is verified in host tests, Bluetooth starts and scans on the board. Not yet heard: no audio device has been connected** |
+| 3 | Audio prototype over Bluetooth | Done: the operator connected a headset and heard the tone |
 | 4 | Playback and mixing | **Implemented. WAV and MP3 decode on the board into the mixer; mixer, limiter, noise, WAV and resampler verified in host tests. Not yet heard. Playlists, shuffle, repeat and previous/next are not built** |
 | 5 | Bluetooth device management | Not started |
-| 6 | Session engine | Not started |
+| 6 | Session engine | **Core implemented: timers, four factory programs, sweeps, pause, stop, end fades; verified in host tests and started by the operator on the device. Not built: sessions made by the user, their storage on the card, the editor, session history** |
 | 7 | Web interface (Setup mode) | Not started |
 | 8 | Product refinement | Not started |
 
@@ -51,7 +51,8 @@ from Stage 8.
 | Invalid values | Clamped; non-finite ignored | Host test |
 | Bluetooth A2DP on the board | Starts and scans; 84 kB of heap free; image 1.89 MB | Serial report |
 | Scan list, connect, reconnect at start | Works since 0.4.1: at start the device reconnected to the operator's television (remembered from an earlier pairing); after Disconnect the scan restarted and listed the operator's headset, which was then chosen. In 0.3.0-0.4.0 the list filled with the first five devices and a disconnect ended scanning | Library log and the operator |
-| The tone in a headset, clicks | **Not yet reported** | Needs ears |
+| The tone in a headset | Heard by the operator. One stutter was reported while the build with verbose Bluetooth logging was on the board; with logging off, two 10-second windows of tone plus MP3 showed a longest gap of 25 ms between audio requests and no underrun (0.5.0) | The operator; `STREAM` line of the `bt` command |
+| Clicks at start, stop and frequency change | **Not yet reported** | Needs ears |
 
 ### Stage 4 — what was verified, and how
 
@@ -64,7 +65,8 @@ from Stage 8.
 | WAV on the board | A test file written by the device plays into the buffer; a missing file is reported | Serial (`mktest`, `play`, `player`) |
 | MP3 on the board | 128 kbit/s stereo 44.1 kHz, 320 kbit/s 48 kHz and 48 kbit/s mono 22.05 kHz decode into the buffer; 53 kB of heap free meanwhile | Serial |
 | Heap | Reduced libraries: 99 kB free in Play mode, 86 kB with a WAV, 53 kB with an MP3 | Serial |
-| The sound itself, underruns while streaming, the SND and noise controls, track following track | **Not verified: no Bluetooth device was connected, so nothing drained the buffer, and nobody has used the new screens** | Needs a headset and a finger |
+| Tracks following each other, streaming | With a headset connected, the four test files played one after another to their ends; no underrun while streaming; 45 kB of heap free with an MP3 playing to a connected headset (minimum 36 kB) | Serial |
+| Sound quality, the SND and noise controls on the screen | In use by the operator; no report yet beyond the missing noise `+` button (fixed in 0.5.0: the screen held ten buttons and FREQ has eleven) | The operator |
 
 ### To check on the bench
 
@@ -111,11 +113,12 @@ underrun counters logged.
 
 ## Stage 6 — Session engine
 
-| Step | Deliverable | Test |
-|---|---|---|
-| 6.1 | Portable sweep engine and session model | Host tests: linear, stepped, hold, multi-stage, pause and resume exactness |
-| 6.2 | `SessionManager`, durations, actions, end-of-session fades | Short sessions on the device; time derived from audio frames |
-| 6.3 | Presets and sessions as JSON on the card, factory presets | Host tests for parsing and rejection of corrupt files |
+Implemented in 0.5.0: the portable runner (hold and linear stages, long
+steps across stage boundaries, exact pause, fades, endless timer, refusal of
+invalid sessions), the timer with its seven lengths, four factory programs,
+the four fade choices, and the SESS screen. Remaining: user sessions as JSON
+on the card with an editor, presets (RES-CFG-001), session history, and a
+custom fade length.
 
 ## Stage 7 — Web interface (Setup mode)
 

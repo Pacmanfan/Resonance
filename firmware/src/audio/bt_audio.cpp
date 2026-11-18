@@ -36,6 +36,12 @@ esp_bd_addr_t chosen;
 char chosenName[kNameLength] = "";
 uint32_t rescanAtMs = 0;  // 0 = no rescan pending
 
+// Stream timing, written by the Bluetooth task and read for diagnostics.
+volatile uint32_t lastCallUs = 0;
+volatile uint32_t worstGapUs = 0;
+volatile uint32_t worstRenderUs = 0;
+volatile uint32_t longGaps = 0;
+
 // The library keeps its state machine protected; scanning again after a
 // disconnect needs access to it.
 class Source : public BluetoothA2DPSource {
@@ -53,7 +59,22 @@ Source& source() {
 
 // Audio for the stack. Runs in the Bluetooth task: no blocking, no logging.
 int32_t provideFrames(Frame* frames, int32_t frameCount) {
+    // Timing of the stream, for diagnostics: the audio rendered should keep
+    // pace with real time. A long gap between two calls is heard as a stutter.
+    const uint32_t now = micros();
+    if (lastCallUs != 0) {
+        const uint32_t gap = now - lastCallUs;
+        // A gap of seconds is the stream having been stopped and started
+        // again, not a stutter, and is left out.
+        if (gap < 2000000) {
+            if (gap > worstGapUs) worstGapUs = gap;
+            if (gap > 60000) ++longGaps;
+        }
+    }
+    lastCallUs = now;
     engine->render(reinterpret_cast<int16_t*>(frames), static_cast<size_t>(frameCount));
+    const uint32_t took = micros() - now;
+    if (took > worstRenderUs) worstRenderUs = took;
     return frameCount;
 }
 
@@ -169,5 +190,13 @@ void disconnect() {
 }
 
 const char* peerName() { return chosenName; }
+
+StreamStats takeStreamStats() {
+    const StreamStats stats = {worstGapUs / 1000u, worstRenderUs, longGaps};
+    worstGapUs = 0;
+    worstRenderUs = 0;
+    longGaps = 0;
+    return stats;
+}
 
 }  // namespace btaudio

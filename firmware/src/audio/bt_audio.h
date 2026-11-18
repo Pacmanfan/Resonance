@@ -48,4 +48,12 @@ void disconnect();
 // reconnected from memory has no name until it is found by a scan).
 const char* peerName();
 
+// Timing of the audio stream since the last call (diagnostics).
+struct StreamStats {
+    uint32_t worstGapMs;     // longest time between two requests for audio
+    uint32_t worstRenderUs;  // longest time one request took to fill
+    uint32_t longGaps;       // requests that came more than 60 ms after the previous one
+};
+StreamStats takeStreamStats();
+
 }  // namespace btaudio

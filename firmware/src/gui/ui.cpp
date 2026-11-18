@@ -42,6 +42,18 @@ constexpr uint8_t kIdSoundVolUp = 65;
 constexpr uint8_t kIdNoise = 70;
 constexpr uint8_t kIdNoiseDown = 71;
 constexpr uint8_t kIdNoiseUp = 72;
+constexpr uint8_t kIdSessionProgram = 80;
+constexpr uint8_t kIdSessionDuration = 81;
+constexpr uint8_t kIdSessionFade = 82;
+constexpr uint8_t kIdSessionStart = 83;
+constexpr uint8_t kIdSessionPause = 84;
+constexpr uint8_t kIdSessionStop = 85;
+
+// Values of rc::SessionState.
+constexpr uint8_t kSessionIdle = 0;
+constexpr uint8_t kSessionRunning = 1;
+constexpr uint8_t kSessionPaused = 2;
+constexpr uint8_t kSessionFading = 3;
 
 // Values of player::State.
 constexpr uint8_t kPlayerPlaying = 1;
@@ -80,6 +92,13 @@ void Ui::setStatus(const Status& status) {
                               strcmp(status.trackName, _status.trackName) != 0;
     const bool positionChanged = status.trackPositionS != _status.trackPositionS;
     const bool noiseChanged = status.noiseType != _status.noiseType || status.noiseVolume != _status.noiseVolume;
+    const bool sessionChanged = status.sessionState != _status.sessionState ||
+                                strcmp(status.sessionName, _status.sessionName) != 0 ||
+                                status.sessionMinutes != _status.sessionMinutes ||
+                                status.sessionFadeS != _status.sessionFadeS;
+    const bool sessionTick = status.sessionRemainingS != _status.sessionRemainingS ||
+                             status.sessionStage != _status.sessionStage;
+    const bool tonePushed = status.sessionState != kSessionIdle && sessionTick;
     const bool radioChanged = status.bluetoothRunning != _status.bluetoothRunning ||
                               status.wifiState != _status.wifiState || status.radioBlocked != _status.radioBlocked ||
                               strcmp(status.address, _status.address) != 0 || status.network != _status.network;
@@ -90,6 +109,10 @@ void Ui::setStatus(const Status& status) {
     else if (_tab == Tab::Sound && (sdChanged || soundChanged)) drawContent();
     else if (_tab == Tab::Sound && positionChanged) drawSoundStatus();
     else if (_tab == Tab::Frequency && noiseChanged) drawContent();
+    else if (_tab == Tab::Frequency && tonePushed) drawFrequencyValues();  // a session is moving the frequencies
+    else if (_tab == Tab::Sessions && sessionChanged) drawContent();
+    else if (_tab == Tab::Sessions && sessionTick) drawSessionStatus();
+    else if (_tab == Tab::Home && !_btScreen && (sessionChanged || sessionTick)) drawHomeStatus();
     // The free-memory figure on Settings is as of opening the screen; it
     // jitters, and following it would bring the flicker back.
     else if (_tab == Tab::Settings && radioChanged) drawSettingsValues();
@@ -290,6 +313,15 @@ void Ui::drawHomeStatus() {
         label(text, 12, y, kWarning, kFontSmall);
         return;
     }
+    if (_status.sessionState != kSessionIdle) {
+        const uint32_t r = _status.sessionRemainingS;
+        if (_status.sessionState == kSessionFading) snprintf(text, sizeof(text), "Session: fading out");
+        else if (_status.sessionMinutes == 0) snprintf(text, sizeof(text), "Session: running");
+        else snprintf(text, sizeof(text), "Session: %lu:%02lu left", static_cast<unsigned long>(r / 60),
+                      static_cast<unsigned long>(r % 60));
+        label(text, 12, y, kTeal, kFontSmall);
+        return;
+    }
     if (_status.sdMounted) snprintf(text, sizeof(text), "SD: %lu MB free", static_cast<unsigned long>(_status.sdFreeMb));
     else snprintf(text, sizeof(text), "SD: no card");
     label(text, 12, y, kTextDim, kFontSmall);
@@ -407,7 +439,58 @@ void Ui::drawSoundStatus() {
 }
 
 void Ui::drawSessions() {
-    label("Sessions are not built yet.", 12, kContentTop + 12, kTextDim, kFontSmall);
+    if (_settings.mode != rc::Mode::Play) {
+        label("Sessions run in PLAY mode.", 12, kContentTop + 12, kTextDim, kFontSmall);
+        return;
+    }
+    const bool idle = _status.sessionState == kSessionIdle;
+    if (idle) {
+        // Choose the program, its length (timer only) and the fade at its end.
+        label("Program", 12, kContentTop + 4, kTextDim, kFontSmall);
+        snprintf(_programLabel, sizeof(_programLabel), "%s", _status.sessionName);
+        addButton(8, kContentTop + 20, 224, 34, _programLabel, kIdSessionProgram);
+        label("Length", 12, kContentTop + 60, kTextDim, kFontSmall);
+        if (_status.sessionMinutes == 0) snprintf(_durationLabel, sizeof(_durationLabel), "Continuous");
+        else snprintf(_durationLabel, sizeof(_durationLabel), "%u min", static_cast<unsigned>(_status.sessionMinutes));
+        if (_status.sessionIsTimer) {
+            addButton(8, kContentTop + 76, 224, 34, _durationLabel, kIdSessionDuration);
+        } else {
+            label(_durationLabel, 16, kContentTop + 84, kText, kFontText);
+        }
+        label("Fade out at the end", 12, kContentTop + 116, kTextDim, kFontSmall);
+        if (_status.sessionFadeS == 0) snprintf(_fadeLabel, sizeof(_fadeLabel), "None");
+        else if (_status.sessionFadeS < 60) snprintf(_fadeLabel, sizeof(_fadeLabel), "%u s", static_cast<unsigned>(_status.sessionFadeS));
+        else snprintf(_fadeLabel, sizeof(_fadeLabel), "%u min", static_cast<unsigned>(_status.sessionFadeS / 60));
+        addButton(8, kContentTop + 132, 224, 34, _fadeLabel, kIdSessionFade);
+        addButton(8, kContentTop + 186, 224, 44, "START", kIdSessionStart);
+        return;
+    }
+    label(_status.sessionName, 12, kContentTop + 6, kTeal, kFontText);
+    if (_status.sessionState != kSessionFading) {
+        addButton(8, kContentTop + 150, 108, 44, _status.sessionState == kSessionPaused ? "RESUME" : "PAUSE",
+                  kIdSessionPause);
+        addButton(124, kContentTop + 150, 108, 44, "STOP", kIdSessionStop);
+    }
+    drawSessionStatus();
+}
+
+void Ui::drawSessionStatus() {
+    if (_status.sessionState == kSessionIdle) return;
+    char text[32];
+    _lcd.fillRect(0, kContentTop + 36, kScreenW, 108, kBackground);
+    const uint32_t r = _status.sessionRemainingS;
+    if (_status.sessionState == kSessionFading) snprintf(text, sizeof(text), "Fading");
+    else if (_status.sessionMinutes == 0) snprintf(text, sizeof(text), "Running");
+    else snprintf(text, sizeof(text), "%lu:%02lu", static_cast<unsigned long>(r / 60), static_cast<unsigned long>(r % 60));
+    centered(text, kScreenW / 2, kContentTop + 66, _status.sessionState == kSessionPaused ? kTextDim : kCyan,
+             kBackground, &fonts::DejaVu40);
+    if (_status.sessionStages > 1) {
+        snprintf(text, sizeof(text), "Stage %u of %u", static_cast<unsigned>(_status.sessionStage + 1),
+                 static_cast<unsigned>(_status.sessionStages));
+        centered(text, kScreenW / 2, kContentTop + 104, kTextDim, kBackground, kFontSmall);
+    }
+    snprintf(text, sizeof(text), "%.1f Hz beat", static_cast<double>(_settings.beatHz));
+    centered(text, kScreenW / 2, kContentTop + 124, kViolet, kBackground, kFontSmall);
 }
 
 void Ui::drawSettings() {
@@ -533,6 +616,18 @@ void Ui::onButton(uint8_t id) {
         _pending = Event::SoundVolumeDown;
     } else if (id == kIdSoundVolUp) {
         _pending = Event::SoundVolumeUp;
+    } else if (id == kIdSessionProgram) {
+        _pending = Event::SessionProgramNext;
+    } else if (id == kIdSessionDuration) {
+        _pending = Event::SessionDurationNext;
+    } else if (id == kIdSessionFade) {
+        _pending = Event::SessionFadeNext;
+    } else if (id == kIdSessionStart) {
+        _pending = Event::SessionStart;
+    } else if (id == kIdSessionPause) {
+        _pending = Event::SessionPauseResume;
+    } else if (id == kIdSessionStop) {
+        _pending = Event::SessionStop;
     } else if (id == kIdNoise) {
         _pending = Event::NoiseCycle;
     } else if (id == kIdNoiseDown) {

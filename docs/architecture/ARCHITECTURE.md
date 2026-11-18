@@ -2,8 +2,8 @@
 
 **Requirement:** RES-ARCH-001..005 and the domains they structure (`docs/requirements/resonance.md`)
 **Decision:** ADR-000204 (Bluetooth-only output, space first, operating modes)
-**Work:** WORK-000001 (design), WORK-000002 and WORK-000003 (Stage 2), WORK-000004 (Stage 3), WORK-000007 (Stage 4)
-**Status:** Stages 2 to 4 are implemented: board, display, touch, SD, settings, operating modes, interface, the binaural tone, the Bluetooth audio output, WAV and MP3 playback from the card, the mixer and the noise generator. Nothing has yet been heard through a headset. Sections marked *planned* describe code that does not exist yet.
+**Work:** WORK-000001 (design), WORK-000002 and WORK-000003 (Stage 2), WORK-000004 (Stage 3), WORK-000007 (Stage 4), WORK-000009 (Stage 6)
+**Status:** Stages 2 to 4 and the core of Stage 6 are implemented: board, display, touch, SD, settings, operating modes, interface, the binaural tone, the Bluetooth audio output, WAV and MP3 playback from the card, the mixer, the noise generator and sessions (timers, factory programs, fades). The tone and sound files have been heard through a Bluetooth headset. Sections marked *planned* describe code that does not exist yet.
 **Inputs:** `HARDWARE.md`, `GPIO_MAP.md`, `LIBRARY_EVALUATION.md`
 
 ## Principles
@@ -102,6 +102,7 @@ firmware/
     rc_ring.h                 lock-free ring of stereo frames
     rc_wav.h/.cpp             WAV header and PCM conversion
     rc_resample.h/.cpp        conversion to 44.1 kHz
+    rc_session.h/.cpp         sessions: stages, sweeps, runner, factory programs
   src/
     main.cpp                  start-up, mode, status, serial diagnostics
     version.h
@@ -158,6 +159,10 @@ planned (ADR-000204).
   `.mp3` files, four to a page; tapping a file plays it. Below are
   play/pause with the background volume and the track's elapsed time. The
   noise control (type and volume) is on the FREQ tab.
+- The SESS tab chooses a program (the timer or a factory program), the
+  timer's length and the fade, and starts it; while it runs it shows the
+  time left, the stage and the beat frequency, with Pause and Stop. Home
+  shows the time left.
 - Home has the audio on/off control with the volume beside it, and a
   Bluetooth button that opens the device list: found devices as buttons,
   tap one to connect, and Disconnect when connected.
@@ -226,6 +231,37 @@ planned (ADR-000204).
 - `AudioOutput` as a formal interface arrives when a second output exists;
   until then the engine's `render()` is the boundary, and nothing in the
   core knows about Bluetooth.
+
+## Sessions
+
+- A session is up to six stages. A stage lasts a given time and either holds
+  its frequencies or glides to them in a straight line from where the
+  previous stage ended; a frequency of zero means "leave it as it is". The
+  plain timer is a one-stage session that holds the current frequencies;
+  with a length of zero it runs until stopped.
+- `rc::SessionRunner` is portable and knows nothing of oscillators, screens
+  or files: it turns elapsed time into target frequencies and a level
+  (RES-SESS-001). `main.cpp` advances it every 100 ms from `loop()`,
+  whatever screen is shown, and applies the values to the engine
+  (RES-SESS-005).
+- At the end, and on Stop, the level of the whole output falls in a straight
+  line over the chosen fade (none, 30 s, 1 min, 5 min); then the tone is
+  switched off, a playing track is paused, and the level is restored for
+  the next start. The engine ramps between the ten updates a second, so the
+  fade has no steps.
+- Pause stops the clock and the audio; Resume continues exactly where it
+  was.
+- Session time is wall-clock time. (The Stage 1 design derived it from
+  audio frames; that would stop the clock whenever no Bluetooth device is
+  connected, so it was not built that way.)
+- Four factory programs are compiled in. Their names state what the
+  frequencies do and their length, and nothing about effects on the
+  listener (RES-PROC-006).
+- The frequencies a session sets are the device's frequencies while it
+  runs: the screens show them, and they stay when it ends, but they are not
+  written to storage.
+- *Planned:* sessions made by the user, stored as JSON on the card, with an
+  editor (the web interface is the natural place for it).
 
 ## Web administration (*planned*, Stage 7, Setup mode only)
 

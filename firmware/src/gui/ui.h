@@ -34,6 +34,12 @@ enum class Event : uint8_t {
     NoiseCycle,       // off -> white -> pink -> brown -> off
     NoiseVolumeUp,
     NoiseVolumeDown,
+    SessionProgramNext,   // timer -> factory sessions -> timer
+    SessionDurationNext,  // 10, 15, 20, 30, 45, 60 minutes, continuous (timer only)
+    SessionFadeNext,      // none, 30 s, 1 min, 5 min
+    SessionStart,
+    SessionPauseResume,
+    SessionStop,
 };
 
 // Everything the interface shows that it does not own.
@@ -71,6 +77,15 @@ struct Status {
     uint8_t noiseType = 0;          // rc::NoiseType
     uint8_t noiseVolume = 0;        // percent
     uint32_t listVersion = 0;       // changes whenever the listing changed
+    // Sessions (Play mode).
+    char sessionName[20] = "";
+    bool sessionIsTimer = true;
+    uint16_t sessionMinutes = 0;    // length of the chosen session; 0 = continuous
+    uint16_t sessionFadeS = 0;
+    uint8_t sessionState = 0;       // rc::SessionState
+    uint32_t sessionRemainingS = 0;
+    uint8_t sessionStage = 0;
+    uint8_t sessionStages = 0;
 };
 
 class Ui {
@@ -99,7 +114,7 @@ private:
         const char* label;
         uint8_t id;
     };
-    static constexpr uint8_t kMaxButtons = 10;
+    static constexpr uint8_t kMaxButtons = 12;  // the FREQ tab has eleven
 
     void drawFrame();
     void drawHeader();
@@ -113,6 +128,7 @@ private:
     void drawSound();
     void drawSoundStatus();
     void drawSessions();
+    void drawSessionStatus();
     void drawSettings();
     void drawSettingsValues();
     void addButton(int16_t x, int16_t y, int16_t w, int16_t h, const char* label, uint8_t id);
@@ -140,6 +156,9 @@ private:
     char _btLabel[36] = "";
     char _playLabel[14] = "";
     char _noiseLabel[14] = "";
+    char _programLabel[24] = "";
+    char _durationLabel[20] = "";
+    char _fadeLabel[20] = "";
     char _entryLabels[4][24] = {};
     Event _pending = Event::None;
     uint32_t _lastActivityMs = 0;

@@ -2,8 +2,8 @@
 
 Firmware for the ESP32-2432S032C-I. Architecture:
 `docs/architecture/ARCHITECTURE.md`. Requirements:
-`docs/requirements/resonance.md`. Current state: Stage 4 — the binaural tone, sound files from
-the card (WAV, MP3) and noise, mixed, over Bluetooth; no sessions or web
+`docs/requirements/resonance.md`. Current state: the binaural tone, sound files from the card
+(WAV, MP3), noise and timed sessions, mixed, over Bluetooth; no web
 interface yet.
 
 ## Requirements
@@ -75,7 +75,9 @@ wired.
 | `player` | Player state, position, buffer fill, underruns, last error |
 | `stop` | Stop the player |
 | `put <path> <bytes>` | Receive a file over serial; use `tools/serial_put.py` |
-| `bt` | Bluetooth state and the audio devices found so far |
+| `session` | Session state, stage, time left, beat frequency, level |
+| `session start <n>` / `session stop` | Start program n (0 = timer) or stop with the fade |
+| `bt` | Bluetooth state, the audio devices in range, and a `STREAM` line: longest gap between audio requests, longest render, stutters (gaps over 60 ms) and underruns since last asked |
 | `bt connect <n>` | Connect to found device number n |
 | `audio on` / `audio off` | Start or stop the tone |
 | `mode play` / `mode setup` | Store the operating mode and restart |
@@ -105,6 +107,14 @@ For a test file without removing the card:
 ```bash
 python3 tools/serial_put.py some.mp3 CUSTOM/some.mp3   # about 10 kB per second
 ```
+
+## Sessions
+
+On the SESS tab choose the program (tap to cycle: Timer, then the built-in
+programs), the timer's length (10 to 60 minutes or Continuous) and the fade
+at the end, then START. The audio starts with the session and stops, after
+the fade, at its end. PAUSE holds the clock and the audio; STOP ends through
+the fade.
 
 ## Operating modes
 

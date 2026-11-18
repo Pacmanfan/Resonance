@@ -73,8 +73,8 @@ same firmware source, 2026-11-17 (evidence VER-000007):
 | Image size | 1.94 MB | 1.58 MB |
 
 - Setup mode with the reduced libraries: Wi-Fi starts and scans, 144 kB free.
-- These figures are without a Bluetooth device connected; a connection and
-  streaming will take more, and that has not been measured.
+- With a headset connected and an MP3 streaming to it (0.5.0): 45 kB free,
+  minimum 36 kB.
 - The image would now fit a 1.875 MB OTA slot with about 290 kB to spare,
   before the web server is added. OTA stays off (ADR-000204); the question
   can be reopened when the web interface exists.

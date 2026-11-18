@@ -101,6 +101,7 @@ void startWhenBuffered(bool& started) {
 // Waits until the buffered rest of the track has been heard.
 void drain() {
     engine->setBackgroundPlaying(true);
+    engine->setBackgroundEnding();
     while (ring->available() > 0 && !commandWaiting()) vTaskDelay(pdMS_TO_TICKS(20));
 }
 

@@ -14,6 +14,7 @@
 #include "radio/wifi_link.h"
 #include "rc_settings.h"
 #include "rc_audio.h"
+#include "rc_session.h"
 #include "storage/sdcard.h"
 #include "storage/settings_store.h"
 #include "version.h"
@@ -35,6 +36,15 @@ uint8_t volume = 0;           // master, percent; starts at the settings' start-
 uint8_t backgroundVolume = 70;
 rc::NoiseType noiseType = rc::NoiseType::Off;
 uint8_t noiseVolume = 40;
+
+// Sessions. Program 0 is the plain timer; 1.. are the factory sessions.
+rc::SessionRunner session;
+uint8_t sessionProgram = 0;
+uint8_t timerChoice = 2;  // index into kTimerMinutes
+uint8_t fadeChoice = 1;   // index into kFadeSeconds
+const uint16_t kTimerMinutes[] = {10, 15, 20, 30, 45, 60, 0};  // 0 = continuous
+const uint16_t kFadeSeconds[] = {0, 30, 60, 300};
+uint32_t sessionTickMs = 0;
 
 // Sound library browsing. One page of four entries is kept; the directory is
 // read again for every page.
@@ -68,6 +78,8 @@ uint32_t lastStatusMs = 0;
 uint32_t statusTicks = 0;
 char lineBuffer[120];
 uint8_t lineLength = 0;
+
+rc::Session chosenSession();  // defined with the session control below
 
 void printHeap(const char* stage) {
     Serial.printf("HEAP %-22s free %6lu  min %6lu  largest %6lu\n", stage,
@@ -178,6 +190,15 @@ void refreshStatus() {
     status.noiseType = static_cast<uint8_t>(noiseType);
     status.noiseVolume = noiseVolume;
     status.listVersion = listVersion;
+    const rc::Session chosen = chosenSession();
+    strlcpy(status.sessionName, chosen.name, sizeof(status.sessionName));
+    status.sessionIsTimer = sessionProgram == 0;
+    status.sessionMinutes = static_cast<uint16_t>(rc::sessionSeconds(chosen) / 60u);
+    status.sessionFadeS = kFadeSeconds[fadeChoice];
+    status.sessionState = static_cast<uint8_t>(session.state());
+    status.sessionRemainingS = session.remainingS();
+    status.sessionStage = session.stageIndex();
+    status.sessionStages = session.stageCount();
     status.btCount = btaudio::deviceCount();
     for (uint8_t i = 0; i < status.btCount && i < 5; ++i) {
         strlcpy(status.btDevices[i], btaudio::deviceName(i), sizeof(status.btDevices[i]));
@@ -239,6 +260,46 @@ void soundUp() {
 }
 
 void applyNoise() { audio.setNoise(noiseType, noiseVolume); }
+
+rc::Session chosenSession() {
+    if (sessionProgram == 0) return rc::timerSession(kTimerMinutes[timerChoice]);
+    return rc::factorySession(static_cast<uint8_t>(sessionProgram - 1));
+}
+
+void startSession() {
+    if (settings.mode != rc::Mode::Play) return;
+    if (!session.start(chosenSession(), settings.primaryHz, settings.beatHz, kFadeSeconds[fadeChoice])) return;
+    sessionTickMs = millis();
+    audio.setSessionGain(1.0f);
+    setAudio(true);  // starting a session is the user turning the audio on
+    Serial.printf("SESSION started: %s\n", chosenSession().name);
+}
+
+// Advances the running session and applies its values. Called from loop()
+// whatever screen is shown (RES-SESS-005).
+void tickSession() {
+    if (session.state() == rc::SessionState::Idle) return;
+    const uint32_t now = millis();
+    if (now - sessionTickMs < 100) return;
+    session.advance(now - sessionTickMs);
+    sessionTickMs = now;
+    // The session's frequencies become the device's: the screens show them
+    // and they stay when the session ends. They are not written to storage.
+    if (session.primaryHz() != 0.0f) settings.primaryHz = session.primaryHz();
+    if (session.beatHz() != 0.0f) settings.beatHz = session.beatHz();
+    audio.tone().setFrequencies(settings.primaryHz, settings.beatHz);
+    audio.setSessionGain(session.gain());
+    if (session.state() == rc::SessionState::Finished) {
+        // Everything stops, then the level is restored for the next start.
+        setAudio(false);
+        if (player::state() == player::State::Playing) player::pause();
+        session.reset();
+        delay(250);  // let the engine reach silence before the level returns
+        audio.setSessionGain(1.0f);
+        Serial.println("SESSION finished");
+        refreshStatus();
+    }
+}
 
 // Writes a five-second 440 Hz test tone as a WAV file (22.05 kHz, 16-bit,
 // mono) to the card, so that the player can be exercised without a computer.
@@ -323,7 +384,7 @@ void receiveFile(char* arguments) {
 }
 
 // Serial diagnostics, for development (RES-17 "serial diagnostic output").
-//   report | heap | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | bt | bt connect <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear
+//   report | heap | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | session | session start <n> | session stop | bt | bt connect <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear
 void runCommand(char* line) {
     if (strcmp(line, "report") == 0) {
         printReport();
@@ -355,6 +416,17 @@ void runCommand(char* line) {
                       static_cast<unsigned long>(player::durationS()), static_cast<unsigned long>(ring.available()),
                       static_cast<unsigned long>(ring.capacity()), static_cast<unsigned long>(audio.underruns()),
                       player::error());
+    } else if (strcmp(line, "session") == 0) {
+        Serial.printf("SESSION state %u '%s' stage %u of %u, %lu s left, beat %.2f Hz, level %.2f\n",
+                      static_cast<unsigned>(session.state()), chosenSession().name,
+                      static_cast<unsigned>(session.stageIndex() + 1), static_cast<unsigned>(session.stageCount()),
+                      static_cast<unsigned long>(session.remainingS()), static_cast<double>(settings.beatHz),
+                      static_cast<double>(session.gain()));
+    } else if (strncmp(line, "session start ", 14) == 0) {
+        sessionProgram = static_cast<uint8_t>(atoi(line + 14)) % (rc::factorySessionCount() + 1);
+        startSession();
+    } else if (strcmp(line, "session stop") == 0) {
+        session.stop();
     } else if (strcmp(line, "stop") == 0) {
         player::stop();
     } else if (strcmp(line, "mktest") == 0) {
@@ -363,6 +435,10 @@ void runCommand(char* line) {
         Serial.printf("BT state %u peer '%s', %u device(s) found\n", static_cast<unsigned>(btaudio::state()),
                       btaudio::peerName(), static_cast<unsigned>(btaudio::deviceCount()));
         for (uint8_t i = 0; i < btaudio::deviceCount(); ++i) Serial.printf("  %u: %s\n", i, btaudio::deviceName(i));
+        const btaudio::StreamStats stats = btaudio::takeStreamStats();
+        Serial.printf("STREAM worst gap %lu ms, worst render %lu us, %lu long gap(s), %lu underrun(s) since last asked\n",
+                      static_cast<unsigned long>(stats.worstGapMs), static_cast<unsigned long>(stats.worstRenderUs),
+                      static_cast<unsigned long>(stats.longGaps), static_cast<unsigned long>(audio.underruns()));
     } else if (strncmp(line, "bt connect ", 11) == 0) {
         btaudio::connect(static_cast<uint8_t>(atoi(line + 11)));
     } else if (strcmp(line, "radio") == 0) {
@@ -385,7 +461,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | bt | bt connect <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | session | session start <n> | session stop | bt | bt connect <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 
@@ -506,6 +582,43 @@ void loop() {
             applyNoise();
             refreshStatus();
             break;
+        case gui::Event::SessionProgramNext:
+            sessionProgram = static_cast<uint8_t>((sessionProgram + 1) % (rc::factorySessionCount() + 1));
+            refreshStatus();
+            break;
+        case gui::Event::SessionDurationNext:
+            timerChoice = static_cast<uint8_t>((timerChoice + 1) % (sizeof(kTimerMinutes) / sizeof(kTimerMinutes[0])));
+            refreshStatus();
+            break;
+        case gui::Event::SessionFadeNext:
+            fadeChoice = static_cast<uint8_t>((fadeChoice + 1) % (sizeof(kFadeSeconds) / sizeof(kFadeSeconds[0])));
+            refreshStatus();
+            break;
+        case gui::Event::SessionStart:
+            startSession();
+            refreshStatus();
+            break;
+        case gui::Event::SessionPauseResume:
+            if (session.state() == rc::SessionState::Paused) {
+                session.resume();
+                sessionTickMs = millis();
+                setAudio(true);
+            } else if (session.state() == rc::SessionState::Running) {
+                session.pause();
+                setAudio(false);
+            }
+            refreshStatus();
+            break;
+        case gui::Event::SessionStop:
+            // A paused session has nothing to fade: it ends at once.
+            if (session.state() == rc::SessionState::Paused) {
+                session.reset();
+                audio.setSessionGain(1.0f);
+            } else {
+                session.stop();
+            }
+            refreshStatus();
+            break;
         case gui::Event::BluetoothDisconnect:
             setAudio(false);
             btaudio::disconnect();
@@ -522,6 +635,7 @@ void loop() {
         storage::markRadioStable();
         Serial.println("RADIO stable");
     }
+    tickSession();
     // The next track of the folder follows when one has played to its end.
     if (player::takeEnded()) {
         char next[sdcard::kNameLength];
