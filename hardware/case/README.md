@@ -1,32 +1,80 @@
 # Resonance enclosure
 
 **Requirement:** RES-HW-007 (`docs/requirements/resonance.md`)
-**Sources:** `resonance_case.scad` (the case), `esp32_2432s032.scad` (reference
+**Sources:** `resonance_case_v2.scad` (the case), `resonance_case.scad` (version 1), `esp32_2432s032.scad` (reference
 model of the board), `battery.scad` (reference model of the cell). OpenSCAD,
 parametric.
-**Status:** draft v1. Every printed part renders as a valid solid. **Nothing
-has been printed. The positions of the openings come from published pictures
-and from other people's cases, not from the board on the bench**: confirm
-the list below with a caliper first.
+**Status:** version 2 (`resonance_case_v2.scad`) is the current design; it
+renders as valid solids and **has not been printed**. Version 1
+(`resonance_case.scad`) was printed once on 2026-11-18: its USB-C, microSD
+and button openings lined up with the board. The sections from "How it goes
+together" to "Hardware" and "The power button" below describe version 1.
 
-A case for the ESP32-2432S032C with a 90 × 60 × 11 mm LiPo cell behind it.
-The cell is larger than the board (93.7 × 55 mm), so the case is sized by the
-cell: **106 × 67 × 30.3 mm** with the present numbers.
+## Version 2
 
-As held: upright in the left hand, screen towards you, USB-C at the bottom.
-The microSD slot is on the left edge, the power button low on the right
-edge, and the RGB LED and the light sensor look out through two windows
-**above** the screen.
+Made from the operator's notes on the printed version 1.
+
+| Asked for | What version 2 does |
+|---|---|
+| Glass flush with the case | The window is cut to the outline of the glass (76.6 × 54.4 mm plus 0.4 mm each side) and the board sits so that the glass ends level with the face |
+| Shell 0.5 mm thinner | Walls, front face and back face are 1.5 mm |
+| Holes for inserts | The four bosses have 4.0 mm holes, 3.4 mm deep, for M3 heat-set inserts 3 mm long |
+| Two pieces that snap together | `front` and `back`; a 3 mm skirt on the back goes inside the front's walls and seven ridges click into grooves. No tray, no lid, no case screws |
+| No divider | Removed. The cell lies 5.5 mm behind the board; a sheet of paper or foam goes between |
+| Button 0.5 mm longer | The stem now reaches the switch's actuator (`btn_travel = 0`) |
+| Rounded top and bottom | The edges of the front and back faces have a 1.2 mm radius (`edge_r`) |
+
+Outer size **105 × 66 × 25.1 mm** (version 1: 106 × 67 × 30.3).
+
+![Front: the glass is level with the face](v2_front.png)
+![Back, with the button and the USB-C opening](v2_back.png)
+![Exploded: front shell and button, board, cell, back shell](v2_exploded.png)
+![Cut along the length](v2_section.png)
+![Front shell from inside](v2_front_inside.png)
+![Back shell from inside: skirt, ridges, cell stops](v2_back_inside.png)
+
+**Parts:** `front`, `back`, `button`. All print without supports: the front
+on its face, the back on its back face, the button on the end that shows.
+
+**Hardware:** four M3 heat-set inserts (3 mm long, about 4.2 mm outside) and
+four M3 × 4 pan-head screws for the board. Nothing else.
+
+**Assembly:** press the inserts into the bosses; put the button in from the
+inside; lay the board in, glass into the window, and drive the four screws;
+plug in the cell (polarity checked with a meter first), lay the barrier
+sheet and the cell on the board; press the back on until it clicks. To open,
+twist a coin in the slot at the seam at the end away from USB-C.
+
+**Not known until printed:**
+
+- The outline of the glass and its height above the board (`glass_x`,
+  `glass_l`, `glass_y`, `glass_w`, `lcd_h`) are from the drawing and from
+  other cases. If the glass is larger than 76.6 × 54.4 it will not enter the
+  window; if `lcd_h` is not 4.0 it will stand proud or sit low.
+- How hard the snap holds. `snap_grip` (0.4 mm) is the number to change, by
+  0.1 mm at a time.
+- The cell rests on two ribs and the button's pad on one side and on the
+  board's parts, through the foam, on the other.
+- On the microSD side the bezel beside the glass is only about 2 mm wide.
+
+```bash
+openscad -o front.stl  -D 'part="front"'  resonance_case_v2.scad
+openscad -o back.stl   -D 'part="back"'   resonance_case_v2.scad
+openscad -o button.stl -D 'part="button"' resonance_case_v2.scad
+```
+
+## Version 1
+
+A case for the ESP32-2432S032C with a 90 × 60 × 11 mm LiPo cell behind it,
+106 × 67 × 30.3 mm. As held: upright in the left hand, screen towards you,
+USB-C at the bottom; microSD slot on the left edge, power button low on the
+right edge, RGB LED and light sensor above the screen.
 
 ![Front, as held](preview_held_front.png)
 ![Cut along the length: screen at the bottom, board, divider, cell, lid](preview_section.png)
 ![The openings, straight on: USB-C end, microSD side, button side](preview_openings.png)
 ![Exploded: front shell, board with its four screws, tray, cell, lid](preview_exploded.png)
 ![The reference model of the board, back side up](preview_board.png)
-![Front shell from inside](preview_front.png)
-![Battery tray](preview_tray.png)
-![Right side: the power button](preview_button.png)
-![Left side: the microSD slot](preview_left.png)
 
 ## How it goes together
 

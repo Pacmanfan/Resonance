@@ -1,0 +1,34 @@
+{
+ "work": "WORK-000031",
+ "runs": [
+  {
+   "at": "2026-11-18T21:07:28.614118+00:00",
+   "verdict": "PASS",
+   "gate_version": 3,
+   "work": "WORK-000031",
+   "request": "2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+   "request_id": "REQ-CHAT-20261117-001",
+   "request_fingerprint": "ea8158fe96756d2b7dca65570a3946e18fd0f0489867a2432b0660214e5d2ba7",
+   "request_code_paths": [
+    "hardware/case/resonance_case_v2.scad",
+    "hardware/case/v2_back.png",
+    "hardware/case/v2_back_inside.png",
+    "hardware/case/v2_exploded.png",
+    "hardware/case/v2_front.png",
+    "hardware/case/v2_front_inside.png",
+    "hardware/case/v2_section.png"
+   ],
+   "test_runs": [
+    "20261118T160716-2775093"
+   ],
+   "evidence": [
+    "VER-000032"
+   ],
+   "head": "99da6ac67adbadf5bc9989e8756d7e962bfc3a39",
+   "agent_id": "agent-dev-20261117205050-9ef7a9",
+   "fails": [],
+   "warns": [],
+   "passes": 13
+  }
+ ]
+}

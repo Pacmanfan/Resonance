@@ -1246,6 +1246,12 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-18T21:04:53.764010+00:00
+
+> Case version 2: the glass of the screen protrudes into the front panel so that it sits flush with the case; shell 0.5 mm thinner; holes sized for inserts; a 2-piece design that snap-fits together instead of screws; remove the inner divider between the battery and the electronics; button 0.5 mm longer; slight rounding on the bottom and top edges; renderings and an exploded view when done.
+
+
+
 ### Follow-up 2026-11-18T16:59:41.778307+00:00
 
 > export all the parts of the cad model as individual STL files so I can print
@@ -1469,5 +1475,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020, WORK-000021, WORK-000022, WORK-000023, WORK-000024, WORK-000025, WORK-000026, WORK-000027, WORK-000028, WORK-000029, WORK-000030
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020, WORK-000021, WORK-000022, WORK-000023, WORK-000024, WORK-000025, WORK-000026, WORK-000027, WORK-000028, WORK-000029, WORK-000030, WORK-000031
 - Evidence: pending
