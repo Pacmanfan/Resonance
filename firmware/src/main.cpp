@@ -33,9 +33,16 @@ rc::AudioEngine audio(ring);
 
 bool audioOn = false;         // never on at start (RES-CFG-003)
 uint8_t volume = 0;           // master, percent; starts at the settings' start-up volume
-uint8_t backgroundVolume = 70;
-rc::NoiseType noiseType = rc::NoiseType::Off;
-uint8_t noiseVolume = 40;
+uint8_t backgroundVolume = rc::kBackgroundVolumeDefault;
+rc::NoiseType noiseType = rc::NoiseType::Off;  // not restored: nothing sounds at start
+uint8_t noiseVolume = rc::kNoiseVolumeDefault;
+
+// Everything the user adjusts is written to storage a few seconds after the
+// last change, not at once, to spare the flash while a button is tapped
+// repeatedly.
+bool settingsDirty = false;
+uint32_t settingsChangedMs = 0;
+constexpr uint32_t kSaveDelayMs = 4000;
 
 // Sessions. Program 0 is the plain timer; 1.. are the factory sessions.
 rc::SessionRunner session;
@@ -83,6 +90,11 @@ uint8_t lineLength = 0;
 
 rc::Session chosenSession();  // defined with the session control below
 
+void markSettingsChanged() {
+    settingsDirty = true;
+    settingsChangedMs = millis();
+}
+
 void printHeap(const char* stage) {
     Serial.printf("HEAP %-22s free %6lu  min %6lu  largest %6lu\n", stage,
                   static_cast<unsigned long>(ESP.getFreeHeap()), static_cast<unsigned long>(ESP.getMinFreeHeap()),
@@ -113,6 +125,11 @@ void printReport() {
     wifilink::address(address, sizeof(address));
     Serial.printf("REPORT wifi state %u network '%s' address %s\n", static_cast<unsigned>(wifilink::state()),
                   wifilink::networkName(), address);
+    Serial.printf("REPORT user values: volume %u, background %u, noise %u, program %u, timer %u, length %u, fade %u, %.1f / %.1f Hz\n",
+                  static_cast<unsigned>(volume), static_cast<unsigned>(backgroundVolume), static_cast<unsigned>(noiseVolume),
+                  static_cast<unsigned>(sessionProgram), static_cast<unsigned>(timerChoice),
+                  static_cast<unsigned>(programLength), static_cast<unsigned>(fadeChoice),
+                  static_cast<double>(settings.primaryHz), static_cast<double>(settings.beatHz));
     Serial.printf("REPORT flash image %lu bytes\n", static_cast<unsigned long>(ESP.getSketchSize()));
     // Raw identification reads, to settle which controller the panel carries.
     Serial.printf("REPORT panel RDDID 0x%06lX RDDST 0x%08lX\n", static_cast<unsigned long>(lcd().panelId()),
@@ -143,9 +160,22 @@ void startRadio() {
     }
 }
 
+// Writes everything the user has adjusted to storage.
+void storeUserValues() {
+    settingsDirty = false;
+    settings.startVolume = volume;  // capped by sanitize() inside save(); the running volume is untouched
+    settings.backgroundVolume = backgroundVolume;
+    settings.noiseVolume = noiseVolume;
+    settings.sessionProgram = sessionProgram;
+    settings.timerChoice = timerChoice;
+    settings.programLength = programLength;
+    settings.fadeChoice = fadeChoice;
+    storage::save(settings);
+}
+
 void switchMode(rc::Mode mode) {
     settings.mode = mode;
-    storage::save(settings);
+    storeUserValues();
     Serial.printf("MODE restarting in %s\n", mode == rc::Mode::Setup ? "setup" : "play");
     Serial.flush();
     delay(100);
@@ -387,7 +417,7 @@ void receiveFile(char* arguments) {
 }
 
 // Serial diagnostics, for development (RES-17 "serial diagnostic output").
-//   report | heap | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | session | session start <n> | session stop | bt | bt connect <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear
+//   report | heap | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear
 void runCommand(char* line) {
     if (strcmp(line, "report") == 0) {
         printReport();
@@ -397,6 +427,9 @@ void runCommand(char* line) {
         const int n = wifilink::scanToSerial();
         Serial.printf("SCAN %d network(s)\n", n);
         printHeap("after wifi scan");
+    } else if (strncmp(line, "volume ", 7) == 0) {
+        setVolume(atoi(line + 7));
+        markSettingsChanged();
     } else if (strcmp(line, "audio on") == 0) {
         setAudio(true);
     } else if (strcmp(line, "audio off") == 0) {
@@ -464,7 +497,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | session | session start <n> | session stop | bt | bt connect <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 
@@ -490,7 +523,15 @@ void setup() {
     printHeap("boot");
 
     loadResult = storage::load(settings);
+    // The device comes back as it was left. The master volume was stored
+    // capped, and the audio itself always starts off.
     volume = settings.startVolume;
+    backgroundVolume = settings.backgroundVolume;
+    noiseVolume = settings.noiseVolume;
+    sessionProgram = settings.sessionProgram <= rc::factorySessionCount() ? settings.sessionProgram : 0;
+    timerChoice = settings.timerChoice < sizeof(kTimerMinutes) / sizeof(kTimerMinutes[0]) ? settings.timerChoice : 2;
+    programLength = settings.programLength < sizeof(kProgramMinutes) / sizeof(kProgramMinutes[0]) ? settings.programLength : 0;
+    fadeChoice = settings.fadeChoice < sizeof(kFadeSeconds) / sizeof(kFadeSeconds[0]) ? settings.fadeChoice : 1;
 
     displayOk = lcd().begin();
     lcd().setBacklightPercent(settings.brightness);
@@ -521,8 +562,22 @@ void loop() {
     const gui::Event event = screen().poll();
     switch (event) {
         case gui::Event::SettingsChanged:
-            storage::save(settings);
+        case gui::Event::VolumeUp:
+        case gui::Event::VolumeDown:
+        case gui::Event::SoundVolumeUp:
+        case gui::Event::SoundVolumeDown:
+        case gui::Event::NoiseVolumeUp:
+        case gui::Event::NoiseVolumeDown:
+        case gui::Event::ToneChanged:
+        case gui::Event::SessionProgramNext:
+        case gui::Event::SessionDurationNext:
+        case gui::Event::SessionFadeNext:
+            markSettingsChanged();
             break;
+        default:
+            break;
+    }
+    switch (event) {
         case gui::Event::SwitchMode:
             switchMode(settings.mode == rc::Mode::Setup ? rc::Mode::Play : rc::Mode::Setup);
             break;
@@ -647,6 +702,9 @@ void loop() {
         radioPending = false;
         storage::markRadioStable();
         Serial.println("RADIO stable");
+    }
+    if (settingsDirty && millis() - settingsChangedMs > kSaveDelayMs) {
+        storeUserValues();
     }
     tickSession();
     // The next track of the folder follows when one has played to its end.

@@ -79,6 +79,27 @@ TEST(start_volume_can_never_be_loud) {
     CHECK(s.startVolume == kStartVolumeMax);
 }
 
+TEST(layer_volumes_and_session_choices_are_kept_within_bounds) {
+    Settings s;
+    setDefaults(s);
+    CHECK(s.backgroundVolume == kBackgroundVolumeDefault && s.noiseVolume == kNoiseVolumeDefault);
+    s.backgroundVolume = 85;
+    s.noiseVolume = 15;
+    s.sessionProgram = 3;
+    s.timerChoice = 5;
+    s.programLength = 2;
+    s.fadeChoice = 3;
+    CHECK(!sanitize(s));  // plausible values pass untouched
+    CHECK(s.backgroundVolume == 85 && s.noiseVolume == 15 && s.sessionProgram == 3 && s.timerChoice == 5);
+    s.backgroundVolume = 200;
+    s.noiseVolume = 255;
+    s.sessionProgram = 250;
+    s.fadeChoice = 99;
+    CHECK(sanitize(s));
+    CHECK(s.backgroundVolume == kVolumeMax && s.noiseVolume == kVolumeMax);
+    CHECK(s.sessionProgram <= 31 && s.fadeChoice <= 31);
+}
+
 TEST(brightness_never_reaches_zero) {
     Settings s;
     setDefaults(s);

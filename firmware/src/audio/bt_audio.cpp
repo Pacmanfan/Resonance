@@ -3,6 +3,8 @@
 #include <Arduino.h>
 #include <BluetoothA2DPSource.h>
 
+#include "../storage/settings_store.h"
+
 namespace btaudio {
 
 namespace {
@@ -35,6 +37,9 @@ volatile bool haveChoice = false;
 esp_bd_addr_t chosen;
 char chosenName[kNameLength] = "";
 uint32_t rescanAtMs = 0;  // 0 = no rescan pending
+bool nameSettled = false; // the connected device's name has been stored or looked up
+bool nameRequested = false;
+uint32_t connectedSinceMs = 0;
 
 // Stream timing, written by the Bluetooth task and read for diagnostics.
 volatile uint32_t lastCallUs = 0;
@@ -44,8 +49,24 @@ volatile uint32_t longGaps = 0;
 
 // The library keeps its state machine protected; scanning again after a
 // disconnect needs access to it.
+// Name the peer gave when the link was authenticated. Written by the
+// Bluetooth task at every connection, including automatic reconnections.
+char authenticatedName[kNameLength] = "";
+
 class Source : public BluetoothA2DPSource {
 public:
+    // The library only logs the peer's name on authentication; it is kept
+    // here so that a device that reconnects by itself can be named.
+    void app_gap_callback(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t* param) override {
+        if (event == ESP_BT_GAP_AUTH_CMPL_EVT && param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
+            strlcpy(authenticatedName, reinterpret_cast<const char*>(param->auth_cmpl.device_name), kNameLength);
+        } else if (event == ESP_BT_GAP_READ_REMOTE_NAME_EVT && param->read_rmt_name.stat == ESP_BT_STATUS_SUCCESS) {
+            // The answer to the name request made in updateList().
+            strlcpy(authenticatedName, reinterpret_cast<const char*>(param->read_rmt_name.rmt_name), kNameLength);
+        }
+        BluetoothA2DPSource::app_gap_callback(event, param);
+    }
+
     void rescan() {
         s_a2d_state = APP_AV_STATE_DISCOVERING;
         esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 10, 0);
@@ -145,6 +166,34 @@ void updateList() {
         rescanAtMs = 0;
         source().rescan();
     }
+    // The name of the connected device. In order of trust: the name the user
+    // picked from the list, the name stored for this address, the name the
+    // device gave when the link was authenticated. A bonded device that
+    // reconnects by itself gives none, so it is then asked for its name.
+    if (!source().is_connected()) {
+        nameSettled = false;
+        nameRequested = false;
+        connectedSinceMs = 0;
+    } else if (!nameSettled) {
+        if (connectedSinceMs == 0) connectedSinceMs = millis() | 1u;
+        uint8_t* address = *source().get_last_peer_address();
+        if (chosenName[0] == '\0' && !storage::loadDeviceName(address, chosenName, kNameLength)) {
+            if (authenticatedName[0] != '\0') {
+                strlcpy(chosenName, authenticatedName, kNameLength);
+            } else if (!nameRequested) {
+                nameRequested = true;
+                esp_bt_gap_read_remote_name(address);
+            }
+        }
+        if (chosenName[0] != '\0') {
+            storage::saveDeviceName(address, chosenName);
+            nameSettled = true;
+            Serial.printf("BT connected to '%s'\n", chosenName);
+        } else if (millis() - connectedSinceMs > 15000) {
+            nameSettled = true;  // the device did not answer; it stays unnamed
+            Serial.println("BT connected to a device that gave no name");
+        }
+    }
     const uint32_t now = millis();
     Device copy[kTableSize];
     portENTER_CRITICAL(&lock);
@@ -170,6 +219,7 @@ const char* deviceName(uint8_t index) { return index < shownCount ? shown[index]
 
 void connect(uint8_t index) {
     if (index >= shownCount) return;
+    authenticatedName[0] = '\0';  // belongs to the previous device
     memcpy(chosen, shown[index].address, sizeof(esp_bd_addr_t));
     strlcpy(chosenName, shown[index].name, kNameLength);
     haveChoice = true;
@@ -184,6 +234,7 @@ void disconnect() {
     if (!started) return;
     haveChoice = false;
     chosenName[0] = '\0';
+    authenticatedName[0] = '\0';
     source().disconnect();
     rescanAtMs = millis() + 1500;
     if (rescanAtMs == 0) rescanAtMs = 1;

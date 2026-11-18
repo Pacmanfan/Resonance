@@ -1246,6 +1246,30 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-18T05:23:36.762502+00:00
+
+> So - in the sound library - if I go to the next screen using the > button, the screen show a < button that is centered. I would expect it to be on the left.
+
+
+
+### Follow-up 2026-11-18T05:19:40.806791+00:00
+
+> the saved settings leads to saving all previously manipulated values by the user.
+
+
+
+### Follow-up 2026-11-18T05:17:47.967351+00:00
+
+> So - let's talk about the 3d model. I was wondering why there were holes opn the back and the model doesn't have a place for the button on the side. I also want a seprate button with a lip that fits into a recess in the side of the case that is pressed against the actual button from the pcb.
+
+
+
+### Follow-up 2026-11-18T05:12:37.808057+00:00
+
+> How is the download of the media coming along for wav and mp3 imports? So - when the system reconnects - it says "connected to 'a remembered device'". I would like to remember the actual name of the connected device by storing a settings file on the SD card or in memory.
+
+
+
 ### Follow-up 2026-11-18T05:08:47.568938+00:00
 
 > So - In setup mode - it requires a restart and you can't use BT to play sounds, right? If that is the case,then we should have a simplfied UI in Setup mode, let's talk about it. In the SND - Sound library - at the top - there is a '/'. Remove it.
@@ -1373,5 +1397,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020
 - Evidence: pending

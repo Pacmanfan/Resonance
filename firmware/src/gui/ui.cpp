@@ -449,10 +449,11 @@ void Ui::drawSound() {
         addButton(4, static_cast<int16_t>(kContentTop + 19 + i * 35), 232, 32, _entryLabels[i],
                   static_cast<uint8_t>(kIdSoundEntry + i));
     }
-    // Navigation: parent folder, previous page, next page.
     const int16_t navY = kContentTop + 161;
-    if (!_status.soundAtRoot) addButton(4, navY, 74, 30, "UP", kIdSoundUp);
-    if (_status.soundHasPrev) addButton(83, navY, 74, 30, "<", kIdSoundPrev);
+    // Previous page on the left, next page on the right, parent folder
+    // between them: each keeps its place whichever of the others is shown.
+    if (_status.soundHasPrev) addButton(4, navY, 74, 30, "<", kIdSoundPrev);
+    if (!_status.soundAtRoot) addButton(83, navY, 74, 30, "UP", kIdSoundUp);
     if (_status.soundHasMore) addButton(162, navY, 74, 30, ">", kIdSoundNext);
     // Transport and the background layer's volume.
     const char* action = _status.playerState == kPlayerPlaying ? "PAUSE" : "PLAY";

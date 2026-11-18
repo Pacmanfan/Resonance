@@ -135,10 +135,13 @@ planned (ADR-000204).
   (`rc::Settings`). Every load passes `rc::sanitize()`: a record of another
   version, an unknown mode, an out-of-range or non-finite frequency, an
   unterminated text field are all corrected to safe values (RES-CFG-002).
-- The start-up volume is capped at 60 %, so a restart cannot come back loud
-  (RES-CFG-003). Nothing plays at start.
-- Edits made on the touchscreen are stored when the user leaves the screen,
-  not on every tap, to spare the flash.
+- The device comes back as it was left: the frequencies, the master,
+  background and noise volumes, brightness, and the session choices
+  (program, lengths, fade) are part of the settings record. They are written
+  four seconds after the last change, not on every tap, to spare the flash.
+- The master volume is stored capped at 60 %, so a restart cannot come back
+  loud, and the noise type is not stored at all: nothing plays at start
+  (RES-CFG-003).
 - The set-up access point's password is generated once from the hardware
   random generator and shown on the Settings screen. It is not derived from
   anything the device broadcasts.
@@ -231,7 +234,10 @@ planned (ADR-000204).
   strongest signal; a device not seen for 45 seconds drops out, and one that
   sends no name is listed by the end of its address. It connects to the one
   chosen on the screen and lets the library reconnect to the last device at
-  start. After a disconnect it starts the scan again itself: the library
+  start. The name of a device is stored against its address in NVS when it
+  is connected from the list, and looked up when the device reconnects by
+  itself, so the screen shows the name either way. After a disconnect it
+  starts the scan again itself: the library
   stops scanning for good once a disconnect was requested. Link keys stay in the Bluetooth stack's own
   storage (RES-BT-003).
 - Audio is off at every start; only the Home screen's control or a serial
@@ -268,8 +274,8 @@ planned (ADR-000204).
   A program can be run at its own length or at 10 to 60 minutes: every
   stage keeps its share of the whole (`rc::scaledSession`).
 - The frequencies a session sets are the device's frequencies while it
-  runs: the screens show them, and they stay when it ends, but they are not
-  written to storage.
+  runs: the screens show them, and they stay when it ends. They reach
+  storage only with the next change the user makes.
 - *Planned:* sessions made by the user, stored as JSON on the card, with an
   editor (the web interface is the natural place for it).
 

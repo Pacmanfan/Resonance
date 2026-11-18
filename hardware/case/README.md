@@ -10,8 +10,17 @@ A case for the ESP32-2432S032C with a 90 × 60 × 11 mm LiPo cell behind it.
 The cell is larger than the board (93.7 × 55 mm), so the case is sized by the
 cell: **104 × 65.6 × 30.2 mm** with the present numbers.
 
-![Front shell, seen from inside](preview_front.png)
+![Assembled, from the back and the button side](preview_assembly.png)
+![Front shell: the finger dish and the hole for the power button](preview_button.png)
+![Front shell from inside: the seat for the button's lip](preview_front.png)
 ![Battery tray](preview_tray.png)
+
+The assembled back is closed: the only holes in it are the two for the lid
+screws. The holes visible in the picture of the battery tray are inside the
+case. They are in the tray's floor, which is the divider between the cell and
+the board: four countersunk holes for the screws that hold the stack
+together, and a slot for the battery lead. The cell lies on top of them and
+the lid covers the cell.
 
 ## Parts
 
@@ -23,7 +32,7 @@ All parts print flat on the bed without supports.
 | `spacer` | 4 | Tubes between the back of the board and the tray |
 | `tray` | 1 | Battery tray. Its 2 mm floor is the divider between the cell and the board's components |
 | `lid` | 1 | Back cover over the cell |
-| `button` | 1 | Push-button that reaches the board's power switch through the side wall |
+| `button` | 1 | Separate push-button for the board's power switch: a shaft that shows in a finger dish on the side of the case, a lip that sits in a seat inside the wall and keeps it captive, and a stem that presses the switch |
 
 Access: USB-C (short end), microSD (long side, with a scallop for a
 fingernail), power button (other long side). The expansion connectors, the
@@ -40,7 +49,8 @@ sensor are covered, as asked.
 
 ## Assembly
 
-1. Drop the button into its hole from the inside of the front shell.
+1. Put the button into its hole from the inside of the front shell, shaft
+   first, so that its lip lies in the seat. The board then keeps it in.
 2. Lay the board, screen down, on the four bosses.
 3. Stand a spacer on each mounting hole.
 4. Put the tray on, feed the battery lead through the slot in its floor, and
@@ -66,6 +76,7 @@ defaults are guesses, not data (RES-PROC-002). A caliper is enough.
 | `sd_x` | Centre of the microSD slot, from the USB-C end | 47.0 |
 | `btn_x` | Centre of the power button, from the USB-C end | 20.0 |
 | `btn_z` | Centre of the power button above the back of the board | 1.5 |
+| `btn_travel` | Not a measurement: free play between the button's stem and the switch. Lower it if the button rattles, raise it if the switch is held down | 0.5 |
 | `bat_lead_x` | Battery connector, from the USB-C end | 12.0 |
 | `bat_l`, `bat_w`, `bat_t` | The cell, exactly | 90, 60, 11 |
 
@@ -100,6 +111,18 @@ ghosts. The STL files are not kept in the repository.
 Print only `front`, in draft quality, and lay the board in it: that shows at
 once whether the window, the USB-C opening, the card slot and the button
 hole are where the board has them. Correct the numbers, then print the rest.
+
+## The power button
+
+The wall is 3 mm thicker on the inside where the button goes through. From
+outside in: a 9.5 mm finger dish, 0.8 mm deep; the 5 mm shaft, standing
+0.4 mm above the floor of the dish so that it can be felt but does not
+catch; a 45-degree shoulder and an 8.5 mm lip in a matching seat; and a
+3.2 mm stem that ends 0.5 mm short of the switch on the board. The button
+prints standing on its shaft, without supports.
+
+Its position (`btn_x`, `btn_z`) is a guess until the board is measured, and
+the design assumes that the switch faces sideways, out of the long edge.
 
 ## Known limits of this draft
 

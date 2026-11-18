@@ -40,7 +40,10 @@ constexpr uint8_t kBrightnessDefault = 100;
 constexpr uint16_t kScreenTimeoutMaxS = 3600;  // 0 = never dim
 constexpr uint16_t kScreenTimeoutDefaultS = 60;
 
-constexpr uint8_t kSettingsVersion = 2;  // 2: brightness default raised to 100
+constexpr uint8_t kSettingsVersion = 3;  // 2: brightness default 100; 3: layer volumes and session choices
+
+constexpr uint8_t kBackgroundVolumeDefault = 70;
+constexpr uint8_t kNoiseVolumeDefault = 40;
 
 // Stored as one fixed-size record. Every text field is NUL-terminated.
 struct Settings {
@@ -55,6 +58,16 @@ struct Settings {
     char wifiSsid[33];
     char wifiPass[65];
     char apPass[12];         // password of the set-up access point; empty = not generated yet
+    // What the user last set, so that the device comes back as it was left.
+    // The master volume is kept in startVolume, and so can never come back
+    // above kStartVolumeMax. The noise type is deliberately not kept:
+    // nothing may sound at start (RES-CFG-003).
+    uint8_t backgroundVolume;  // percent
+    uint8_t noiseVolume;       // percent
+    uint8_t sessionProgram;    // 0 = timer, 1.. = factory programs; checked against their number by the caller
+    uint8_t timerChoice;       // index into the timer lengths; checked by the caller
+    uint8_t programLength;     // index into the program lengths; checked by the caller
+    uint8_t fadeChoice;        // index into the fade lengths; checked by the caller
 };
 
 // Fills `s` with the factory defaults.

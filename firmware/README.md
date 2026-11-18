@@ -79,6 +79,7 @@ wired.
 | `session start <n>` / `session stop` | Start program n (0 = timer) or stop with the fade |
 | `bt` | Bluetooth state, the audio devices in range, and a `STREAM` line: longest gap between audio requests, longest render, stutters (gaps over 60 ms) and underruns since last asked |
 | `bt connect <n>` | Connect to found device number n |
+| `volume <n>` | Set the master volume in percent |
 | `audio on` / `audio off` | Start or stop the tone |
 | `mode play` / `mode setup` | Store the operating mode and restart |
 | `wifi <ssid> <password>` | Store a Wi-Fi network for Setup mode. The password is not echoed |

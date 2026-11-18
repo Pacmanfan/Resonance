@@ -72,10 +72,19 @@ usb_open_w = 13.0;     // opening for the plug's moulding, not just the socket
 usb_open_h = 7.0;
 sd_open_w = 15.0;
 sd_open_h = 3.2;
-btn_d = 4.0;           // push-button shaft
-btn_flange_d = 6.5;
-btn_flange_t = 1.0;
-btn_out = 1.2;         // how far the button stands out of the wall
+// The power button. The wall is thickened on the inside where the button
+// goes through, so that there is room for a finger dish outside and a seat
+// for the button's lip inside.
+btn_pad_t = 3.0;       // extra wall thickness at the button
+btn_pad_w = 16.0;      // width of that thicker patch
+btn_dish_d = 9.5;      // finger dish on the outside of the wall; must stay inside the wall height
+btn_dish_depth = 0.8;
+btn_shaft_d = 5.0;     // the part of the button that shows in the dish
+btn_lip_d = 8.5;       // the button's lip, which keeps it in the case
+btn_lip_t = 0.7;       // flat part of the lip
+btn_proud = 0.4;       // how far the button stands above the dish floor
+btn_stem_d = 3.2;      // the part that reaches the switch on the board
+btn_travel = 0.5;      // free travel between the stem and the switch
 
 // ---- Derived ----------------------------------------------------------------
 cav_l = max(pcb_l + 2 * pcb_gap, bat_l + 2 * 5);       // 5 mm each end for the lid screws
@@ -89,7 +98,12 @@ pcb_rear_z = pcb_front_z + pcb_t;                      // component side of the 
 pcb_x0 = pcb_gap;                                      // board origin inside the cavity
 pcb_y0 = pcb_gap;
 btn_gap = cav_w - pcb_y0 - pcb_w;                      // board edge to the wall, button side
-btn_len = btn_gap + wall + btn_out - 0.6;              // shaft length; 0.6 mm of free travel
+btn_cone_h = (btn_lip_d - btn_shaft_d) / 2;            // 45 degree shoulder under the lip: prints without support
+btn_seat = btn_lip_t + 0.3;                            // depth of the flat seat for the lip
+btn_shaft_len = btn_pad_t + wall - btn_dish_depth - btn_cone_h - btn_seat + btn_proud;
+btn_stem_len = btn_gap - btn_pad_t - btn_travel;
+btn_y_in = cav_w - btn_pad_t;                          // inner face of the thick patch
+btn_y_out = cav_w + wall;                              // outer face of the wall
 
 holes = [
     [pcb_x0 + hole_inset, pcb_y0 + hole_inset],
@@ -123,6 +137,9 @@ module front() {
                 // The cavity for screen, board and components.
                 translate([0, 0, front_t]) cube([cav_l, cav_w, front_h]);
             }
+            // The thicker patch of wall the power button goes through.
+            translate([pcb_x0 + btn_x - btn_pad_w / 2, btn_y_in, front_t - eps])
+                cube([btn_pad_w, btn_pad_t + eps, front_h - front_t + eps]);
             // Bosses the board rests on, at its mounting holes.
             for (p = holes)
                 translate([p[0], p[1], front_t - eps]) cylinder(d = boss_d, h = lcd_h + eps);
@@ -141,9 +158,19 @@ module front() {
             cube([sd_open_w, wall + 2 * eps, sd_open_h]);
         // A scallop for the fingernail that pulls the card.
         translate([pcb_x0 + sd_x, -wall - 4, pcb_rear_z + 1]) sphere(d = 12);
-        // Power button, through the wall on the far side.
-        translate([pcb_x0 + btn_x, cav_w - eps, pcb_rear_z + btn_z])
-            rotate([-90, 0, 0]) cylinder(d = btn_d + 2 * fit, h = wall + 2 * eps);
+        // Power button, through the thick patch of the wall on the far side.
+        // From the inside outwards: a flat seat and a 45 degree seat for the
+        // button's lip, the hole for its shaft, and a finger dish outside.
+        translate([pcb_x0 + btn_x, 0, pcb_rear_z + btn_z]) {
+            translate([0, btn_y_in - eps, 0]) rotate([-90, 0, 0])
+                cylinder(d = btn_lip_d + 2 * fit, h = btn_seat + eps);
+            translate([0, btn_y_in + btn_seat - eps, 0]) rotate([-90, 0, 0])
+                cylinder(d1 = btn_lip_d + 2 * fit, d2 = btn_shaft_d + 2 * fit, h = btn_cone_h + eps);
+            translate([0, btn_y_in, 0]) rotate([-90, 0, 0])
+                cylinder(d = btn_shaft_d + 2 * fit, h = btn_pad_t + wall + eps);
+            translate([0, btn_y_out - btn_dish_depth, 0]) rotate([-90, 0, 0])
+                cylinder(d = btn_dish_d, h = btn_dish_depth + eps);
+        }
     }
 }
 
@@ -215,16 +242,22 @@ module lid() {
 }
 
 // ---- button -----------------------------------------------------------------
-// Put in from the inside before the board: the flange keeps it from falling
-// out, and the board's switch stops it going in.
+// A separate part. From the outside inwards: the shaft that shows in the
+// finger dish, a lip that sits in its seat inside the wall and keeps the
+// button in the case, and a stem that presses the switch on the board.
+// Drawn as it is printed: shaft end on the bed, no supports.
+// Put it in from the inside before the board goes in.
 module button() {
-    cylinder(d = btn_flange_d, h = btn_flange_t);
-    cylinder(d = btn_d, h = btn_len);
+    cylinder(d = btn_shaft_d, h = btn_shaft_len);
+    translate([0, 0, btn_shaft_len]) cylinder(d1 = btn_shaft_d, d2 = btn_lip_d, h = btn_cone_h);
+    translate([0, 0, btn_shaft_len + btn_cone_h]) cylinder(d = btn_lip_d, h = btn_lip_t);
+    translate([0, 0, btn_shaft_len + btn_cone_h + btn_lip_t]) cylinder(d = btn_stem_d, h = btn_stem_len);
 }
 
 module button_in_place() {
-    translate([pcb_x0 + btn_x, cav_w - btn_gap + 0.6, pcb_rear_z + btn_z])
-        rotate([-90, 0, 0]) button();
+    // The shaft's end stands btn_proud above the floor of the dish.
+    translate([pcb_x0 + btn_x, btn_y_out - btn_dish_depth + btn_proud, pcb_rear_z + btn_z])
+        rotate([90, 0, 0]) button();
 }
 
 // ---- output -----------------------------------------------------------------

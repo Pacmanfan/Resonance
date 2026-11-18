@@ -19,3 +19,6 @@ WORK-000014 | completed | Resonance: previous/next preset buttons in the Frequen
 WORK-000015 | completed | Resonance: noise type button without the percentage | completed/WORK-000015-resonance-noise-type-button-without-the.md | RES-GUI-002 | VER-000015
 WORK-000016 | completed | Resonance: no percentage shown for something that is off | completed/WORK-000016-resonance-no-percentage-shown-for-someth.md | RES-GUI-002 | VER-000016
 WORK-000017 | completed | Resonance: no slash in the sound library's folder line | completed/WORK-000017-resonance-no-slash-in-the-sound-library.md | RES-GUI-002 | VER-000017
+WORK-000018 | completed | Resonance: remember the names of Bluetooth devices | completed/WORK-000018-resonance-remember-the-names-of-bluetoot.md | RES-BT-002, RES-BT-003 | VER-000018
+WORK-000019 | completed | Resonance enclosure: lipped power button seated in the side wall | completed/WORK-000019-resonance-enclosure-lipped-power-button.md | RES-HW-007 | VER-000019
+WORK-000020 | completed | Resonance: every value the user adjusts is saved and restored | completed/WORK-000020-resonance-every-value-the-user-adjusts-i.md | RES-CFG-002, RES-CFG-003 | VER-000020

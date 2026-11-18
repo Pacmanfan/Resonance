@@ -22,6 +22,15 @@ bool save(rc::Settings& s);
 // Stores only the operating mode for the next start.
 bool saveMode(rc::Mode mode);
 
+// Names of Bluetooth devices that were connected, kept against their
+// address so that a device which reconnects by itself can be shown by name.
+// Only the name is stored here; the pairing keys stay in the Bluetooth
+// stack's own storage (RES-BT-003).
+void saveDeviceName(const uint8_t address[6], const char* name);
+// Writes the stored name into `out`; returns false, with `out` empty, when
+// none is stored.
+bool loadDeviceName(const uint8_t address[6], char* out, size_t capacity);
+
 // Radio start guard. Starting a radio draws a current surge; if the supply
 // cannot deliver it the board loses power and would restart into the same
 // surge for ever. markRadioStarting() counts an attempt just before a radio

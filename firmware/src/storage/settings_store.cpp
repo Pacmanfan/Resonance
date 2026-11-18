@@ -80,6 +80,36 @@ void writeGuard(uint8_t tries) {
 }
 }  // namespace
 
+namespace {
+// NVS keys are at most 15 characters: "bt" and the twelve hex digits of the
+// address make fourteen.
+void deviceKey(const uint8_t address[6], char key[16]) {
+    snprintf(key, 16, "bt%02x%02x%02x%02x%02x%02x", address[0], address[1], address[2], address[3], address[4], address[5]);
+}
+}  // namespace
+
+void saveDeviceName(const uint8_t address[6], const char* name) {
+    if (name == nullptr || name[0] == '\0') return;
+    char key[16];
+    deviceKey(address, key);
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, false)) return;
+    // Written only when it differs, to spare the flash.
+    if (prefs.getString(key, "") != name) prefs.putString(key, name);
+    prefs.end();
+}
+
+bool loadDeviceName(const uint8_t address[6], char* out, size_t capacity) {
+    out[0] = '\0';
+    char key[16];
+    deviceKey(address, key);
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, true)) return false;
+    const size_t length = prefs.getString(key, out, capacity);
+    prefs.end();
+    return length > 0 && out[0] != '\0';
+}
+
 bool radioStartKeepsFailing() { return readGuard() >= kRadioStartAttempts; }
 
 void markRadioStarting() {

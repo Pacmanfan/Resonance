@@ -1,2 +1,2 @@
 #pragma once
-#define RESONANCE_VERSION "0.5.7"
+#define RESONANCE_VERSION "0.6.1"

@@ -42,6 +42,12 @@ void setDefaults(Settings& s) {
     s.primaryHz = kPrimaryDefaultHz;
     s.beatHz = kBeatDefaultHz;
     memcpy(s.hostname, kDefaultHostname, sizeof(kDefaultHostname));
+    s.backgroundVolume = kBackgroundVolumeDefault;
+    s.noiseVolume = kNoiseVolumeDefault;
+    s.sessionProgram = 0;
+    s.timerChoice = 2;  // 20 minutes
+    s.programLength = 0;
+    s.fadeChoice = 1;   // 30 seconds
 }
 
 float sanitizeFrequency(float hz, float lo, float hi, float fallback) {
@@ -93,6 +99,14 @@ bool sanitize(Settings& s) {
     changed |= clampInto<uint8_t>(s.startVolume, 0, kStartVolumeMax);
     changed |= clampInto<uint8_t>(s.brightness, kBrightnessMin, kBrightnessMax);
     changed |= clampInto<uint16_t>(s.screenTimeoutS, 0, kScreenTimeoutMaxS);
+    changed |= clampInto<uint8_t>(s.backgroundVolume, 0, kVolumeMax);
+    changed |= clampInto<uint8_t>(s.noiseVolume, 0, kVolumeMax);
+    // The four choices index tables that belong to the application; here
+    // they are only kept from being absurd.
+    changed |= clampInto<uint8_t>(s.sessionProgram, 0, 31);
+    changed |= clampInto<uint8_t>(s.timerChoice, 0, 31);
+    changed |= clampInto<uint8_t>(s.programLength, 0, 31);
+    changed |= clampInto<uint8_t>(s.fadeChoice, 0, 31);
 
     const float primary = sanitizeFrequency(s.primaryHz, kPrimaryMinHz, kPrimaryMaxHz, kPrimaryDefaultHz);
     const float beat = sanitizeFrequency(s.beatHz, kBeatMinHz, kBeatMaxHz, kBeatDefaultHz);
