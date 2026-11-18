@@ -20,11 +20,16 @@
 // board's mounting holes into the front bosses and hold everything; their
 // heads sit flush under the cell. Two more screws hold the lid.
 //
+// As held: upright in the left hand, screen towards you, USB-C at the bottom.
+// The microSD slot is then on the left edge and the power button low on the
+// right edge (operator, 2026-11-18).
+//
 // Coordinates: X along the board's long side, from the inside of the wall at
 // the USB-C end; Y across, from the inside of the wall on the microSD side;
 // Z from the outer face of the screen side towards the back.
 //
-// Choose what to render:  "assembly", "front", "spacer", "tray", "lid" or "button".
+// Choose what to render:  "assembly", "exploded", "front", "spacer", "tray", "lid"
+// or "button".
 part = "assembly";
 
 // ---- From the manufacturer's drawing (Jingcai specification, 2023) ---------
@@ -48,10 +53,16 @@ lcd_offset_x = 14.4;   // board edge at the USB-C end to the active area
 lcd_offset_y = 3.2;    // board edge on the microSD side to the active area
 usb_y = 27.5;          // centre of the USB-C socket from the microSD-side edge
 usb_z = 1.7;           // centre of the USB-C socket above the back of the board
-sd_x = 47.0;           // centre of the microSD slot from the USB-C end
-btn_x = 20.0;          // centre of the power button from the USB-C end
+sd_x = 56.0;           // centre of the microSD slot from the USB-C end ("centre / top" of the left edge)
+btn_x = 20.0;          // centre of the power button from the USB-C end ("lower right")
 btn_z = 1.5;           // centre of the power button above the back of the board
 bat_lead_x = 12.0;     // battery connector from the USB-C end (for the wire slot)
+// The RGB LED and the light sensor, assumed to be on the screen side of the
+// board, in the margin between the board's edge and the screen.
+led_x = 6.0;           // centre of the RGB LED from the USB-C end
+led_y = 19.0;          // centre of the RGB LED from the microSD-side edge
+ldr_x = 6.0;           // centre of the light sensor from the USB-C end
+ldr_y = 36.0;          // centre of the light sensor from the microSD-side edge
 
 // ---- Design choices ---------------------------------------------------------
 wall = 2.0;            // side walls
@@ -68,6 +79,8 @@ pilot_d = 2.5;         // hole an M3 screw cuts its own thread into
 clear_d = 3.4;         // hole an M3 screw passes through
 head_d = 6.4;          // countersink / recess diameter for an M3 screw head
 csk_h = 1.7;           // depth of the countersink for a flat-head M3
+led_window_d = 4.0;    // opening over the RGB LED
+ldr_window_d = 3.5;    // opening over the light sensor
 usb_open_w = 13.0;     // opening for the plug's moulding, not just the socket
 usb_open_h = 7.0;
 sd_open_w = 15.0;
@@ -147,6 +160,12 @@ module front() {
         // Screen window.
         translate([pcb_x0 + lcd_offset_x - window_margin, pcb_y0 + lcd_offset_y - window_margin, -eps])
             cube([lcd_active_l + 2 * window_margin, lcd_active_w + 2 * window_margin, front_t + 2 * eps]);
+        // Windows over the RGB LED and the light sensor. Each widens towards
+        // the outside so that light gets in and out at an angle.
+        translate([pcb_x0 + led_x, pcb_y0 + led_y, -eps])
+            cylinder(d1 = led_window_d + 1.6, d2 = led_window_d, h = front_t + 2 * eps);
+        translate([pcb_x0 + ldr_x, pcb_y0 + ldr_y, -eps])
+            cylinder(d1 = ldr_window_d + 1.6, d2 = ldr_window_d, h = front_t + 2 * eps);
         // Pilot holes for the four screws. They stop 0.8 mm short of the face.
         for (p = holes)
             translate([p[0], p[1], 0.8]) cylinder(d = pilot_d, h = front_h);
@@ -266,6 +285,17 @@ else if (part == "spacer") spacer();
 else if (part == "tray") translate([0, 0, -front_h]) tray();          // floor on the bed
 else if (part == "lid") translate([0, out_w - 2 * wall, front_h + tray_h + lid_t]) rotate([180, 0, 0]) lid();  // outer face on the bed
 else if (part == "button") button();
+else if (part == "exploded") {
+    // The parts pulled apart along the direction they are assembled in.
+    gap = 14;
+    front();
+    translate([0, 12, 0]) button_in_place();
+    translate([0, 0, gap]) %translate([pcb_x0, pcb_y0, pcb_front_z]) cube([pcb_l, pcb_w, pcb_t]);
+    translate([0, 0, 2 * gap]) for (p = holes) translate([p[0], p[1], pcb_rear_z]) spacer();
+    translate([0, 0, 3 * gap]) tray();
+    translate([0, 0, 4 * gap]) %translate([(cav_l - bat_l) / 2, (cav_w - bat_w) / 2, front_h + floor_t]) cube([bat_l, bat_w, bat_t]);
+    translate([0, 0, 5 * gap]) lid();
+}
 else {
     front();
     for (p = holes) translate([p[0], p[1], pcb_rear_z]) spacer();

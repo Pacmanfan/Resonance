@@ -1246,6 +1246,12 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-18T05:25:32.104386+00:00
+
+> so, about the 3d model and usage - if I were to hold the device in my left hand and look at it, on the lower right side of the device, there is a button or the on/off  . the sdcard is on the left center/top. there are 2 devices - a rgb led and a photoresistor, make sure the case exposes these. show me some pics of the new, fixed rendered models
+
+
+
 ### Follow-up 2026-11-18T05:23:36.762502+00:00
 
 > So - in the sound library - if I go to the next screen using the > button, the screen show a < button that is centered. I would expect it to be on the left.
@@ -1397,5 +1403,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020, WORK-000021
 - Evidence: pending

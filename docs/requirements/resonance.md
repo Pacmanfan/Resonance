@@ -106,8 +106,10 @@ ADR-000204) (§2.2, §17).
 The device SHALL have a printable enclosure that holds the board and the
 battery, with a rigid divider between the cell and the board's components.
 It SHALL give access to the USB-C port, the microSD card and the board's
-power button (through a printed push-button), and SHALL leave the expansion
-connectors, the speaker connector and the reset and boot buttons covered.
+power button (through a separate printed push-button with a lip seated in
+the case wall), SHALL expose the RGB LED and the light sensor, and SHALL
+leave the expansion connectors, the speaker connector and the reset and
+boot buttons covered.
 Its source SHALL be parametric, and every dimension that was not taken from
 the manufacturer's drawing or measured on the board SHALL be marked as to be
 measured (RES-PROC-002) (operator, 2026-11-17).
