@@ -74,7 +74,7 @@ from Stage 8.
 1. Put a Bluetooth headset or speaker in pairing mode. On HOME tap the
    `BT:` button; the device should appear in the list within about half a
    minute. Tap it; the button on HOME then shows its name.
-2. Tap `OFF 30%` to start the tone: 200 Hz in the left ear, 210 Hz in the
+2. Tap `OFF` to start the tone: 200 Hz in the left ear, 210 Hz in the
    right, fading in over half a second with no click. `+` and `-` change
    the volume in steps of 5 %. On FREQ the buttons change the tone while it
    plays, without clicks.

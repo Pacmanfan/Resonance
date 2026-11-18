@@ -407,7 +407,8 @@
       "WORK-000012",
       "WORK-000013",
       "WORK-000014",
-      "WORK-000015"
+      "WORK-000015",
+      "WORK-000016"
     ]
   },
   "follow_ups": [
@@ -494,6 +495,11 @@
     {
       "timestamp": "2026-11-18T05:04:17.492712+00:00",
       "text": "So, I'm looking at the 3d models - at least the pngs - and I have questions and comments. Under Noise - the 'Brown' is a smaller font",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T05:06:37.800361+00:00",
+      "text": "So - when it says 'OFF' - don't put a % after that. It's off -it doesnt matter",
       "attachments": []
     }
   ]

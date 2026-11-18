@@ -282,8 +282,9 @@ void Ui::drawHome() {
 
     if (_settings.mode == rc::Mode::Play) {
         // Audio is off until the user turns it on (RES-CFG-003, RES-GUI-003).
-        snprintf(_audioLabel, sizeof(_audioLabel), "%s %u%%", _status.audioOn ? "ON" : "OFF",
-                 static_cast<unsigned>(_status.volume));
+        // A level is shown only while the audio is on.
+        if (_status.audioOn) snprintf(_audioLabel, sizeof(_audioLabel), "ON %u%%", static_cast<unsigned>(_status.volume));
+        else snprintf(_audioLabel, sizeof(_audioLabel), "OFF");
         addButton(8, kContentTop + 142, 46, 36, "-", kIdVolumeDown);
         addButton(58, kContentTop + 142, 124, 36, _audioLabel, kIdAudio);
         addButton(186, kContentTop + 142, 46, 36, "+", kIdVolumeUp);
@@ -386,7 +387,9 @@ void Ui::drawFrequency() {
         // the longer type names did not fit and were drawn in a smaller font
         // than the others.
         char noiseLine[20];
-        snprintf(noiseLine, sizeof(noiseLine), "Noise  %u%%", static_cast<unsigned>(_status.noiseVolume));
+        // A level is shown only for something that is on.
+        if (_status.noiseType == 0) snprintf(noiseLine, sizeof(noiseLine), "Noise");
+        else snprintf(noiseLine, sizeof(noiseLine), "Noise  %u%%", static_cast<unsigned>(_status.noiseVolume));
         label(noiseLine, 12, kContentTop + 174, kTextDim, kFontSmall);
         snprintf(_noiseLabel, sizeof(_noiseLabel), "%s", kNoiseNames[_status.noiseType & 3]);
         addButton(8, kContentTop + 192, 46, 34, "-", kIdNoiseDown);
