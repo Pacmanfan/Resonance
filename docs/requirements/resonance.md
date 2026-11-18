@@ -101,6 +101,17 @@ atomically and configuration is validated on load. Detecting a low battery
 before it happens is not possible without a measurement circuit (RES-HW-005,
 ADR-000204) (§2.2, §17).
 
+### RES-HW-007 — Enclosure
+
+The device SHALL have a printable enclosure that holds the board and the
+battery, with a rigid divider between the cell and the board's components.
+It SHALL give access to the USB-C port, the microSD card and the board's
+power button (through a printed push-button), and SHALL leave the expansion
+connectors, the speaker connector and the reset and boot buttons covered.
+Its source SHALL be parametric, and every dimension that was not taken from
+the manufacturer's drawing or measured on the board SHALL be marked as to be
+measured (RES-PROC-002) (operator, 2026-11-17).
+
 ## Software architecture
 
 ### RES-ARCH-001 — Modular firmware

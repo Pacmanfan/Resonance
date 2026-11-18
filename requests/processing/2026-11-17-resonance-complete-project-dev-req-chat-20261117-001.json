@@ -402,7 +402,8 @@
       "WORK-000007",
       "WORK-000008",
       "WORK-000009",
-      "WORK-000010"
+      "WORK-000010",
+      "WORK-000011"
     ]
   },
   "follow_ups": [
@@ -464,6 +465,11 @@
     {
       "timestamp": "2026-11-18T04:37:02.317773+00:00",
       "text": "In sessions -> programs, there should be a way to set the length - duration of the program.",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T04:42:38.314436+00:00",
+      "text": "The battery is 90x60x11 approximately. I want the SDCard and USB and button for on/off - maybe a 3d printed button for it. I don't need the expansion ports.",
       "attachments": []
     }
   ]

@@ -282,6 +282,19 @@ the firmware's volume limit, RES-AUDIO-008).
 | Resistors 220 kΩ and 100 kΩ, capacitor 100 nF | 1 each | Battery divider, optional |
 | Capacitors 10 µF and 100 nF | 2 each | Decoupling if not on the modules |
 
+## Mechanical
+
+From the manufacturer's specification sheet (Jingcai, 2023; one drawing for
+the N, R and C variants): board 93.7 × 55.0 mm; four mounting holes of
+3.2 mm, 3.5 mm in from the edges (86.7 × 48.0 mm apart); display active area
+64.8 × 48.6 mm; about 40 g. Not documented: thickness, component heights,
+the cover-glass outline and the positions of the connectors and buttons.
+The enclosure and the list of what to measure for it are in
+`hardware/case/README.md`.
+
+The board's battery button (to the power IC's KEY pin) is reported by
+sellers as single press on, double press off. Not verified on this board.
+
 ## Required measurements
 
 To be made on the board before or during Stage 2. Each one closes a **U**

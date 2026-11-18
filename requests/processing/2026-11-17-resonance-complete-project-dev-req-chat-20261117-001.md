@@ -1246,6 +1246,12 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-18T04:42:38.314436+00:00
+
+> The battery is 90x60x11 approximately. I want the SDCard and USB and button for on/off - maybe a 3d printed button for it. I don't need the expansion ports.
+
+
+
 ### Follow-up 2026-11-18T04:37:02.317773+00:00
 
 > In sessions -> programs, there should be a way to set the length - duration of the program.
@@ -1331,5 +1337,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011
 - Evidence: pending
