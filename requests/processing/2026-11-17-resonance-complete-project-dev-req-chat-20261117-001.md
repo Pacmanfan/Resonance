@@ -1246,6 +1246,12 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-18T16:59:41.778307+00:00
+
+> export all the parts of the cad model as individual STL files so I can print
+
+
+
 ### Follow-up 2026-11-18T16:25:20.414491+00:00
 
 > Also - model the battery - I want to ensure it fits in the case you designed. I think the posts that sandwich the holes on the ESP32 CYD will get in the way of the battery. I think we can keep the top posts to attach the CYD to the lid with screws, but the bottom ones will interfere with the placement of the battery
@@ -1463,5 +1469,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020, WORK-000021, WORK-000022, WORK-000023, WORK-000024, WORK-000025, WORK-000026, WORK-000027, WORK-000028, WORK-000029
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020, WORK-000021, WORK-000022, WORK-000023, WORK-000024, WORK-000025, WORK-000026, WORK-000027, WORK-000028, WORK-000029, WORK-000030
 - Evidence: pending

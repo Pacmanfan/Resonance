@@ -421,7 +421,8 @@
       "WORK-000026",
       "WORK-000027",
       "WORK-000028",
-      "WORK-000029"
+      "WORK-000029",
+      "WORK-000030"
     ]
   },
   "follow_ups": [
@@ -593,6 +594,11 @@
     {
       "timestamp": "2026-11-18T16:25:20.414491+00:00",
       "text": "Also - model the battery - I want to ensure it fits in the case you designed. I think the posts that sandwich the holes on the ESP32 CYD will get in the way of the battery. I think we can keep the top posts to attach the CYD to the lid with screws, but the bottom ones will interfere with the placement of the battery",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T16:59:41.778307+00:00",
+      "text": "export all the parts of the cad model as individual STL files so I can print",
       "attachments": []
     }
   ]

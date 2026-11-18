@@ -31,3 +31,4 @@ WORK-000026 | completed | Resonance Stage 7 (first part): web interface - status
 WORK-000027 | completed | Resonance: display refresh audit | completed/WORK-000027-resonance-display-refresh-audit.md | RES-GUI-004, RES-GUI-005 | VER-000028
 WORK-000028 | completed | Home-screen rings pulse at the beat frequency; display clock 40 MHz | completed/WORK-000028-home-screen-rings-pulse-at-the-beat-freq.md | RES-GUI-004, RES-GUI-005 | VER-000029
 WORK-000029 | completed | Case: board and battery reference models; board screwed to the front, no posts behind it | completed/WORK-000029-case-board-and-battery-reference-models.md | RES-HW-007 | VER-000030
+WORK-000030 | completed | Case: export STL files; button stem allows for the switch actuator's overhang | completed/WORK-000030-case-export-stl-files-button-stem-allows.md | RES-HW-007 | VER-000031

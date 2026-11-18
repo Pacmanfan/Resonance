@@ -153,6 +153,10 @@ openscad -o lid.stl    -D 'part="lid"'    resonance_case.scad
 openscad -o button.stl -D 'part="button"' resonance_case.scad
 ```
 
+Each part comes out lying on the bed the way it should be printed: the
+front shell on its face, the tray on its floor, the lid on its outer face,
+the button standing on its shaft. No supports.
+
 `part="assembly"` shows everything together with the board and the cell as
 ghosts, `"exploded"` pulls the stack apart, and `"section"` draws the cut
 along the length. Open `esp32_2432s032.scad` or `battery.scad` by itself to
@@ -172,7 +176,10 @@ The wall is 3 mm thicker on the inside where the button goes through. From
 outside in: a 9 mm finger dish, 0.8 mm deep; the 5 mm shaft, standing 0.4 mm
 above the floor of the dish; a 45-degree shoulder and an 8.5 mm lip in a
 matching seat; and a 3.2 mm stem that ends 0.5 mm (`btn_travel`) short of
-the switch. The button prints standing on its shaft, without supports.
+the switch's actuator, which is taken to stand 0.6 mm over the board's edge
+(`btn_overhang`, from a picture: measure it). If the device switches by
+itself or the button has no feel, these two numbers are the ones to change;
+the button is an 8 mm part and quick to reprint. The button prints standing on its shaft, without supports.
 
 ## Known limits of this draft
 

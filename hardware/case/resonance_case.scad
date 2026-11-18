@@ -108,7 +108,8 @@ btn_lip_d = 8.5;       // the button's lip, which keeps it in the case
 btn_lip_t = 0.7;       // flat part of the lip
 btn_proud = 0.4;       // how far the button stands above the dish floor
 btn_stem_d = 3.2;      // the part that reaches the switch on the board
-btn_travel = 0.5;      // free travel between the stem and the switch
+btn_travel = 0.5;      // free travel between the stem and the switch's actuator
+btn_overhang = 0.6;    // [picture] how far the switch's actuator stands over the board's edge. MEASURE
 
 // ---- Derived ----------------------------------------------------------------
 cav_l = max(pcb_l + 2 * pcb_gap, bat_l + 2 * 6);       // 6 mm each end: lid screws, and the tray screw heads clear of the cell
@@ -125,7 +126,7 @@ btn_gap = cav_w - pcb_y0 - pcb_w;                      // board edge to the wall
 btn_cone_h = (btn_lip_d - btn_shaft_d) / 2;            // 45 degree shoulder under the lip: prints without support
 btn_seat = btn_lip_t + 0.3;                            // depth of the flat seat for the lip
 btn_shaft_len = btn_pad_t + wall - btn_dish_depth - btn_cone_h - btn_seat + btn_proud;
-btn_stem_len = btn_gap - btn_pad_t - btn_travel;
+btn_stem_len = btn_gap - btn_pad_t - btn_overhang - btn_travel;
 btn_y_in = cav_w - btn_pad_t;                          // inner face of the thick patch
 btn_y_out = cav_w + wall;                              // outer face of the wall
 
