@@ -2,7 +2,8 @@
 
 **Requirement:** RES-PROC-001, RES-PROC-002, RES-HW-001..006 (`docs/requirements/resonance.md`)
 **Work:** WORK-000001 (REQ-CHAT-20261117-001)
-**Status:** Stage 1 audit from documents. **Nothing in this file has been measured on the physical board.**
+**Status:** Stage 1 audit from documents, with the first readings from the board added on 2026-11-17 (section "Measured on the board"). Everything else is still unmeasured.
+**Decisions since the audit:** ADR-000204 — the external DAC, amplifier and jack (section 9) are **on hold**, and battery measurement is **dropped**.
 **Pin table:** `GPIO_MAP.md`
 
 ## How to read this document
@@ -24,6 +25,23 @@ Three limits apply to everything marked **S**:
 - It is revision V1.0 from 2023. The board in hand may be a later revision.
 - Several parts carry no part number or value: the audio amplifier (U5), the
   power IC (U8) and every resistor and capacitor of the audio input network.
+
+## Measured on the board
+
+Read from the device's own start-up report over USB serial on 2026-11-17
+(firmware 0.2.0, evidence VER-000002). These are the only facts in this file
+that come from the board in hand.
+
+| Item | Reading | Closes |
+|---|---|---|
+| Processor | ESP32-D0WD-V3 revision 3.0, dual core, 40 MHz crystal, 4 MB flash | Section 1 |
+| USB bridge | CH340 (USB id 1a86:7523) | Section 1 |
+| Touch controller | Answers on IO33/IO32 at address **0x5D** | M6 |
+| Display | Initialises without error at 24 MHz, SPI mode 0. **Read-back returns zero** (display ID and status), so MISO on IO12 does not deliver data on this board. Whether the picture and colours are right has not been confirmed by eye | M7, partly |
+| microSD | Mount failed with "card failed" on command 0: no card answered. Not yet tested with a card inserted | — |
+| Bluetooth Classic | Starts and stays up | — |
+| Wi-Fi | Access point starts; a scan found 8 networks | — |
+| Supply at radio start | **The board lost power 16 times in 37 seconds** while Bluetooth was first being started (the USB bridge dropped off the bus each time), then started normally and has been stable since. See section 8 | — |
 
 ## Sources
 
@@ -164,6 +182,14 @@ Against the connectors listed in the request:
 - Power path: USB VBUS → diode → U8 → two AMS1117-3.3 regulators, one for
   the ESP32 and one for display, SD, amplifier and connectors. **S**
 - A push button (SW1) goes to the power IC's KEY pin. **S**
+- **Measured:** on first use the board repeatedly lost power at the moment
+  the radio started, on USB power through a hub and without a battery. A
+  first radio start runs a full calibration with a high current peak; the
+  supply did not carry it. Later starts have been stable. The cause is not
+  established: a weak USB port or cable, or the power IC running without a
+  cell, are the candidates. The firmware guards against the resulting restart
+  loop (`ARCHITECTURE.md`, "Radio start guard"). A directly connected USB port
+  or a connected battery is the thing to try if it recurs.
 - P1 VIN is on the USB side of the power IC. Whether it carries voltage on
   battery alone is inferred, not measured. **U**
 - The IP5306 family switches its output off at light load (reported as about
@@ -176,6 +202,9 @@ Against the connectors listed in the request:
 
 ### Battery monitoring options
 
+**Dropped by ADR-000204.** No divider is fitted and the firmware shows no
+battery status. The table is kept as the record of what was possible.
+
 | Option | What it needs | Verdict |
 |---|---|---|
 | Read the power IC | I2C lines to U8 | Not possible: none are routed |
@@ -183,11 +212,13 @@ Against the connectors listed in the request:
 | External divider to IO34 | As above, replacing the light sensor | Feasible, but needs rework on the board and loses the sensor |
 | No measurement | Nothing | The default until a divider is fitted |
 
-Battery status therefore stays **unavailable** in the firmware until the
-IO35 divider is built and calibrated (RES-HW-005). Detecting an imminent
-brown-out before an SD write (RES-HW-006) depends on the same divider.
+Battery status is therefore **not available** in the firmware (RES-HW-005),
+and an imminent brown-out cannot be detected before an SD write (RES-HW-006).
 
 ## 9. External stereo audio hardware
+
+**On hold (ADR-000204).** Audio is delivered over Bluetooth and none of this
+hardware is connected. The section is kept for when the wired output returns.
 
 Wired output per RES-HW-003. The GPIO assignment is in `GPIO_MAP.md`.
 
@@ -262,8 +293,10 @@ above.
 | M3 | P5 polarity | Section 8 |
 | M4 | 3.3 V rail voltage with display, SD and DAC running | Section 9 |
 | M5 | Whether U3 (XPT2046), R3 and the light sensor are fitted | Sections 3, 6 |
-| M6 | I2C scan on IO33/IO32: GT911 at 0x5D or 0x14 | Section 3 |
-| M7 | Display colour order, SPI mode, highest reliable clock | Section 2 |
-| M8 | Solderable access to IO16, IO17 and IO4 at the LED or its resistors | `GPIO_MAP.md` |
+| M6 | ~~I2C scan on IO33/IO32~~ **Done: 0x5D** | Section 3 |
+| M7 | Display colour order and picture, **by eye**; highest reliable clock. (Initialises at 24 MHz mode 0; no read-back) | Section 2 |
+| M8 | Solderable access to IO16, IO17 and IO4 — only if the wired output returns | `GPIO_MAP.md` |
 | M9 | Board revision printed on the PCB, against schematic V1.0 | All of **S** |
 | M10 | Behaviour on battery: run time, cut-off, light-load shutdown | Section 8 |
+| M11 | Power at radio start: repeat a cold start on a direct USB port and with a battery connected | Section 8 |
+| M12 | microSD with a card inserted | Section 4 |

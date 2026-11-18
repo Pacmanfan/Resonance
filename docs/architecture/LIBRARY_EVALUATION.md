@@ -2,7 +2,8 @@
 
 **Requirement:** RES-PROC-001, RES-PROC-002, RES-PROC-005 (`docs/requirements/resonance.md`)
 **Work:** WORK-000001 (REQ-CHAT-20261117-001)
-**Status:** Stage 1 evaluation from published sources, researched 2026-11-17. **Nothing here has been compiled or measured for this project.**
+**Status:** Stage 1 evaluation from published sources, researched 2026-11-17, with the first build and heap measurements added (section "Measured"). The rest has not been compiled or measured for this project.
+**Decisions since the audit:** ADR-000204 — no LVGL, no I2S output, one application slot without OTA, exclusive operating modes.
 
 Versions and dates were read from each project's release page or repository
 on the research date. Items marked *unverified* could not be confirmed from a
@@ -23,27 +24,53 @@ core 2.0.x, unless stated otherwise; none is a measurement of Resonance.
   features can run **at the same time** is the open question, and only
   measurement on the board answers it (`IMPLEMENTATION_PLAN.md`, gates G1–G3).
 
+## Measured
+
+Firmware 0.2.0 (Stage 2: display, touch, SD, settings, both radio stacks, the
+interface shell; no audio, no decoder, no web server) on the board,
+2026-11-17, stock libraries of core 3.3.13. Evidence VER-000002.
+
+| State | Free heap | Largest free block |
+|---|---|---|
+| At start | 183 kB | 111 kB |
+| Display and interface running | 177 kB | 111 kB |
+| **Play mode:** Bluetooth Classic host started (no A2DP yet) | 101 kB | 94 kB |
+| **Setup mode:** Bluetooth memory released | 218 kB | 111 kB |
+| **Setup mode:** Wi-Fi access point started | 157 kB | 111 kB |
+| Bluetooth host **and** Wi-Fi station together | **50 kB** | **47 kB** |
+
+- The combined figure confirms the published reports: with both radios up,
+  50 kB remain before A2DP, the decoder, the mixer and a web server are
+  added. The exclusive modes of ADR-000204 are therefore the working design,
+  not a fallback. Gate G1 is answered for stock libraries.
+- The display and the interface of our own cost about 6 kB of heap. LVGL
+  was budgeted at 34-42 kB.
+- **Image size: 1,877,824 bytes**, 60 % of the 3 MB slot, already holding
+  both radio stacks. It would leave under 90 kB in a 1.875 MB OTA slot, so
+  OTA is not possible without removing BLE and HFP from the libraries.
+
 ## Selected stack
 
 | Layer | Choice | Version found | Licence |
 |---|---|---|---|
-| Build system | PlatformIO with the pioarduino platform | 55.03.313 | Apache-2.0 |
+| Build system | PlatformIO Core 6.2.0 with the pioarduino platform | 55.03.313 | Apache-2.0 |
 | Arduino core | arduino-esp32 3.3.x (ESP-IDF 5.5) | 3.3.13 | LGPL-2.1 |
-| I2S output | ESP-IDF `driver/i2s_std.h`, called directly | part of the core | — |
+| I2S output | None: the wired output is on hold (ADR-000204) | — | — |
 | Bluetooth A2DP source | pschatzmann/ESP32-A2DP | 1.8.12 | Apache-2.0 |
 | MP3 decoding | Helix decoder (pschatzmann/arduino-libhelix), standalone | 0.9.4 | RPSL (Helix) |
 | WAV decoding | Own parser (PCM only) | — | — |
 | Mixer, oscillators, noise | Own code | — | — |
 | Display and touch driver | LovyanGFX (ST7789 and GT911 built in) | 1.3.0 | FreeBSD |
-| GUI | LVGL 8.4 | 8.4.0 | MIT |
+| GUI | A widget layer of our own on LovyanGFX; **no LVGL** (ADR-000204) | — | — |
 | Web server | ESP32Async/ESPAsyncWebServer with AsyncTCP | 3.12.1 / 3.6.1 | LGPL-3.0 |
 | JSON | ArduinoJson 7 | 7.4.x | MIT |
 | mDNS, Wi-Fi, SD, Update | Bundled with the core | — | LGPL-2.1 |
 | Web assets | Gzipped, embedded in the firmware image | — | — |
-| Unit tests | PlatformIO `native` environment with Unity | — | MIT |
+| Unit tests | Host compiler with a small harness of our own (`firmware/tools/host_tests.py`) | — | — |
 
-Exact versions are pinned in `platformio.ini` when Stage 2 creates the
-project, and that file then becomes the dependency list (RES-DOC-001).
+Exact versions are pinned in `firmware/platformio.ini`, which is the
+dependency list (RES-DOC-001). The pioarduino platform needs PlatformIO Core
+6.2.0 or later; 6.1.19 refuses it.
 
 ## 1. Arduino core and platform
 

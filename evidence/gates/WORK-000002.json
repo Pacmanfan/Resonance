@@ -1,0 +1,55 @@
+{
+ "work": "WORK-000002",
+ "runs": [
+  {
+   "at": "2026-11-18T02:48:20.254197+00:00",
+   "verdict": "PASS",
+   "gate_version": 3,
+   "work": "WORK-000002",
+   "request": "2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+   "request_id": "REQ-CHAT-20261117-001",
+   "request_fingerprint": "032f90d4dfd1627f6abd8aadc6659a0249f4ca1e2b6be3b33ffa68a6c86b3596",
+   "request_code_paths": [
+    "firmware/.gitignore",
+    "firmware/lib/resonance_core/library.json",
+    "firmware/lib/resonance_core/src/rc_settings.cpp",
+    "firmware/lib/resonance_core/src/rc_settings.h",
+    "firmware/platformio.ini",
+    "firmware/src/gui/display.cpp",
+    "firmware/src/gui/display.h",
+    "firmware/src/gui/theme.h",
+    "firmware/src/gui/ui.cpp",
+    "firmware/src/gui/ui.h",
+    "firmware/src/hal/board.cpp",
+    "firmware/src/hal/board.h",
+    "firmware/src/hal/board_pins.h",
+    "firmware/src/main.cpp",
+    "firmware/src/radio/bt_stack.cpp",
+    "firmware/src/radio/bt_stack.h",
+    "firmware/src/radio/wifi_link.cpp",
+    "firmware/src/radio/wifi_link.h",
+    "firmware/src/storage/sdcard.cpp",
+    "firmware/src/storage/sdcard.h",
+    "firmware/src/storage/settings_store.cpp",
+    "firmware/src/storage/settings_store.h",
+    "firmware/src/version.h",
+    "firmware/tests/host_test.h",
+    "firmware/tests/test_settings.cpp",
+    "firmware/tools/host_tests.py",
+    "firmware/tools/serial_capture.py",
+    "scripts/test_manifest.json"
+   ],
+   "test_runs": [
+    "20261117T214430-183455"
+   ],
+   "evidence": [
+    "VER-000002"
+   ],
+   "head": "625470169a383a0d7a1ec44d8c59aedb7008b6ba",
+   "agent_id": "agent-dev-20261117205050-9ef7a9",
+   "fails": [],
+   "warns": [],
+   "passes": 14
+  }
+ ]
+}

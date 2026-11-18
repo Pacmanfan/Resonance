@@ -1,0 +1,100 @@
+Resonance firmware 0.2.0 on the ESP32-2432S032C, 2026-11-17. Serial output of the device, bootloader lines removed.
+Chip (esptool): ESP32-D0WD-V3 revision v3.0, 40 MHz crystal, 4 MB flash. USB bridge 1a86:7523 (CH340).
+
+== Play mode, start-up report ==
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+RESONANCE 0.2.0
+HEAP boot                   free 182960  min 180008  largest 110580
+HEAP display + ui           free 177352  min 177296  largest 110580
+[   826][E][sd_diskio.cpp:224] sdCommand(): Card Failed! cmd: 0x00
+[  1156][E][sd_diskio.cpp:224] sdCommand(): Card Failed! cmd: 0x00
+[  1162][E][sd_diskio.cpp:866] sdcard_mount(): f_mount failed: (3) The physical drive cannot work
+[  1471][E][sd_diskio.cpp:224] sdCommand(): Card Failed! cmd: 0x00
+HEAP sd                     free 176996  min 161696  largest 110580
+RADIO starting
+HEAP bluetooth started      free 101080  min  99556  largest  94196
+REPORT firmware 0.2.0
+REPORT reset power-on
+REPORT mode play
+REPORT settings loaded
+REPORT display ok id 0x000000
+REPORT touch address 0x5D, 0 press(es), last -1,-1
+REPORT sd none total 0 MB free 0 MB
+REPORT bluetooth running
+REPORT wifi state 0 network '' address 0.0.0.0
+REPORT flash image 1877792 bytes
+REPORT panel RDDID 0x000000 RDDST 0x00000000
+HEAP now                    free 102016  min  99556  largest  94196
+RADIO stable
+
+== Play mode, then 'scan' (Wi-Fi station beside Bluetooth) and 'heap' ==
+HEAP boot                   free 182960  min 180008  largest 110580
+HEAP display + ui           free 177352  min 177296  largest 110580
+HEAP sd                     free 176996  min 161696  largest 110580
+RADIO starting
+HEAP bluetooth started      free 101384  min  99556  largest  94196
+REPORT firmware 0.2.0
+REPORT reset power-on
+REPORT mode play
+REPORT settings loaded
+REPORT display ok id 0x000000
+REPORT touch address 0x5D, 0 press(es), last -1,-1
+REPORT sd none total 0 MB free 0 MB
+REPORT bluetooth running
+REPORT wifi state 0 network '' address 0.0.0.0
+REPORT flash image 1877824 bytes
+REPORT panel RDDID 0x000000 RDDST 0x00000000
+HEAP now                    free 102016  min  99556  largest  94196
+SCAN 8 network(s)
+HEAP after wifi scan        free  50348  min  48332  largest  47092
+RADIO stable
+HEAP now                    free  50348  min  48332  largest  47092
+
+== Setup mode (after 'mode setup'), with 'scan'; network names removed ==
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+RESONANCE 0.2.0
+HEAP boot                   free 183108  min 180156  largest 110580
+HEAP display + ui           free 177500  min 177444  largest 110580
+[   825][E][sd_diskio.cpp:224] sdCommand(): Card Failed! cmd: 0x00
+[  1155][E][sd_diskio.cpp:224] sdCommand(): Card Failed! cmd: 0x00
+[  1161][E][sd_diskio.cpp:866] sdcard_mount(): f_mount failed: (3) The physical drive cannot work
+[  1470][E][sd_diskio.cpp:224] sdCommand(): Card Failed! cmd: 0x00
+HEAP sd                     free 177144  min 161844  largest 110580
+RADIO starting
+HEAP bluetooth released     free 218500  min 161844  largest 110580
+HEAP wifi started           free 156684  min 156600  largest 110580
+REPORT firmware 0.2.0
+REPORT reset power-on
+REPORT mode setup
+REPORT settings loaded
+REPORT display ok id 0x000000
+REPORT touch address 0x5D, 0 press(es), last -1,-1
+REPORT sd none total 0 MB free 0 MB
+REPORT bluetooth off
+REPORT wifi state 3 network 'Resonance-Setup' address 192.168.4.1
+REPORT flash image 1877824 bytes
+REPORT panel RDDID 0x000000 RDDST 0x00000000
+HEAP now                    free 156912  min 156224  largest 110580
+SCAN 8 network(s)
+HEAP after wifi scan        free 155020  min 153004  largest 110580
+RADIO stable
+MODE restarting in setup
+rst:0xc (SW_CPU_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+
+== Kernel log: USB disconnects of the board during the first Bluetooth start ==
+21:30:00 usb 3-4.3 USB disconnect
+21:30:02 usb 3-4.3 USB disconnect
+21:30:05 usb 3-4.3 USB disconnect
+21:30:07 usb 3-4.3 USB disconnect
+21:30:09 usb 3-4.3 USB disconnect
+21:30:13 usb 3-4.3 USB disconnect
+21:30:16 usb 3-4.3 USB disconnect
+21:30:18 usb 3-4.3 USB disconnect
+21:30:20 usb 3-4.3 USB disconnect
+21:30:23 usb 3-4.3 USB disconnect
+21:30:25 usb 3-4.3 USB disconnect
+21:30:28 usb 3-4.3 USB disconnect
+21:30:30 usb 3-4.3 USB disconnect
+21:30:32 usb 3-4.3 USB disconnect
+21:30:35 usb 3-4.3 USB disconnect
+21:30:37 usb 3-4.3 USB disconnect

@@ -2,7 +2,8 @@
 
 **Requirement:** RES-PROC-001, RES-PROC-002, RES-HW-002, RES-HW-003 (`docs/requirements/resonance.md`)
 **Work:** WORK-000001 (REQ-CHAT-20261117-001)
-**Status:** derived from the V1.0 schematic and the C-variant board-definition files. **Not verified on the physical board.**
+**Status:** derived from the V1.0 schematic and the C-variant board-definition files. Confirmed on the board so far: the touch bus (IO33/IO32, reset IO25, interrupt IO21) and the display pins as far as initialisation shows (`HARDWARE.md`, "Measured on the board").
+**Decisions since the audit:** ADR-000204 — the I2S wiring proposal below is **on hold**; IO4, IO16, IO17 and IO22 keep their board function, and IO35 is unused. The pin numbers in use are in `firmware/src/hal/board_pins.h`.
 **Sources and confidence marks:** `HARDWARE.md`
 
 ## Ownership table
@@ -16,27 +17,27 @@ Resonance module that will drive the pin (`ARCHITECTURE.md`).
 | 1 | UART0 TX to CH340C; P1 pin 2 through 100 Ω | serial diagnostics | Flashing and console |
 | 2 | Display DC | display | Strapping pin |
 | 3 | UART0 RX from CH340C; P1 pin 3 through 100 Ω | serial diagnostics | Flashing and console |
-| 4 | RGB LED red, active low | **audio output: DAC soft mute (XSMT)** | Proposed, see below |
+| 4 | RGB LED red, active low | board (status LED) | Reserved for the DAC soft mute if the wired output returns |
 | 5 | microSD CS, 10 kΩ pull-up | SD card | Strapping pin |
 | 6–11 | Module flash | none | Never usable |
 | 12 | Display MISO through 0 Ω | display | Strapping pin (flash voltage): must not be pulled high at reset |
 | 13 | Display MOSI | display | |
 | 14 | Display SCLK | display | |
 | 15 | Display CS | display | Strapping pin |
-| 16 | RGB LED green, active low | **audio output: I2S LRCK** | Proposed, see below |
-| 17 | RGB LED blue, active low | **audio output: I2S DIN** | Proposed, see below |
+| 16 | RGB LED green, active low | board (status LED) | Reserved for I2S LRCK if the wired output returns |
+| 17 | RGB LED blue, active low | board (status LED) | Reserved for I2S DIN if the wired output returns |
 | 18 | microSD SCLK | SD card | |
 | 19 | microSD MISO | SD card | |
 | 21 | GT911 interrupt through 0 Ω; P3 pin 1; CN1 pin 2; 10 kΩ pull-up | touch (interrupt, optional) | Shared with two connectors |
-| 22 | P3 pin 2 and CN1 pin 3 only | **audio output: I2S BCK** | The only free output-capable pin on a connector |
+| 22 | P3 pin 2 and CN1 pin 3 only | none | The only free output-capable pin on a connector. Reserved for I2S BCK if the wired output returns |
 | 23 | microSD MOSI | SD card | |
 | 25 | GT911 reset | touch | DAC1 is therefore not available |
-| 26 | Onboard amplifier input (DAC2) | audio output: held low | Amplifier is always enabled |
+| 26 | Onboard amplifier input (DAC2) | board: held low | Amplifier is always enabled |
 | 27 | Backlight FET gate, 10 kΩ pull-down | display (backlight PWM) | On no connector |
 | 32 | GT911 SCL, 4.7 kΩ pull-up | touch | |
 | 33 | GT911 SDA, 4.7 kΩ pull-up | touch | |
 | 34 | Light-sensor divider | none (reserved) | Input only; sensor may be absent |
-| 35 | P3 pin 3 | battery (ADC, optional) | Input only, no pull-up, ADC1 |
+| 35 | P3 pin 3 | none | Input only, no pull-up, ADC1 |
 | 36 | XPT2046 interrupt net of the R variant, 10 kΩ pull-up if fitted | none | Input only |
 | 39 | Not connected | none | Input only |
 | EN | Reset button, auto-reset circuit, display reset | none | |
@@ -68,6 +69,8 @@ free. The matrix cannot make an input-only pin (34–39) an output, and it
 cannot free a pin that a peripheral on the board is wired to.
 
 ## I2S wiring proposal
+
+**On hold (ADR-000204):** not built, not wired, no I2S driver in the firmware.
 
 Three signals are needed; the PCM5102A needs no master clock (`HARDWARE.md`
 section 9).

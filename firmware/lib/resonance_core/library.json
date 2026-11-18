@@ -1,0 +1,6 @@
+{
+  "name": "resonance_core",
+  "version": "0.1.0",
+  "description": "Portable Resonance logic: no Arduino, ESP-IDF or display header may be included here.",
+  "build": { "srcDir": "src", "includeDir": "src" }
+}

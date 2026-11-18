@@ -3,3 +3,4 @@
 Format: `WORK-ID | status | title | record | requirements | evidence`
 
 WORK-000001 | completed | Resonance Stage 1: hardware and software audit | completed/WORK-000001-resonance-stage-1-hardware-and-software.md | RES-PROC-001, RES-PROC-002 | VER-000001
+WORK-000002 | completed | Resonance Stage 2: board foundation, portable core, operating modes | completed/WORK-000002-resonance-stage-2-board-foundation-porta.md | RES-PROC-003, RES-HW-001, RES-HW-002, RES-ARCH-001, RES-ARCH-004, RES-ARCH-005, RES-CFG-002, RES-CFG-003 | VER-000002

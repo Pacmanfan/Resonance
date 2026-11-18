@@ -72,9 +72,11 @@ resistive CYD or other variants (§2).
 Display, touchscreen, SD card, Wi-Fi and Bluetooth SHALL keep working. No GPIO
 change for audio output SHALL disable one of them (§2.1).
 
-### RES-HW-003 — Wired stereo output
+### RES-HW-003 — Wired stereo output *(on hold, ADR-000204)*
 
-Wired output SHALL use an external PCM5102A I2S DAC followed by a stereo
+The wired output is on hold by the operator's decision of 2026-11-17: audio
+is delivered over Bluetooth (RES-BT-001) and no DAC is connected. When it is
+taken up again, wired output SHALL use an external PCM5102A I2S DAC followed by a stereo
 headphone amplifier (not a speaker amplifier such as the PAM8403) and a 3.5 mm
 stereo jack, with the wiring, GPIO assignment and bill of materials documented.
 The onboard mono speaker amplifier SHALL NOT interfere with the stereo output
@@ -89,14 +91,15 @@ SHALL NOT connect either terminal to ground or treat it as a GPIO (§2.1).
 
 The device SHALL run from USB and from a single-cell Li-ion/LiPo battery and
 charge over USB. Documentation SHALL require a protected cell or external
-protection. Battery level SHALL be shown only when a valid measurement circuit
-has been identified; a voltage divider SHALL NOT be assumed (§2.2).
+protection. The board has no battery measurement circuit and none is added
+(ADR-000204): the firmware SHALL NOT display a battery level (§2.2).
 
 ### RES-HW-006 — Low battery and power loss
 
-The device SHALL handle low battery gracefully, SHALL avoid a shutdown during
-an SD write where the hardware allows detecting it, and SHALL recover safely
-after power loss (§2.2, §17).
+The device SHALL recover safely after power loss: files are written
+atomically and configuration is validated on load. Detecting a low battery
+before it happens is not possible without a measurement circuit (RES-HW-005,
+ADR-000204) (§2.2, §17).
 
 ## Software architecture
 
@@ -124,13 +127,24 @@ Buffer sizes, task stack sizes and heap use SHALL be explicit and budgeted for
 an ESP32 without PSRAM. Dynamic allocation on the audio path SHALL be avoided
 (§3).
 
+### RES-ARCH-005 — Space first, and operating modes
+
+Where a requirement can be met by a smaller means, the smaller means SHALL be
+used. A subsystem not needed in the current operating mode SHALL NOT be
+started. The firmware SHALL provide a **Play** mode (Bluetooth, audio,
+playback, sessions) and a **Setup** mode (Wi-Fi, web administration, file
+management), selected by the user and entered by a restart; a combined mode
+MAY be offered if measurement on the board shows it to be reliable
+(ADR-000204).
+
 ## Audio engine
 
 ### RES-AUDIO-001 — Continuous stereo engine
 
-The engine SHALL produce continuous stereo audio at 44.1 kHz or 48 kHz through
-I2S with DMA buffering, mixing several sources at once, with at least 32-bit
-internal processing (§4).
+The engine SHALL produce continuous stereo audio at 44.1 kHz, the rate
+Bluetooth A2DP fixes, mixing several sources at once, with at least 32-bit
+internal processing. With the wired output on hold (RES-HW-003) no I2S driver
+is used (§4, ADR-000204).
 
 ### RES-AUDIO-002 — Binaural generator
 
@@ -184,9 +198,10 @@ White, pink and brown noise SHALL be provided with independent volume (§7).
 
 ### RES-AUDIO-011 — Output abstraction
 
-A common output interface SHALL have a wired I2S implementation and a
-Bluetooth A2DP implementation; engine and mixer SHALL be independent of which
-is active, and the user SHALL be able to select the output (§10.1).
+Engine and mixer SHALL write to a common output interface and SHALL be
+independent of the implementation behind it. The Bluetooth A2DP
+implementation SHALL be provided; the wired I2S implementation and the
+output selection return with RES-HW-003 (§10.1, ADR-000204).
 
 ### RES-AUDIO-012 — Audio task never blocks
 
@@ -347,7 +362,8 @@ the contents of §13.1–§13.7.
 
 Changes made in the browser SHALL take effect on the device, and changes made
 on the touchscreen SHALL appear in the browser, through WebSocket updates or
-polling (§13.4).
+polling. In Setup mode, where audio does not run, this applies to settings,
+presets, sessions and files (RES-ARCH-005) (§13.4).
 
 ### RES-WEB-004 — Uploads
 
@@ -374,8 +390,10 @@ hardware, the interface SHALL warn or defer the upload (§13.3).
 
 ### RES-WEB-008 — System functions
 
-Restart, configuration backup/restore and firmware version SHALL be provided;
-OTA update SHALL be provided where the flash layout allows it (§13.7).
+Restart, configuration backup/restore and firmware version SHALL be provided.
+OTA update is not provided: the flash holds one application slot
+(ADR-000204); firmware is updated over USB and the procedure documented
+(§13.7).
 
 ## Touchscreen GUI
 

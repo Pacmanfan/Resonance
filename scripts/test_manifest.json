@@ -175,6 +175,28 @@
    }
   },
   {
+   "id": "resonance_core",
+   "kind": "command",
+   "results": "exit",
+   "command": [
+    "python3",
+    "firmware/tools/host_tests.py"
+   ],
+   "inputs": [
+    "firmware/lib/resonance_core/**",
+    "firmware/tests/**",
+    "firmware/tools/host_tests.py"
+   ],
+   "groups": {
+    "unit": {
+     "tiers": [
+      "t1"
+     ],
+     "expected_seconds": 10
+    }
+   }
+  },
+  {
    "id": "package",
    "kind": "command",
    "results": "exit",

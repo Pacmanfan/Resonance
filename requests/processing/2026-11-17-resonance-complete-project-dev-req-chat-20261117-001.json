@@ -393,7 +393,15 @@
   },
   "links": {
     "work": [
-      "WORK-000001"
+      "WORK-000001",
+      "WORK-000002"
     ]
-  }
+  },
+  "follow_ups": [
+    {
+      "timestamp": "2026-11-18T02:13:23.907983+00:00",
+      "text": "drop battery measurement. We are also going to put on hold the external stereo jack connected to i2s - we will rely on BT audio. Code conservatively for space. We may need to page swap in code. Begin implementation. The baord is plugged in",
+      "attachments": []
+    }
+  ]
 }

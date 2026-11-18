@@ -1245,6 +1245,12 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Unknown: exact scope — agent to derive
 - Follow-ups will be appended under ## Follow-up Context
 
+
+### Follow-up 2026-11-18T02:13:23.907983+00:00
+
+> drop battery measurement. We are also going to put on hold the external stereo jack connected to i2s - we will rely on BT audio. Code conservatively for space. We may need to page swap in code. Begin implementation. The baord is plugged in
+
+
 ## Follow-up Context
 
 User pasted the full Resonance specification in chat, then said: 'add that as a ticket and proceed'.
@@ -1259,5 +1265,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001
+- Work: WORK-000001, WORK-000002
 - Evidence: pending

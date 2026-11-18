@@ -1,0 +1,343 @@
+{
+ "run_id": "20261117T214430-183455",
+ "runner_version": 2,
+ "started_at": "2026-11-18T02:47:48.998310+00:00",
+ "wall_seconds": 198.6,
+ "tier": "t2",
+ "scope": "all",
+ "changes_from": "request 2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+ "changed": [
+  "README.md",
+  "docs/README.md",
+  "docs/architecture/ARCHITECTURE.md",
+  "docs/architecture/GPIO_MAP.md",
+  "docs/architecture/HARDWARE.md",
+  "docs/architecture/IMPLEMENTATION_PLAN.md",
+  "docs/architecture/LIBRARY_EVALUATION.md",
+  "docs/architecture/README.md",
+  "docs/decisions/ADR-000204-bluetooth-only-output-and-space-first-firmware.md",
+  "docs/decisions/decisions.txt",
+  "docs/requirements/requirements.txt",
+  "docs/requirements/resonance.md",
+  "firmware/.gitignore",
+  "firmware/README.md",
+  "firmware/lib/resonance_core/library.json",
+  "firmware/lib/resonance_core/src/rc_settings.cpp",
+  "firmware/lib/resonance_core/src/rc_settings.h",
+  "firmware/platformio.ini",
+  "firmware/src/gui/display.cpp",
+  "firmware/src/gui/display.h",
+  "firmware/src/gui/theme.h",
+  "firmware/src/gui/ui.cpp",
+  "firmware/src/gui/ui.h",
+  "firmware/src/hal/board.cpp",
+  "firmware/src/hal/board.h",
+  "firmware/src/hal/board_pins.h",
+  "firmware/src/main.cpp",
+  "firmware/src/radio/bt_stack.cpp",
+  "firmware/src/radio/bt_stack.h",
+  "firmware/src/radio/wifi_link.cpp",
+  "firmware/src/radio/wifi_link.h",
+  "firmware/src/storage/sdcard.cpp",
+  "firmware/src/storage/sdcard.h",
+  "firmware/src/storage/settings_store.cpp",
+  "firmware/src/storage/settings_store.h",
+  "firmware/src/version.h",
+  "firmware/tests/host_test.h",
+  "firmware/tests/test_settings.cpp",
+  "firmware/tools/host_tests.py",
+  "firmware/tools/serial_capture.py",
+  "requests/inbox/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.json",
+  "requests/inbox/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+  "requests/processing/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.json",
+  "requests/processing/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+  "scripts/test_manifest.json",
+  "work/active/WORK-000002-resonance-stage-2-board-foundation-porta.md",
+  "work/work.txt"
+ ],
+ "unmapped": [
+  "firmware/.gitignore",
+  "firmware/platformio.ini",
+  "firmware/src/gui/display.cpp",
+  "firmware/src/gui/display.h",
+  "firmware/src/gui/theme.h",
+  "firmware/src/gui/ui.cpp",
+  "firmware/src/gui/ui.h",
+  "firmware/src/hal/board.cpp",
+  "firmware/src/hal/board.h",
+  "firmware/src/hal/board_pins.h",
+  "firmware/src/main.cpp",
+  "firmware/src/radio/bt_stack.cpp",
+  "firmware/src/radio/bt_stack.h",
+  "firmware/src/radio/wifi_link.cpp",
+  "firmware/src/radio/wifi_link.h",
+  "firmware/src/storage/sdcard.cpp",
+  "firmware/src/storage/sdcard.h",
+  "firmware/src/storage/settings_store.cpp",
+  "firmware/src/storage/settings_store.h",
+  "firmware/src/version.h",
+  "firmware/tools/serial_capture.py"
+ ],
+ "head": "625470169a383a0d7a1ec44d8c59aedb7008b6ba",
+ "describe": "6254701",
+ "provenance": {
+  "dirty": true,
+  "dirty_paths": 13,
+  "diff_sha256": "a2d2d5fe84f77c0a948239f89bcc8d371e82c109ba49760ba00a15f4bd469a98",
+  "python": "3.12.3",
+  "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.39",
+  "git": "git version 2.43.0",
+  "manifest_sha256": "b1a5871bea32d3bdbc2bd098489ccf7c23aedf141559628278dbdb493bbc5c73",
+  "config_sha256": "df47285af156e1e87c8e8234907f0ec8ab9caf4a3dd3a1c8514394fb19a63f4d",
+  "build_system": "none"
+ },
+ "build_dir": "/home/dev/Resonance/build/debug",
+ "jobs": 8,
+ "host": "dev",
+ "request": "2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+ "request_fingerprint": "032f90d4dfd1627f6abd8aadc6659a0249f4ca1e2b6be3b33ffa68a6c86b3596",
+ "request_code_paths": [
+  "firmware/.gitignore",
+  "firmware/lib/resonance_core/library.json",
+  "firmware/lib/resonance_core/src/rc_settings.cpp",
+  "firmware/lib/resonance_core/src/rc_settings.h",
+  "firmware/platformio.ini",
+  "firmware/src/gui/display.cpp",
+  "firmware/src/gui/display.h",
+  "firmware/src/gui/theme.h",
+  "firmware/src/gui/ui.cpp",
+  "firmware/src/gui/ui.h",
+  "firmware/src/hal/board.cpp",
+  "firmware/src/hal/board.h",
+  "firmware/src/hal/board_pins.h",
+  "firmware/src/main.cpp",
+  "firmware/src/radio/bt_stack.cpp",
+  "firmware/src/radio/bt_stack.h",
+  "firmware/src/radio/wifi_link.cpp",
+  "firmware/src/radio/wifi_link.h",
+  "firmware/src/storage/sdcard.cpp",
+  "firmware/src/storage/sdcard.h",
+  "firmware/src/storage/settings_store.cpp",
+  "firmware/src/storage/settings_store.h",
+  "firmware/src/version.h",
+  "firmware/tests/host_test.h",
+  "firmware/tests/test_settings.cpp",
+  "firmware/tools/host_tests.py",
+  "firmware/tools/serial_capture.py",
+  "scripts/test_manifest.json"
+ ],
+ "allow_stale": false,
+ "classification": "PASS",
+ "warnings": [],
+ "groups": [
+  {
+   "suite": "devsys",
+   "group": "structure",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 0.06478843104559928,
+   "wall": 0.06478843104559928,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "t0 (always)"
+   ],
+   "command": "python3 scripts/devsys.py verify-structure",
+   "status": "PASS"
+  },
+  {
+   "suite": "audits",
+   "group": "drift",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 0.11402875802014023,
+   "wall": 0.11402875802014023,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "t0 (always)"
+   ],
+   "command": "python3 scripts/drift_detect.py",
+   "status": "PASS"
+  },
+  {
+   "suite": "audits",
+   "group": "doc_integrity",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 0.06482601602328941,
+   "wall": 0.06482601602328941,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "t0 (always)"
+   ],
+   "command": "python3 scripts/doc_integrity.py",
+   "status": "PASS"
+  },
+  {
+   "suite": "audits",
+   "group": "invariants",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 0.06397832103539258,
+   "wall": 0.06397832103539258,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "t0 (always)"
+   ],
+   "command": "python3 scripts/invariant_check.py",
+   "status": "PASS"
+  },
+  {
+   "suite": "scripts",
+   "group": "unit",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 198.5558573009912,
+   "wall": 198.5558573009912,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "input scripts/test_manifest.json"
+   ],
+   "command": "python3 -m unittest discover -s scripts/tests",
+   "status": "PASS"
+  },
+  {
+   "suite": "audit_py",
+   "group": "unit",
+   "shards": 1,
+   "statuses": [
+    "CACHED"
+   ],
+   "seconds": 0.0,
+   "wall": 0.0,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [
+    "unchanged since run 20261117T214047-148078 (2026-11-18T02:44:05)"
+   ],
+   "reasons": [
+    "all scope"
+   ],
+   "command": "python3 -m unittest discover -s tools/audit_system/tests",
+   "status": "CACHED"
+  },
+  {
+   "suite": "resonance_core",
+   "group": "unit",
+   "shards": 1,
+   "statuses": [
+    "CACHED"
+   ],
+   "seconds": 0.0,
+   "wall": 0.0,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [
+    "unchanged since run 20261117T214047-148078 (2026-11-18T02:44:05)"
+   ],
+   "reasons": [
+    "input firmware/lib/resonance_core/library.json (+5)"
+   ],
+   "command": "python3 firmware/tools/host_tests.py",
+   "status": "CACHED"
+  }
+ ],
+ "jobs_detail": [
+  {
+   "label": "devsys/structure",
+   "status": "PASS",
+   "seconds": 0.06,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/430-183455/002/output.log",
+   "cases": []
+  },
+  {
+   "label": "audits/drift",
+   "status": "PASS",
+   "seconds": 0.11,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/430-183455/004/output.log",
+   "cases": []
+  },
+  {
+   "label": "audits/doc_integrity",
+   "status": "PASS",
+   "seconds": 0.06,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/430-183455/005/output.log",
+   "cases": []
+  },
+  {
+   "label": "audits/invariants",
+   "status": "PASS",
+   "seconds": 0.06,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/430-183455/003/output.log",
+   "cases": []
+  },
+  {
+   "label": "scripts/unit",
+   "status": "PASS",
+   "seconds": 198.56,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/430-183455/001/output.log",
+   "cases": []
+  },
+  {
+   "label": "audit_py/unit",
+   "status": "CACHED",
+   "seconds": 0.0,
+   "rc": null,
+   "detail": "unchanged since run 20261117T214047-148078 (2026-11-18T02:44:05)",
+   "log": null,
+   "cases": []
+  },
+  {
+   "label": "resonance_core/unit",
+   "status": "CACHED",
+   "seconds": 0.0,
+   "rc": null,
+   "detail": "unchanged since run 20261117T214047-148078 (2026-11-18T02:44:05)",
+   "log": null,
+   "cases": []
+  }
+ ]
+}
