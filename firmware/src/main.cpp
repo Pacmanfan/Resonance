@@ -86,6 +86,8 @@ bool radioPending = false;   // started, not yet confirmed stable
 uint32_t radioStartedMs = 0;
 uint32_t lastStatusMs = 0;
 uint32_t statusTicks = 0;
+uint32_t loopsThisSecond = 0;   // passes of loop(), for the benchmark
+uint32_t loopsLastSecond = 0;
 char lineBuffer[120];
 uint8_t lineLength = 0;
 
@@ -421,11 +423,92 @@ void receiveFile(char* arguments) {
     Serial.printf("PUT stored %s (%lu bytes)\n", path, static_cast<unsigned long>(size));
 }
 
+// Display benchmark: times the drawing operations an animated screen would
+// be built from, at the working SPI clock and at higher ones, and the cost
+// of one pass of loop(). Prints BENCH lines; the screen shows test patterns
+// meanwhile and is redrawn at the end.
+void runDisplayBenchmark() {
+    gui::Display& d = lcd();
+    const uint32_t workingClock = d.writeClock();
+    auto timeUs = [&](void (*work)(gui::Display&), int repeats) -> uint32_t {
+        const uint32_t start = micros();
+        for (int i = 0; i < repeats; ++i) work(d);
+        return (micros() - start) / static_cast<uint32_t>(repeats);
+    };
+    const uint32_t clocks[] = {workingClock, 40000000u, 80000000u};
+    for (uint32_t clock : clocks) {
+        d.setWriteClock(clock);
+        const uint32_t fill = timeUs([](gui::Display& x) { x.fillScreen(x.color565(0, 0, 40)); x.fillScreen(0); }, 2) / 2;
+        const uint32_t region = timeUs([](gui::Display& x) { x.fillRect(60, 40, 120, 120, x.color565(0, 40, 40)); }, 8);
+        const uint32_t rings = timeUs([](gui::Display& x) {
+            for (int r = 34; r <= 54; r += 10) { x.drawCircle(120, 100, r, 0xFFFF); x.drawCircle(120, 100, r - 1, 0xFFFF); }
+        }, 8);
+        const uint32_t arcs = timeUs([](gui::Display& x) {
+            x.fillArc(120, 100, 54, 50, 0, 360, 0x07FF);
+            x.fillArc(120, 100, 44, 40, 0, 360, 0x07E0);
+            x.fillArc(120, 100, 34, 30, 0, 360, 0xF81F);
+        }, 4);
+        const uint32_t text = timeUs([](gui::Display& x) {
+            x.setFont(&fonts::DejaVu18);
+            x.setTextColor(0xFFFF, 0);
+            x.setTextDatum(textdatum_t::top_left);
+            for (int i = 0; i < 5; ++i) x.drawString("200.0 Hz  10.0 Hz", 10, 180 + i * 22);
+        }, 4);
+        Serial.printf("BENCH clock %lu MHz: full screen %lu us, 120x120 fill %lu us, 6 circles %lu us, 3 thick rings %lu us, 5 text lines %lu us\n",
+                      static_cast<unsigned long>(clock / 1000000u), static_cast<unsigned long>(fill),
+                      static_cast<unsigned long>(region), static_cast<unsigned long>(rings),
+                      static_cast<unsigned long>(arcs), static_cast<unsigned long>(text));
+    }
+    d.setWriteClock(workingClock);
+
+    // An off-screen buffer pushed in one transfer: the flicker-free way to
+    // animate a region. 8 bits per pixel keeps it to 14 kB for 120 x 120.
+    {
+        lgfx::LGFX_Sprite sprite(&d);
+        sprite.setColorDepth(8);
+        const uint32_t before = ESP.getFreeHeap();
+        if (sprite.createSprite(120, 120) != nullptr) {
+            const uint32_t used = before - ESP.getFreeHeap();
+            uint32_t draw = 0, push = 0;
+            for (int i = 0; i < 8; ++i) {
+                uint32_t t = micros();
+                sprite.fillScreen(0);
+                sprite.fillArc(60, 60, 54, 50, 0, 360, 0x07FF);
+                sprite.fillArc(60, 60, 44, 40, i * 20, i * 20 + 300, 0x07E0);
+                sprite.fillArc(60, 60, 34, 30, 0, 360, 0xF81F);
+                draw += micros() - t;
+                t = micros();
+                sprite.pushSprite(60, 40);
+                push += micros() - t;
+            }
+            Serial.printf("BENCH buffered 120x120 frame at %lu MHz: draw %lu us, push %lu us, buffer %lu bytes\n",
+                          static_cast<unsigned long>(workingClock / 1000000u), static_cast<unsigned long>(draw / 8),
+                          static_cast<unsigned long>(push / 8), static_cast<unsigned long>(used));
+            sprite.deleteSprite();
+        } else {
+            Serial.println("BENCH buffered frame: not enough memory for the buffer");
+        }
+    }
+
+    // The interface itself.
+    uint32_t t = micros();
+    screen().redraw();
+    Serial.printf("BENCH whole current screen redraw %lu us\n", static_cast<unsigned long>(micros() - t));
+    t = micros();
+    for (int i = 0; i < 20; ++i) { int32_t x, y; d.getTouch(&x, &y); }
+    Serial.printf("BENCH touch read %lu us each\n", static_cast<unsigned long>((micros() - t) / 20));
+    Serial.printf("BENCH loop: %lu passes in the last full second, fixed delay 15 ms per pass\n",
+                  static_cast<unsigned long>(loopsLastSecond));
+    printHeap("after benchmark");
+}
+
 // Serial diagnostics, for development (RES-17 "serial diagnostic output").
-//   report | heap | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear
+//   report | heap | bench | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear
 void runCommand(char* line) {
     if (strcmp(line, "report") == 0) {
         printReport();
+    } else if (strcmp(line, "bench") == 0) {
+        runDisplayBenchmark();
     } else if (strcmp(line, "heap") == 0) {
         printHeap("now");
     } else if (strcmp(line, "scan") == 0) {
@@ -502,7 +585,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | bench | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 
@@ -725,8 +808,11 @@ void loop() {
         char next[sdcard::kNameLength];
         if (sdcard::nextFile(trackDir, trackName, next, sizeof(next))) playTrack(trackDir, next);
     }
+    ++loopsThisSecond;
     if (now - lastStatusMs >= 1000) {
         lastStatusMs = now;
+        loopsLastSecond = loopsThisSecond;
+        loopsThisSecond = 0;
         wifilink::tick();
         // Card sizes are re-read now and then, but never while a track plays.
         if (++statusTicks % 10 == 0 && player::state() != player::State::Playing) sdcard::refresh();

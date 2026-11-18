@@ -98,6 +98,10 @@ public:
     // Reads the touchscreen and redraws what changed. Call every 10-20 ms.
     Event poll();
 
+    // Draws the whole current screen again (after something else drew on
+    // the display, and for timing it).
+    void redraw() { drawFrame(); }
+
     // Replaces the status snapshot; the visible screen is refreshed.
     void setStatus(const Status& status);
 

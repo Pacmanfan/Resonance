@@ -22,6 +22,11 @@ public:
     // of 0 or 0xFFFFFF means nothing answered on the bus.
     uint32_t panelId() const { return _panelId; }
 
+    // Changes the SPI clock used for writing to the panel. Diagnostics: the
+    // working value is set in the constructor.
+    void setWriteClock(uint32_t hz);
+    uint32_t writeClock() const { return _bus.config().freq_write; }
+
     // Display status word (command 0x09), read now. Diagnostics only.
     uint32_t readStatus() { return _panel.readCommand(0x09, 1, 4); }
 

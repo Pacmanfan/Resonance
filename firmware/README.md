@@ -68,6 +68,7 @@ wired.
 |---|---|
 | `report` | Print the report again |
 | `heap` | Free heap, minimum free heap, largest free block |
+| `bench` | Display benchmark: drawing times at 24, 40 and 80 MHz, a buffered frame, the screen redraw, touch read, loop rate. Shows test patterns |
 | `scan` | Scan for Wi-Fi networks. In Play mode this starts Wi-Fi beside Bluetooth, which is only for measuring the heap |
 | `radio` | Start the current mode's radio, if it was skipped at start |
 | `mktest` | Write a 5-second test tone to `CUSTOM/test.wav` on the card |

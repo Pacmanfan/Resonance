@@ -41,6 +41,7 @@ docs/architecture/              current system explanation
 * `docs/history/worker-orchestrator-merge.md` — historical: how the former external orchestrator was imported (phase 1) and merged (phase 2).
 * `docs/verification/tests.md` — canonical verification commands.
 * `scripts/test_manifest.json` + `scripts/run_tests.py` — the registered test suites and the tiered, affected-test orchestrator (REQ-DEVOPS-046, ADR-000186).
+* `docs/audits/display-refresh-audit-2026-11-18.md` — measured drawing times, why the screen looks slow, and what animation would cost.
 * `docs/audits/current-state.md` — current risks, known gaps and architecture invariants.
 * `docs/verification/architecture-audit.md` — the **architecture / conformance audit**: `./tools/audit [quick|standard|baseline]` measures the implementation against the canonical documents (reusing the existing check scripts and the test orchestrator), records PASS / DRIFT / UNKNOWN per documented rule with evidence under `.audit/runs/AUDIT-*/`, compares with the previous audit and writes a compact AI audit packet; read-only and advisory (ARCH-AUDIT-*, `docs/requirements/architecture_audit.md`, ADR-000195).
 * `work/README.md` and `work/work.txt` — active work state.

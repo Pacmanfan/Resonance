@@ -127,6 +127,12 @@ bool Display::rawTouch(int32_t* x, int32_t* y) {
     return true;
 }
 
+void Display::setWriteClock(uint32_t hz) {
+    auto cfg = _bus.config();
+    cfg.freq_write = hz;
+    _bus.config(cfg);
+}
+
 void Display::setBacklightPercent(uint8_t percent) {
     if (percent > 100) percent = 100;
     setBrightness(static_cast<uint8_t>((percent * 255u) / 100u));
