@@ -1,4 +1,4 @@
-# <PROJECT> Documentation — Canonical Entry Point
+# Resonance Documentation — Canonical Entry Point
 
 This is the canonical documentation root. Read `AGENTS.md` first for the
 operating constitution, then use this map:
@@ -21,7 +21,7 @@ docs/architecture/              current system explanation
 * `README.md` (repository root) — a short orientation for a first visit: what the system is, getting started, the panels. It points here; this file stays the canonical entry point (REQ-DEVOPS-011).
 * `docs/requirements/README.md` and `docs/requirements/requirements.txt` —
   normative requirement owners and IDs. See `docs/requirements/development_operations.md` for lifecycle rules (REQ-DEVOPS-001..050).
-* `docs/architecture/README.md` — current architecture and subsystem map (PROJECT-SPECIFIC).
+* `docs/architecture/README.md` — current architecture and subsystem map.
 * `docs/decisions/README.md` — active ADRs; historical records are under
   `docs/history/decisions/`.
 * `CI_CD.md` — technical map of the development-control system as implemented (components, lifecycle, state, verification).
@@ -46,8 +46,13 @@ docs/architecture/              current system explanation
 * `work/README.md` and `work/work.txt` — active work state.
 * `evidence/README.md` and `evidence/evidence.txt` — durable verification proof.
 
-PROJECT-SPECIFIC: add one entry per subsystem architecture document,
-interface / file-format specification, user manual and developer guide.
+Resonance (the product this repository builds):
+
+* `docs/requirements/resonance.md` — the product requirements (`RES-*`): process, hardware, audio engine, playback, sessions, configuration, Bluetooth, Wi-Fi, web administration, GUI.
+* `docs/architecture/HARDWARE.md` and `docs/architecture/GPIO_MAP.md` — the audited board, its GPIO ownership and the I2S wiring proposal.
+* `docs/architecture/ARCHITECTURE.md` — the firmware architecture.
+* `docs/architecture/LIBRARY_EVALUATION.md` — the selected libraries and the flash and RAM budgets.
+* `docs/architecture/IMPLEMENTATION_PLAN.md` — the staged plan, decision gates and risks.
 
 ## Current architecture location
 

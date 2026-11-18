@@ -2,3 +2,4 @@
 
 Format: `WORK-ID | status | title | record | requirements | evidence`
 
+WORK-000001 | completed | Resonance Stage 1: hardware and software audit | completed/WORK-000001-resonance-stage-1-hardware-and-software.md | RES-PROC-001, RES-PROC-002 | VER-000001

@@ -2,3 +2,4 @@
 
 Format: `VER-ID | classification | date | requirements/work | record`
 
+VER-000001 | pass | 2026-11-17 | RES-PROC-001, RES-PROC-002 / WORK-000001 | VER-000001-work-000001-pass.md

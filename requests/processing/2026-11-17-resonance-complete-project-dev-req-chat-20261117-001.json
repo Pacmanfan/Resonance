@@ -1,0 +1,399 @@
+{
+  "request_id": "REQ-CHAT-20261117-001",
+  "source": "chat",
+  "type": "FEATURE",
+  "priority": "HIGH",
+  "created": "2026-11-17T20:50:03-05:00",
+  "created_utc": "2026-11-18T01:50:03+00:00",
+  "id_date": "2026-11-17",
+  "timezone": "EST (UTC-05:00)",
+  "status": "processing",
+  "original_text": "# RESONANCE\n## Complete Project Development Specification\n### ESP32-2432S032C-I Binaural Meditation & Ambient Audio System\n\n**Project name:** Resonance  \n**Hardware:** Jingcai / Sunton ESP32-2432S032C-I CYD  \n**Display:** 3.2-inch, 240 \u00d7 320 capacitive touchscreen  \n**Firmware:** Arduino framework / C++  \n**Primary purpose:** Standalone binaural meditation generator, stereo ambient audio player, and configurable audio environment.\n\n---\n\n# 1. PROJECT VISION\n\nBuild a polished, standalone binaural meditation and ambient audio device called RESONANCE.\n\nThis is intended to be a complete consumer-style embedded audio product, not merely a frequency generator demonstration.\n\nThe device must provide:\n\n- Accurate, independently configurable stereo binaural tone generation.\n- User-adjustable primary/carrier frequency.\n- User-adjustable binaural beat frequency.\n- Independent volume controls for each audio layer.\n- MP3 and WAV playback from microSD.\n- Real-time mixing of binaural tones and background audio.\n- Ambient sound and noise generation.\n- Bluetooth wireless headphone and speaker support.\n- Wired stereo headphone support through an external I2S DAC.\n- Wi-Fi connectivity and a browser-based administration interface.\n- Remote uploading, organizing, and deleting audio files.\n- Configurable meditation sessions and frequency progressions.\n- Persistent configuration and saved presets.\n- Rechargeable battery operation and USB power.\n- Attractive, intuitive capacitive touchscreen GUI.\n\nThe device should function entirely offline after initial configuration. Wi-Fi and Bluetooth should be optional services, not requirements for basic operation.\n\nThe interface and overall experience should feel like a premium meditation instrument.\n\n# 2. HARDWARE PLATFORM\n\nExact board:\n\nJingcai ESP32-2432S032C-I\n\nKnown characteristics:\n\n- Original dual-core ESP32.\n- 240 MHz processor.\n- 4 MB onboard flash.\n- No external PSRAM.\n- 3.2-inch TFT display.\n- 240 \u00d7 320 resolution class.\n- ST7789 display controller.\n- GT911 capacitive touchscreen.\n- microSD card slot.\n- Onboard NS8002 mono speaker amplifier.\n- Onboard IP5306 battery charging/power management.\n- Wi-Fi 2.4 GHz.\n- Bluetooth Classic and BLE.\n- USB-C connection.\n- Battery connector.\n\nIMPORTANT:\n\nDo not assume this board is interchangeable with the common 2.8-inch resistive CYD.\n\nUse the exact ESP32-2432S032C-I model and verify all hardware definitions against its schematic, manufacturer examples, board markings, and actual installed Arduino libraries.\n\nThe exact display initialization, touch configuration, SD interface, and GPIO assignments must be established before implementation.\n\n## 2.1 GPIO audit\n\nThe following connectors have been identified on the board:\n\nConnector A:\n- GND\n- IO35\n- IO22\n- IO21\n\nConnector B:\n- GND\n- IO22\n- IO21\n- 3.3V\n\nConnector C:\n- +5V\n- GND\n- TX\n- RX\n\nSpeaker connector:\n- Two speaker amplifier output connections.\n\nKnown constraints:\n\n- IO21 and IO22 are shared between connectors.\n- IO35 is input-only.\n- IO21/IO22 are associated with the capacitive touch interface and must not be reassigned without understanding their existing use.\n- TX/RX correspond to the USB serial interface and require special consideration.\n- The speaker connector is an amplified bridge-tied-load output. Never connect either speaker terminal to ground or use it as a GPIO.\n- GPIO26 is associated with the onboard speaker amplifier input and must be evaluated separately.\n- Onboard RGB LED signals and accessible test pads may offer additional GPIO possibilities.\n- The SD card, display, and touch controller must continue working.\n\nBefore wiring the DAC:\n\n1. Produce a complete GPIO ownership table.\n2. Identify all existing peripheral assignments.\n3. Identify available output-capable GPIOs.\n4. Determine whether GPIOs can be reassigned through the ESP32 GPIO matrix.\n5. Determine whether test pads or alternate connections are needed.\n6. Produce a verified I2S wiring proposal.\n7. Document conflicts and required hardware modifications.\n8. Do not invent pin assignments.\n\nPreserving the touchscreen, display, SD card, Wi-Fi, and Bluetooth functionality takes priority over convenient pin assignments.\n\n## 2.2 Battery and power\n\nThe board includes an IP5306 charging/power management circuit.\n\nBattery connector:\n- Two-pin 1.25 mm Molex PicoBlade-compatible male connector.\n- Single-cell LiPo/Li-ion battery.\n- Nominal 3.7V, 4.2V fully charged.\n\nRequirements:\n\n- USB-powered operation.\n- Battery-powered operation.\n- USB charging.\n- Battery status display if reliable voltage measurement is available.\n- Safe battery integration.\n- No automatic audio playback after boot.\n- Graceful handling of low battery.\n- Avoid sudden shutdown during SD writes.\n\nImportant: The board does not provide a confirmed battery protection circuit. Use a protected battery or appropriate external protection. Verify the exact charging and power-path behavior of the board.\n\nBattery monitoring must be implemented only after identifying a valid measurement circuit or ADC connection. Do not assume a battery voltage divider exists.\n\n# 3. SOFTWARE ARCHITECTURE\n\nUse Arduino framework with C++.\n\nPrefer a modular architecture rather than a monolithic sketch.\n\nSuggested modules:\n\n- ResonanceApp\n- DisplayManager\n- TouchManager\n- AudioEngine\n- BinauralGenerator\n- AmbientAudioPlayer\n- AudioMixer\n- NoiseGenerator\n- AudioOutputManager\n- I2SAudioOutput\n- BluetoothAudioOutput\n- SessionManager\n- FrequencySweepEngine\n- PresetManager\n- StorageManager\n- SDCardManager\n- WiFiManager\n- WebServerManager\n- UploadManager\n- BluetoothManager\n- BatteryManager\n- ConfigurationManager\n\nSeparate hardware-specific implementations from application logic.\n\nUse interfaces and well-defined ownership of shared resources.\n\nThe audio engine must not depend on the GUI implementation.\n\nThe GUI must never directly manipulate low-level audio buffers.\n\nThe web server must not directly manipulate hardware registers or block audio playback.\n\nUse independent FreeRTOS tasks where appropriate.\n\nSuggested task separation:\n\n- Audio processing task.\n- Audio playback/SD buffering task.\n- GUI task.\n- Network/web server task.\n- Session and automation task.\n\nPrioritize audio task scheduling and prevent network activity from interrupting continuous audio output.\n\nBecause the ESP32 has limited internal RAM and no PSRAM, explicitly manage buffer sizes, stack sizes, and memory fragmentation.\n\nAvoid unnecessary dynamic allocation.\n\n# 4. STEREO AUDIO ENGINE\n\nThis is the central subsystem.\n\nImplement a continuous stereo audio processing engine.\n\nUse I2S with DMA buffering.\n\nTarget audio configuration:\n\n- 44.1 kHz or 48 kHz sample rate.\n- Stereo output.\n- 32-bit internal audio processing.\n- Appropriate DAC output formatting.\n- Phase-continuous oscillators.\n- Smooth parameter transitions.\n- Independent channel processing.\n\nThe engine must support multiple simultaneous audio sources.\n\n## 4.1 Binaural generator\n\nGenerate independent left and right sine waves.\n\nLeft channel:\n\nL(t) = A \u00d7 sin(2\u03c0 \u00d7 f0 \u00d7 t)\n\nRight channel:\n\nR(t) = A \u00d7 sin(2\u03c0 \u00d7 (f0 + fb) \u00d7 t)\n\nWhere:\n\n- f0 = primary/carrier frequency.\n- fb = binaural frequency difference.\n- A = amplitude.\n\nThe frequency controls must be independent.\n\nSuggested initial operating ranges:\n\nPrimary frequency:\n- Minimum: 20 Hz.\n- Maximum: 1000 Hz.\n- Fine adjustment: 0.1 Hz.\n- Coarse adjustment: configurable.\n\nBinaural frequency:\n- Minimum: 0.5 Hz.\n- Maximum: 40 Hz.\n- Fine adjustment: 0.1 Hz.\n\nRanges should be configurable.\n\nUse phase accumulators or an equivalent efficient oscillator implementation.\n\nAvoid discontinuities when changing frequency.\n\nImplement:\n\n- Sine waveform.\n- Optional triangle waveform.\n- Optional experimental waveform modes.\n- Independent oscillator amplitude.\n- Smooth fade in/out.\n- Immediate mute.\n- Phase-continuous frequency changes.\n\nNever allow invalid or unstable parameter values.\n\n## 4.2 Binaural presets\n\nProvide preset starting points:\n\n- Delta: 0.5\u20134 Hz.\n- Theta: 4\u20138 Hz.\n- Alpha: 8\u201312 Hz.\n- Beta: 12\u201330 Hz.\n- Gamma: 30\u201340 Hz.\n\nPreset selection should set an initial value but never lock the user into that range.\n\nAllow custom presets.\n\nDo not claim that specific frequencies guarantee medical or neurological outcomes.\n\n# 5. AUDIO MIXER\n\nImplement a real-time stereo mixer.\n\nRequired audio layers:\n\n1. Binaural generator.\n2. Background audio player.\n3. Noise generator.\n\nEach layer must have:\n\n- Independent ON/OFF control.\n- Independent volume control.\n- Independent mute.\n- Independent fade control.\n\nProvide a master volume control.\n\nUse floating-point internal mixing where practical.\n\nImplement appropriate clipping prevention and output limiting.\n\nEnsure that mixing multiple maximum-volume sources cannot produce uncontrolled output.\n\nAllow independent left/right channel levels and balance.\n\nOptional EQ:\n\n- Bass.\n- Midrange.\n- Treble.\n\nImplement EQ only if it can be done without compromising audio performance.\n\n# 6. MICROSD AUDIO PLAYER\n\nUse the onboard microSD card.\n\nSupport:\n\n- MP3 playback.\n- WAV playback.\n- Playlist support.\n- Track selection.\n- Play/pause.\n- Stop.\n- Previous/next.\n- Repeat.\n- Shuffle.\n- Playback position.\n- Track duration where available.\n- Folder browsing.\n\nWAV support should initially cover standard PCM WAV formats.\n\nMP3 support should include common bitrates and sample rates.\n\nInvestigate compatible, maintained Arduino audio decoder libraries.\n\nEvaluate ESP8266Audio or suitable successors and alternatives. Verify compatibility with the exact Arduino ESP32 core version.\n\nDo not assume every library supports the required simultaneous I2S and Bluetooth output.\n\nImplement buffered SD reads.\n\nNever allow blocking SD reads to starve the audio processing task.\n\n## 6.1 SD card directory structure\n\nUse an organized directory layout:\n\n/RESONANCE\n    /AUDIO\n        /OCEAN\n        /NATURE\n        /RAIN\n        /WIND\n        /AMBIENT\n        /MUSIC\n        /CUSTOM\n\n    /PLAYLISTS\n    /PRESETS\n    /SESSIONS\n    /CONFIG\n\nSupport creation and management of playlists.\n\nMaintain a music library index if useful, but recover gracefully if the SD card is removed or replaced.\n\nValidate file names and paths.\n\nDo not permit path traversal or arbitrary filesystem access through web uploads.\n\n# 7. NOISE AND AMBIENT GENERATION\n\nImplement:\n\n- White noise.\n- Pink noise.\n- Brown noise.\n\nEach should have independent volume control.\n\nAmbient background audio will primarily come from SD card files.\n\nSupport multiple background tracks and future sound-layer extensions.\n\nConsider crossfade between tracks.\n\n# 8. FREQUENCY SWEEP ENGINE\n\nImplement an automation engine independent of the oscillator.\n\nSupport:\n\n- Linear frequency sweep.\n- Stepped frequency changes.\n- Custom multi-stage progression.\n- Adjustable start frequency.\n- Adjustable end frequency.\n- Adjustable duration.\n- Optional hold periods.\n- Smooth transitions.\n\nAllow separate progression of:\n\n- Binaural frequency.\n- Primary/carrier frequency.\n- Background volume.\n- Binaural volume.\n\nAllow users to save custom progression profiles.\n\nA session must continue to run even if the user changes GUI screens.\n\n## 8.1 Session editor\n\nSupport multiple stages within a session.\n\nEach stage may configure:\n\n- Duration.\n- Primary frequency.\n- Binaural frequency.\n- Background track.\n- Background volume.\n- Binaural volume.\n- Noise generator state.\n- Noise volume.\n- Frequency sweep behavior.\n- Fade behavior.\n\nSupport stage transitions.\n\nPersist user-created sessions.\n\n# 9. SESSION MANAGEMENT\n\nProvide preset durations:\n\n- 10 minutes.\n- 15 minutes.\n- 20 minutes.\n- 30 minutes.\n- 45 minutes.\n- 60 minutes.\n- Continuous.\n\nProvide session actions:\n\n- Start.\n- Pause.\n- Resume.\n- Stop.\n- Restart.\n- Cancel.\n\nImplement independent fade-out behavior at session completion.\n\nAllow the user to choose:\n\n- Immediate stop.\n- 30-second fade.\n- 1-minute fade.\n- 5-minute fade.\n- Custom fade duration.\n\nSleep session behavior should gradually reduce volume.\n\nThe session engine must not depend on GUI updates or screen state.\n\n# 10. BLUETOOTH AUDIO\n\nThe ESP32 supports Bluetooth Classic.\n\nImplement Bluetooth A2DP Source functionality to stream audio to Bluetooth headphones and speakers.\n\nInvestigate the Arduino-compatible A2DP library and its current compatibility with the selected ESP32 Arduino core.\n\nRequirements:\n\n- Enable/disable Bluetooth.\n- Scan for nearby audio devices.\n- Display discovered devices.\n- Pair with selected device.\n- Connect.\n- Disconnect.\n- Remember previously paired devices.\n- Automatically reconnect to last-used device.\n- Select from previously paired devices.\n- Forget individual devices.\n- Display connection status.\n- Handle connection loss.\n- Allow manual reconnect.\n\nPersist remembered device information where the Bluetooth stack permits.\n\nDo not assume that arbitrary pairing keys can safely be reconstructed or stored independently of the ESP32 Bluetooth stack.\n\n## 10.1 Audio output abstraction\n\nCreate a common audio output interface.\n\nImplement:\n\n- Wired I2S stereo DAC.\n- Bluetooth A2DP output.\n\nThe audio engine and mixer should not care which output is active.\n\nAllow the user to select the output.\n\nIf a wired headphone jack with detection is implemented, allow automatic output switching.\n\nBluetooth and Wi-Fi use the same 2.4 GHz radio.\n\nTest concurrent operation, including music upload while Bluetooth audio is active.\n\nIf simultaneous operation causes unacceptable audio interruptions, report the limitation and implement sensible network/audio coexistence behavior.\n\nDo not silently compromise playback.\n\n# 11. WIRED STEREO AUDIO HARDWARE\n\nUse an external PCM5102A I2S stereo DAC.\n\nAdd a proper stereo headphone amplifier.\n\nDo not use a PAM8403 as a headphone amplifier. It is a speaker amplifier.\n\nInvestigate a suitable headphone driver such as MAX97220 or an equivalent module.\n\nProvide:\n\n- Left analog output.\n- Right analog output.\n- Ground.\n- 3.5 mm stereo headphone jack.\n- Optional line-level output.\n\nProvide a wiring diagram and verified GPIO assignments.\n\nThe PCM5102A must be treated as a DAC, not a headphone power amplifier.\n\nUse appropriate power supply decoupling and audio grounding.\n\nEnsure that the onboard mono speaker amplifier cannot interfere with the new stereo output.\n\n# 12. WI-FI CONNECTIVITY\n\nImplement a robust Wi-Fi configuration system.\n\nSupport:\n\n- Station mode.\n- Access point mode.\n- Initial configuration portal.\n- Saved Wi-Fi credentials.\n- Automatic connection on startup.\n- Connection status.\n- Reconnection after network loss.\n- Manual disconnect.\n- Forget network.\n- Network information display.\n\nOn first boot, if no Wi-Fi credentials are configured, create a configuration hotspot.\n\nProvide a browser-based configuration page.\n\nAllow the user to configure:\n\n- SSID.\n- Password.\n- Device hostname.\n- Wi-Fi behavior.\n- Web interface access credentials if supported.\n\nUse mDNS where supported.\n\nSuggested device address:\n\nhttp://resonance.local\n\nAlso display the assigned IP address on the touchscreen.\n\nProvide a fallback access point if station-mode connection fails.\n\nNever expose saved Wi-Fi passwords in ordinary web API responses or device status pages.\n\n# 13. WEB ADMINISTRATION INTERFACE\n\nThis is a major feature, not an afterthought.\n\nBuild a polished, responsive browser-based interface.\n\nThe interface must work on:\n\n- Desktop browsers.\n- Tablets.\n- Mobile phones.\n\nUse a lightweight frontend suitable for the ESP32's limited resources.\n\nDo not require an external cloud service.\n\nThe web server should serve static assets from flash or another appropriate local resource, with a compact design.\n\nUse REST-style endpoints or a clearly documented equivalent.\n\nThe interface should contain the following panels.\n\n## 13.1 Dashboard\n\nDisplay:\n\n- Device name.\n- Device online status.\n- Wi-Fi connection status.\n- Bluetooth status.\n- Current audio output.\n- SD card status.\n- SD card capacity and free space.\n- Current track.\n- Playback state.\n- Primary frequency.\n- Binaural frequency.\n- Volume levels.\n- Active session.\n- Remaining session time.\n- Battery status when available.\n\nProvide basic playback controls.\n\n## 13.2 Music Library\n\nProvide:\n\n- Browse SD card.\n- Browse folders.\n- List audio files.\n- Display file name.\n- Display file type.\n- Display file size.\n- Display duration where available.\n- Play selected track.\n- Delete selected track.\n- Rename files.\n- Create folders.\n- Manage playlists.\n\n## 13.3 File Upload\n\nImplement direct browser-based uploads to the microSD card.\n\nSupported formats:\n\n- MP3.\n- WAV.\n\nRequirements:\n\n- Single-file upload.\n- Multiple-file upload.\n- Drag-and-drop upload on desktop.\n- Mobile file picker.\n- Upload progress indicator.\n- Upload cancellation.\n- File size display.\n- Upload success/failure indication.\n- Duplicate filename handling.\n- Destination folder selection.\n- Available SD space display.\n- Safe handling of interrupted uploads.\n- Atomic upload behavior using temporary files and rename on success.\n\nValidate file extensions and basic file signatures.\n\nDo not trust the browser-supplied MIME type.\n\nReject unsupported formats.\n\nPrevent directory traversal and malicious paths.\n\nNever overwrite an existing file without explicit confirmation.\n\nDo not block audio playback during uploads.\n\nIf simultaneous upload and playback are not reliable on the available hardware, provide a clear warning or temporarily defer upload.\n\n## 13.4 Audio Configuration\n\nProvide configuration for:\n\n- Primary frequency.\n- Binaural frequency.\n- Waveform.\n- Binaural volume.\n- Background volume.\n- Noise volume.\n- Master volume.\n- Stereo balance.\n- Audio output selection.\n- Fade duration.\n- Sample rate if supported.\n- EQ if implemented.\n\nChanges made in the web interface should update the device.\n\nChanges made on the touchscreen should be reflected in the web interface.\n\nUse a reliable synchronization mechanism, such as WebSocket updates or periodic status polling.\n\n## 13.5 Session Configuration\n\nAllow users to:\n\n- Create sessions.\n- Edit sessions.\n- Delete sessions.\n- Select session presets.\n- Configure session duration.\n- Configure frequency progressions.\n- Configure audio layers.\n- Configure fade behavior.\n- Save custom session profiles.\n\n## 13.6 Bluetooth Configuration\n\nProvide:\n\n- Bluetooth enable/disable.\n- Scan.\n- Discovered device list.\n- Pair.\n- Connect.\n- Disconnect.\n- Previously paired devices.\n- Forget device.\n- Connection state.\n\n## 13.7 System Configuration\n\nProvide:\n\n- Device name.\n- Wi-Fi configuration.\n- Bluetooth configuration.\n- Display brightness.\n- Screen timeout.\n- Theme.\n- Startup volume.\n- Default output.\n- Automatic reconnect options.\n- SD card status.\n- Firmware version.\n- Restart device.\n- Configuration backup/restore.\n- Firmware update through OTA where practical.\n\nProtect sensitive configuration and administrative functions.\n\nUse authentication for file management and device configuration.\n\nDo not expose an unauthenticated file upload service to the local network.\n\n# 14. TOUCHSCREEN GUI\n\nUse the 3.2-inch capacitive touchscreen.\n\nUse LVGL or another suitable Arduino-compatible GUI framework.\n\nVerify the display driver and GT911 touch driver for the exact board.\n\nThe GUI must be visually polished and designed for 240 \u00d7 320 resolution.\n\nUse a dark, atmospheric, modern appearance.\n\nProject visual identity:\n\nRESONANCE\n\nDesign language:\n\n- Deep charcoal and midnight blue backgrounds.\n- Cyan and teal highlights.\n- Violet accents.\n- Subtle glowing elements.\n- Circular frequency visualizations.\n- Smooth transitions.\n- Large touch targets.\n- Clear typography.\n- Minimal visual clutter.\n\nAvoid tiny controls.\n\nSupport portrait and landscape orientation if practical, with portrait as the initial default.\n\n## 14.1 Main navigation\n\nCreate five main areas:\n\n1. HOME\n2. FREQUENCY STUDIO\n3. SOUND LIBRARY\n4. SESSIONS\n5. SETTINGS\n\n## 14.2 Home screen\n\nDisplay:\n\n- RESONANCE branding.\n- Primary frequency.\n- Binaural frequency.\n- Left channel frequency.\n- Right channel frequency.\n- Animated visualization.\n- Main play/pause control.\n- Master volume.\n- Background track information.\n- Active session and remaining time.\n- Bluetooth status.\n- SD card status.\n- Battery status when available.\n\nProvide a prominent tone/audio ON/OFF control.\n\nAudio should never start unexpectedly.\n\n## 14.3 Frequency Studio\n\nProvide:\n\n- Primary frequency adjustment.\n- Binaural frequency adjustment.\n- Numeric entry.\n- Increment/decrement controls.\n- Fine adjustment.\n- Coarse adjustment.\n- Preset selection.\n- Waveform selection.\n- Frequency sweep configuration.\n\n## 14.4 Sound Library\n\nProvide:\n\n- SD card browsing.\n- Folder navigation.\n- Track selection.\n- Play/pause.\n- Previous/next.\n- Repeat.\n- Shuffle.\n- Layer volume controls.\n- Current track information.\n\n## 14.5 Sessions\n\nProvide:\n\n- Session presets.\n- Session timer.\n- Custom session creation.\n- Session progression editor.\n- Start/pause/resume/stop.\n- Remaining time.\n- Session history.\n\n## 14.6 Settings\n\nProvide:\n\n- Audio output.\n- Bluetooth devices.\n- Wi-Fi configuration.\n- Screen brightness.\n- Display timeout.\n- Battery status.\n- Volume limits.\n- Device information.\n- System restart.\n\n# 15. PRESET MANAGEMENT\n\nImplement persistent presets.\n\nA preset should contain:\n\n- Preset name.\n- Primary frequency.\n- Binaural frequency.\n- Waveform.\n- Binaural volume.\n- Background audio selection.\n- Background volume.\n- Noise selection.\n- Noise volume.\n- Session duration.\n- Sweep configuration.\n- Fade settings.\n\nProvide factory presets and user-created presets.\n\nStore configuration in a structured format such as JSON or another reliable compact representation.\n\nValidate configuration when loading.\n\nRecover safely from corrupt or incomplete configuration files.\n\n# 16. VISUALIZATION\n\nProvide attractive audio visualizations.\n\nIdeas:\n\n- Concentric frequency rings.\n- Oscilloscope-style waveforms.\n- Dual-channel waveforms.\n- Animated frequency indicators.\n- Subtle particle effects.\n- Ambient color transitions.\n\nVisualizations must be lightweight.\n\nNever let rendering interfere with audio timing.\n\nProvide a screen-dimming or reduced-animation mode.\n\n# 17. RELIABILITY AND SAFETY\n\nImportant requirements:\n\n- No clicks or pops during audio startup or shutdown.\n- No abrupt frequency changes.\n- No uncontrolled audio clipping.\n- Smooth fade in/out.\n- Reasonable maximum headphone output.\n- Audio task must not block.\n- SD errors must not crash the device.\n- Wi-Fi loss must not stop the audio engine.\n- Bluetooth disconnection must not crash the device.\n- Touchscreen responsiveness must remain acceptable during playback.\n- Recover safely after power loss.\n- Never automatically resume loud audio after unexpected restart.\n- Do not expose administrative file operations without authorization.\n- Do not permit invalid configuration values.\n\nImplement useful error reporting.\n\nProvide serial diagnostic output during development.\n\nAvoid excessive logging in production.\n\n# 18. DEVELOPMENT PROCESS\n\nFollow an audit-first, incremental implementation strategy.\n\nDo not immediately generate the entire firmware.\n\n## Stage 1 \u2014 Hardware and software audit\n\nBefore changing code:\n\n1. Identify the exact board.\n2. Verify display controller.\n3. Verify capacitive touch controller.\n4. Verify SD card connections.\n5. Produce a GPIO ownership map.\n6. Identify I2S pin options.\n7. Identify battery monitoring options.\n8. Identify onboard audio amplifier routing.\n9. Evaluate Arduino libraries.\n10. Evaluate Bluetooth A2DP support.\n11. Evaluate MP3/WAV decoding.\n12. Evaluate memory requirements.\n\nProduce:\n\n- HARDWARE.md\n- GPIO_MAP.md\n- ARCHITECTURE.md\n- LIBRARY_EVALUATION.md\n- IMPLEMENTATION_PLAN.md\n\nDo not guess when hardware documentation is incomplete.\n\nClearly identify assumptions and required measurements.\n\n## Stage 2 \u2014 Board foundation\n\nImplement:\n\n- Display.\n- Touchscreen.\n- SD card.\n- Wi-Fi.\n- Configuration storage.\n- Basic navigation.\n\nTest each independently.\n\n## Stage 3 \u2014 Stereo audio prototype\n\nImplement:\n\n- I2S output.\n- PCM5102A support.\n- Stereo sine generation.\n- Primary frequency.\n- Binaural frequency.\n- Volume.\n- Mute.\n- Smooth fades.\n\nVerify actual stereo separation using headphones and audio test equipment.\n\n## Stage 4 \u2014 Audio playback and mixing\n\nImplement:\n\n- WAV playback.\n- MP3 playback.\n- Audio mixer.\n- Background audio.\n- Noise generation.\n- Independent layer volumes.\n\nTest sustained playback and resource utilization.\n\n## Stage 5 \u2014 Bluetooth\n\nImplement:\n\n- A2DP Source.\n- Device scanning.\n- Pairing.\n- Remembered devices.\n- Automatic reconnection.\n- Output selection.\n\nTest simultaneous Wi-Fi and Bluetooth.\n\n## Stage 6 \u2014 Session engine\n\nImplement:\n\n- Session timer.\n- Session presets.\n- Frequency sweep.\n- Custom progressions.\n- Fade automation.\n- Persistent sessions.\n\n## Stage 7 \u2014 Web interface\n\nImplement:\n\n- Dashboard.\n- Music library.\n- MP3/WAV upload.\n- File management.\n- Configuration panel.\n- Bluetooth management.\n- Session management.\n- OTA update.\n\nTest using desktop and mobile browsers.\n\n## Stage 8 \u2014 Product refinement\n\nImplement:\n\n- Complete GUI.\n- Animations.\n- Battery monitoring.\n- Screen dimming.\n- Error recovery.\n- Startup behavior.\n- Performance optimization.\n\n# 19. ACCEPTANCE TESTS\n\nThe project is not complete simply because it compiles.\n\nProvide repeatable tests.\n\nAudio:\n- Generate 200 Hz left and 210 Hz right.\n- Verify independent channels.\n- Verify accurate frequency output.\n- Verify smooth frequency changes.\n- Verify mute and fades.\n- Verify no clipping when mixing layers.\n\nPlayback:\n- Play MP3 from SD.\n- Play WAV from SD.\n- Mix background audio with binaural tones.\n- Change volume during playback.\n- Switch tracks.\n- Test long-duration playback.\n\nBluetooth:\n- Pair new headphones.\n- Remember headphones.\n- Restart device.\n- Reconnect automatically.\n- Disconnect and reconnect.\n- Test Wi-Fi coexistence.\n\nWi-Fi:\n- Connect to home network.\n- Recover from network interruption.\n- Start fallback hotspot.\n- Open web interface from mobile.\n- Upload MP3.\n- Upload WAV.\n- Delete and rename files.\n- Verify SD capacity.\n- Verify upload interruption recovery.\n\nGUI:\n- Verify all touch controls.\n- Verify navigation.\n- Verify frequency adjustments.\n- Verify playback controls.\n- Verify session controls.\n- Verify display dimming.\n\nReliability:\n- Run an extended audio playback test.\n- Test SD removal and reinsertion.\n- Test Wi-Fi interruption during playback.\n- Test Bluetooth interruption.\n- Test restart and power recovery.\n- Monitor free heap and task stack usage.\n\nDocument actual results, not assumed success.\n\n# 20. FINAL DELIVERABLES\n\nDeliver a complete Arduino project.\n\nInclude:\n\n- Compilable firmware.\n- Source code organized into modules.\n- PlatformIO or Arduino IDE build instructions.\n- Dependency list with versions.\n- Hardware wiring documentation.\n- GPIO allocation table.\n- DAC and headphone amplifier wiring.\n- Battery connection documentation.\n- Web interface source files.\n- SD card directory documentation.\n- Configuration format documentation.\n- API documentation.\n- Firmware update instructions.\n- Troubleshooting guide.\n- Test results.\n\nProvide a clear bill of materials for any external hardware.\n\nDo not silently omit features that prove difficult.\n\nIf a feature is not feasible on the original ESP32 hardware, explain the limitation and propose a practical alternative.\n\n# 21. IMPLEMENTATION PHILOSOPHY\n\nThis project should prioritize:\n\n1. Audio quality.\n2. Reliability.\n3. Correct hardware integration.\n4. Responsive user experience.\n5. Modular software architecture.\n6. Maintainability.\n7. Attractive design.\n\nAvoid unnecessary complexity.\n\nUse established libraries when appropriate, but verify their actual compatibility.\n\nDo not introduce a cloud dependency.\n\nDo not build a phone application when a responsive local web interface will accomplish the task.\n\nDo not sacrifice audio stability for visual effects.\n\nDo not make unsupported claims about frequency-related health benefits.\n\nThe finished product should be a self-contained, battery-capable, Wi-Fi-managed, Bluetooth-enabled stereo meditation instrument.\n\n**Project identity: RESONANCE**\n\n**Tagline: Find Your Frequency.**",
+  "file": "requests/inbox/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+  "attachments": [],
+  "context": "User pasted the full Resonance specification in chat, then said: 'add that as a ticket and proceed'.",
+  "text_sha256": "2046cc5bc71d61571708aa31a416232650a30260194f73d21f4b4c2ef788207e",
+  "classification": {
+    "proposed_type": "FEATURE",
+    "proposed_source": "override",
+    "normalized_type": "FEATURE",
+    "heuristic_type": "FEATURE",
+    "final_type": "FEATURE",
+    "confidence": "high",
+    "validation": "PASS",
+    "classifier_reason": "request statement is framed as feature: configurable, framework",
+    "correction_reason": null,
+    "normalization_note": null,
+    "evidence": [
+      {
+        "category": "FEATURE",
+        "where": "head",
+        "phrase": "framework",
+        "strength": "strong",
+        "note": "",
+        "sentence": "**Project name:** Resonance **Hardware:** Jingcai / Sunton ESP32-2432S032C-I CYD **Display:** 3.2-inch, 240 \u00d7 320 capacitive touchscreen **Firmware:** Arduino framework / C++ **Primary purpose:** Stan"
+      },
+      {
+        "category": "FEATURE",
+        "where": "head",
+        "phrase": "configurable",
+        "strength": "strong",
+        "note": "",
+        "sentence": "**Project name:** Resonance **Hardware:** Jingcai / Sunton ESP32-2432S032C-I CYD **Display:** 3.2-inch, 240 \u00d7 320 capacitive touchscreen **Firmware:** Arduino framework / C++ **Primary purpose:** Stan"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Build a ",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Build a polished, standalone binaural meditation and ambient audio device called RESONANCE."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "must provide",
+        "strength": "strong",
+        "note": "",
+        "sentence": "The device must provide:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "configurable",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Accurate, independently configurable stereo binaural tone generation."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Wired",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Wired stereo headphone support through an external I2S DAC."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Configurable",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Configurable meditation sessions and frequency progressions."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Persistent configuration",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Persistent configuration and saved presets."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "wiring",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Before wiring the DAC:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Produce",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Produce a complete GPIO ownership table."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Produce",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Produce a verified I2S wiring proposal."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "wiring",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Produce a verified I2S wiring proposal."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "integration",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Safe battery integration."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "provide",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Important: The board does not provide a confirmed battery protection circuit."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "framework",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Use Arduino framework with C++."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement a continuous stereo audio processing engine."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "must support",
+        "strength": "strong",
+        "note": "",
+        "sentence": "The engine must support multiple simultaneous audio sources."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Generate",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Generate independent left and right sine waves."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "configurable",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Coarse adjustment: configurable."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "configurable",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Ranges should be configurable."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "allow",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Never allow invalid or unstable parameter values."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Provide",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Provide preset starting points:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Allow",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Allow custom presets."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement a real-time stereo mixer."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Provide",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Provide a master volume control."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement appropriate clipping prevention and output limiting."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Allow",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Allow independent left/right channel levels and balance."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement EQ only if it can be done without compromising audio performance."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Support",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Support:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "should include",
+        "strength": "strong",
+        "note": "",
+        "sentence": "MP3 support should include common bitrates and sample rates."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement buffered SD reads."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "allow",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Never allow blocking SD reads to starve the audio processing task."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Support",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Support creation and management of playlists."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Support multiple",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Support multiple background tracks and future sound-layer extensions."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement an automation engine independent of the oscillator."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Support",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Support:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Allow",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Allow separate progression of:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Allow",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Allow users to save custom progression profiles."
+      }
+    ],
+    "scores": {
+      "FEATURE": {
+        "head": 2,
+        "body": 115
+      },
+      "BUG": {
+        "head": 0,
+        "body": 8
+      },
+      "CRASH": {
+        "head": 0,
+        "body": 0
+      },
+      "REGRESSION": {
+        "head": 0,
+        "body": 0
+      },
+      "PERFORMANCE": {
+        "head": 0,
+        "body": 2
+      },
+      "REFACTOR": {
+        "head": 0,
+        "body": 4
+      },
+      "BUILD": {
+        "head": 0,
+        "body": 1
+      },
+      "DOCUMENTATION": {
+        "head": 0,
+        "body": 13
+      },
+      "INVESTIGATION": {
+        "head": 0,
+        "body": 13
+      },
+      "PROCESS-CHANGE": {
+        "head": 0,
+        "body": 0
+      }
+    },
+    "evidence_total": 158,
+    "validator": "scripts/request_classification.py"
+  },
+  "links": {
+    "work": [
+      "WORK-000001"
+    ]
+  }
+}
