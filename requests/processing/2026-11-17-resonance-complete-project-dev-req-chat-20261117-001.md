@@ -1246,6 +1246,12 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-18T05:08:47.568938+00:00
+
+> So - In setup mode - it requires a restart and you can't use BT to play sounds, right? If that is the case,then we should have a simplfied UI in Setup mode, let's talk about it. In the SND - Sound library - at the top - there is a '/'. Remove it.
+
+
+
 ### Follow-up 2026-11-18T05:06:37.800361+00:00
 
 > So - when it says 'OFF' - don't put a % after that. It's off -it doesnt matter
@@ -1367,5 +1373,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017
 - Evidence: pending

@@ -171,12 +171,13 @@ void refreshStatus() {
     btaudio::updateList();
     status.btState = static_cast<uint8_t>(btaudio::state());
     strlcpy(status.btPeer, btaudio::peerName(), sizeof(status.btPeer));
-    // The folder is shown relative to the library root.
+    // The folder is shown relative to the library root, without the leading
+    // slash; at the root the line is empty.
     const char* shown = soundDir + strlen(sdcard::kAudioRoot);
+    if (shown[0] == '/') ++shown;
     const size_t shownLength = strlen(shown);
     const size_t fits = sizeof(status.soundDir) - 1;
-    strlcpy(status.soundDir, shownLength == 0 ? "/" : (shownLength > fits ? shown + shownLength - fits : shown),
-            sizeof(status.soundDir));
+    strlcpy(status.soundDir, shownLength > fits ? shown + shownLength - fits : shown, sizeof(status.soundDir));
     status.soundAtRoot = shownLength == 0;
     status.soundHasPrev = soundOffset > 0;
     status.soundHasMore = soundMore;

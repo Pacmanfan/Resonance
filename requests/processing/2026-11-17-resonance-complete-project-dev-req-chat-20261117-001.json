@@ -408,7 +408,8 @@
       "WORK-000013",
       "WORK-000014",
       "WORK-000015",
-      "WORK-000016"
+      "WORK-000016",
+      "WORK-000017"
     ]
   },
   "follow_ups": [
@@ -500,6 +501,11 @@
     {
       "timestamp": "2026-11-18T05:06:37.800361+00:00",
       "text": "So - when it says 'OFF' - don't put a % after that. It's off -it doesnt matter",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-18T05:08:47.568938+00:00",
+      "text": "So - In setup mode - it requires a restart and you can't use BT to play sounds, right? If that is the case,then we should have a simplfied UI in Setup mode, let's talk about it. In the SND - Sound library - at the top - there is a '/'. Remove it.",
       "attachments": []
     }
   ]

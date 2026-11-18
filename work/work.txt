@@ -18,3 +18,4 @@ WORK-000013 | completed | Resonance: consistent font on the frequency step butto
 WORK-000014 | completed | Resonance: previous/next preset buttons in the Frequency Studio | completed/WORK-000014-resonance-previous-next-preset-buttons-i.md | RES-AUDIO-006, RES-GUI-001 | VER-000014
 WORK-000015 | completed | Resonance: noise type button without the percentage | completed/WORK-000015-resonance-noise-type-button-without-the.md | RES-GUI-002 | VER-000015
 WORK-000016 | completed | Resonance: no percentage shown for something that is off | completed/WORK-000016-resonance-no-percentage-shown-for-someth.md | RES-GUI-002 | VER-000016
+WORK-000017 | completed | Resonance: no slash in the sound library's folder line | completed/WORK-000017-resonance-no-slash-in-the-sound-library.md | RES-GUI-002 | VER-000017
