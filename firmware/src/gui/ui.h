@@ -114,7 +114,7 @@ private:
         const char* label;
         uint8_t id;
     };
-    static constexpr uint8_t kMaxButtons = 12;  // the FREQ tab has eleven
+    static constexpr uint8_t kMaxButtons = 14;  // the FREQ tab has thirteen
 
     void drawFrame();
     void drawHeader();
@@ -125,6 +125,7 @@ private:
     void drawBluetooth();
     void drawFrequency();
     void drawFrequencyValues();
+    void redrawButton(uint8_t id);
     void drawSound();
     void drawSoundStatus();
     void drawSessions();
@@ -156,6 +157,8 @@ private:
     char _btLabel[36] = "";
     char _playLabel[14] = "";
     char _noiseLabel[14] = "";
+    char _primaryLabel[14] = "";
+    char _beatLabel[14] = "";
     char _programLabel[24] = "";
     char _durationLabel[20] = "";
     char _fadeLabel[20] = "";

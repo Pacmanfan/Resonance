@@ -108,6 +108,14 @@ For a test file without removing the card:
 python3 tools/serial_put.py some.mp3 CUSTOM/some.mp3   # about 10 kB per second
 ```
 
+## Frequency presets
+
+On the FREQ tab, tap the primary value to step through carrier presets
+(100, Om 136.1, the Solfeggio set, Verdi 432, Concert 440, ...) and tap the
+beat value to step through beat presets (Delta, Theta, Schumann 7.8, Alpha,
+SMR, Beta, Gamma). The buttons below still adjust in steps of 0.1 to 10 Hz.
+The lists are in `lib/resonance_core/src/rc_presets.cpp`.
+
 ## Sessions
 
 On the SESS tab choose the program (tap to cycle: Timer, then the built-in

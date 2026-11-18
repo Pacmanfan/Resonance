@@ -13,3 +13,4 @@ WORK-000008 | completed | Resonance: Bluetooth device list by signal strength, r
 WORK-000009 | completed | Resonance Stage 6: session engine, timers, sweeps, fades | completed/WORK-000009-resonance-stage-6-session-engine-timers.md | RES-SESS-001, RES-SESS-002, RES-SESS-003, RES-SESS-004, RES-SESS-005 | VER-000009
 WORK-000010 | completed | Resonance: selectable length for session programs | completed/WORK-000010-resonance-selectable-length-for-session.md | RES-SESS-002, RES-SESS-003 | VER-000010
 WORK-000011 | completed | Resonance enclosure: parametric case draft for board and 90x60x11 battery | completed/WORK-000011-resonance-enclosure-parametric-case-draf.md | RES-HW-007 | VER-000011
+WORK-000012 | completed | Resonance: frequency presets in the Frequency Studio | completed/WORK-000012-resonance-frequency-presets-in-the-frequ.md | RES-AUDIO-006, RES-PROC-006 | VER-000012

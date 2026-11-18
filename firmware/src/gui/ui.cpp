@@ -3,6 +3,7 @@
 #include <Arduino.h>
 
 #include "../version.h"
+#include "rc_presets.h"
 #include "theme.h"
 
 namespace gui {
@@ -42,6 +43,8 @@ constexpr uint8_t kIdSoundVolUp = 65;
 constexpr uint8_t kIdNoise = 70;
 constexpr uint8_t kIdNoiseDown = 71;
 constexpr uint8_t kIdNoiseUp = 72;
+constexpr uint8_t kIdPrimaryPreset = 90;  // the value itself: tap to step through the presets
+constexpr uint8_t kIdBeatPreset = 91;
 constexpr uint8_t kIdSessionProgram = 80;
 constexpr uint8_t kIdSessionDuration = 81;
 constexpr uint8_t kIdSessionFade = 82;
@@ -359,8 +362,9 @@ void Ui::drawBluetooth() {
 void Ui::drawFrequency() {
     static const char* const kPrimaryLabels[] = {"-10", "-1", "+1", "+10"};
     static const char* const kBeatLabels[] = {"-1", "-0.1", "+0.1", "+1"};
-    label("Primary (left ear)", 12, kContentTop + 4, kTextDim, kFontSmall);
-    label("Binaural beat", 12, kContentTop + 88, kTextDim, kFontSmall);
+    // The two values are buttons: a tap steps to the next preset.
+    addButton(8, kContentTop + 18, 224, 28, _primaryLabel, kIdPrimaryPreset);
+    addButton(8, kContentTop + 102, 224, 28, _beatLabel, kIdBeatPreset);
     for (uint8_t i = 0; i < 4; ++i) {
         const int16_t x = 8 + i * 57;
         addButton(x, kContentTop + 48, 53, 34, kPrimaryLabels[i], i);
@@ -377,14 +381,31 @@ void Ui::drawFrequency() {
     drawFrequencyValues();
 }
 
+void Ui::redrawButton(uint8_t id) {
+    for (uint8_t i = 0; i < _buttonCount; ++i) {
+        if (_buttons[i].id == id) drawButton(_buttons[i], false);
+    }
+}
+
+// The two values and, above each, the name of the preset it is on.
 void Ui::drawFrequencyValues() {
-    char text[24];
-    _lcd.fillRect(0, kContentTop + 18, kScreenW, 28, kBackground);
-    _lcd.fillRect(0, kContentTop + 102, kScreenW, 28, kBackground);
-    snprintf(text, sizeof(text), "%.1f Hz", static_cast<double>(_settings.primaryHz));
-    centered(text, kScreenW / 2, kContentTop + 32, kCyan, kBackground, kFontValue);
-    snprintf(text, sizeof(text), "%.1f Hz", static_cast<double>(_settings.beatHz));
-    centered(text, kScreenW / 2, kContentTop + 116, kViolet, kBackground, kFontValue);
+    char text[32];
+    snprintf(_primaryLabel, sizeof(_primaryLabel), "%.1f Hz", static_cast<double>(_settings.primaryHz));
+    snprintf(_beatLabel, sizeof(_beatLabel), "%.1f Hz", static_cast<double>(_settings.beatHz));
+    redrawButton(kIdPrimaryPreset);
+    redrawButton(kIdBeatPreset);
+
+    _lcd.fillRect(0, kContentTop + 2, kScreenW, 15, kBackground);
+    const char* primaryName = rc::primaryPresetName(_settings.primaryHz);
+    if (primaryName != nullptr) snprintf(text, sizeof(text), "Primary: %s", primaryName);
+    else snprintf(text, sizeof(text), "Primary (left ear)");
+    label(text, 12, kContentTop + 3, primaryName != nullptr ? kCyan : kTextDim, kFontSmall);
+
+    _lcd.fillRect(0, kContentTop + 86, kScreenW, 15, kBackground);
+    const char* beatName = rc::beatPresetName(_settings.beatHz);
+    if (beatName != nullptr) snprintf(text, sizeof(text), "Beat: %s", beatName);
+    else snprintf(text, sizeof(text), "Binaural beat");
+    label(text, 12, kContentTop + 87, beatName != nullptr ? kViolet : kTextDim, kFontSmall);
 }
 
 void Ui::drawSound() {
@@ -563,6 +584,16 @@ void Ui::onButton(uint8_t id) {
     } else if (id < 8) {
         _settings.beatHz = rc::sanitizeFrequency(_settings.beatHz + kBeatSteps[id - 4], rc::kBeatMinHz,
                                                  rc::kBeatMaxHz, rc::kBeatDefaultHz);
+        _settingsDirty = true;
+        _pending = Event::ToneChanged;
+        drawFrequencyValues();
+    } else if (id == kIdPrimaryPreset) {
+        _settings.primaryHz = rc::nextPrimaryPreset(_settings.primaryHz).hz;
+        _settingsDirty = true;
+        _pending = Event::ToneChanged;
+        drawFrequencyValues();
+    } else if (id == kIdBeatPreset) {
+        _settings.beatHz = rc::nextBeatPreset(_settings.beatHz).hz;
         _settingsDirty = true;
         _pending = Event::ToneChanged;
         drawFrequencyValues();

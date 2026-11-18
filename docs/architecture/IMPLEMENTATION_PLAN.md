@@ -13,6 +13,7 @@
 | 2 | Board foundation | Done on the board: picture, touch and both modes confirmed by the operator; SD card mounts |
 | 3 | Audio prototype over Bluetooth | Done: the operator connected a headset and heard the tone |
 | 4 | Playback and mixing | **Implemented. WAV and MP3 decode on the board into the mixer; mixer, limiter, noise, WAV and resampler verified in host tests. Not yet heard. Playlists, shuffle, repeat and previous/next are not built** |
+| — | Frequency presets (RES-AUDIO-006) | Built in 0.5.2: tap a value on FREQ to cycle presets. User-defined presets are not built |
 | 5 | Bluetooth device management | Not started |
 | 6 | Session engine | **Core implemented: timers, four factory programs, sweeps, pause, stop, end fades; verified in host tests and started by the operator on the device. Not built: sessions made by the user, their storage on the card, the editor, session history** |
 | 7 | Web interface (Setup mode) | Not started |

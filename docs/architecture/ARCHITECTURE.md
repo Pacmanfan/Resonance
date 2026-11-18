@@ -103,6 +103,7 @@ firmware/
     rc_wav.h/.cpp             WAV header and PCM conversion
     rc_resample.h/.cpp        conversion to 44.1 kHz
     rc_session.h/.cpp         sessions: stages, sweeps, runner, factory programs
+    rc_presets.h/.cpp         frequency presets for the Frequency Studio
   src/
     main.cpp                  start-up, mode, status, serial diagnostics
     version.h
@@ -159,6 +160,13 @@ planned (ADR-000204).
   `.mp3` files, four to a page; tapping a file plays it. Below are
   play/pause with the background volume and the track's elapsed time. The
   noise control (type and volume) is on the FREQ tab.
+- On the FREQ tab the two frequency values are themselves buttons: a tap
+  steps to the next preset above the current value and wraps at the top
+  (fourteen carriers, nine beats covering every band of RES-AUDIO-006). The
+  line above a value shows the preset's name while the value is on one. A
+  preset only sets the value; the step buttons still move it freely. Names
+  identify a frequency or its tradition and promise no effect
+  (RES-PROC-006); a host test refuses names that would.
 - The SESS tab chooses a program (the timer or a factory program), the
   timer's length and the fade, and starts it; while it runs it shows the
   time left, the stage and the beat frequency, with Pause and Stop. Home
