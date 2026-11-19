@@ -70,7 +70,7 @@ struct Status {
     bool soundHasPrev = false;      // an earlier page exists
     bool soundHasMore = false;      // a later page exists
     uint8_t soundCount = 0;         // entries on this page
-    char soundEntries[4][22] = {};  // names, shortened for display
+    char soundEntries[4][48] = {};  // names; the list trims them to the width of its buttons
     bool soundIsDir[4] = {};
     uint8_t playerState = 0;        // player::State
     char trackName[22] = "";
@@ -177,7 +177,7 @@ private:
     char _programLabel[24] = "";
     char _durationLabel[20] = "";
     char _fadeLabel[20] = "";
-    char _entryLabels[4][24] = {};
+    char _entryLabels[4][52] = {};
     Event _pending = Event::None;
     uint32_t _lastActivityMs = 0;
     uint32_t _touchCount = 0;

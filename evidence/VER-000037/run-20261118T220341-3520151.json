@@ -1,0 +1,264 @@
+{
+ "run_id": "20261118T220341-3520151",
+ "runner_version": 2,
+ "started_at": "2026-11-19T03:03:41.843427+00:00",
+ "wall_seconds": 0.2,
+ "tier": "t2",
+ "scope": "all",
+ "changes_from": "request 2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+ "changed": [
+  "firmware/src/gui/ui.cpp",
+  "firmware/src/gui/ui.h",
+  "firmware/src/version.h",
+  "requests/inbox/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.json",
+  "requests/inbox/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+  "requests/processing/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.json",
+  "requests/processing/2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+  "work/active/WORK-000036-sound-list-entries-in-one-font.md",
+  "work/work.txt"
+ ],
+ "unmapped": [
+  "firmware/src/gui/ui.cpp",
+  "firmware/src/gui/ui.h",
+  "firmware/src/version.h"
+ ],
+ "head": "321ed2fed43c041e85438364e1419615b7602484",
+ "describe": "321ed2f",
+ "provenance": {
+  "dirty": true,
+  "dirty_paths": 6,
+  "diff_sha256": "72c11cfcf5c87c084b0467ff1a0084e813985cc22dc1ae851881e4fa3420b267",
+  "python": "3.12.3",
+  "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.39",
+  "git": "git version 2.43.0",
+  "manifest_sha256": "b1a5871bea32d3bdbc2bd098489ccf7c23aedf141559628278dbdb493bbc5c73",
+  "config_sha256": "df47285af156e1e87c8e8234907f0ec8ab9caf4a3dd3a1c8514394fb19a63f4d",
+  "build_system": "none"
+ },
+ "build_dir": "/home/dev/Resonance/build/debug",
+ "jobs": 8,
+ "host": "dev",
+ "request": "2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+ "request_fingerprint": "b4edd3445f24902bf276db0347a5bbeafb7274304263603990f2b31a64c6fba1",
+ "request_code_paths": [
+  "firmware/src/gui/ui.cpp",
+  "firmware/src/gui/ui.h",
+  "firmware/src/version.h"
+ ],
+ "allow_stale": false,
+ "classification": "PASS",
+ "warnings": [],
+ "groups": [
+  {
+   "suite": "devsys",
+   "group": "structure",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 0.11627796699758619,
+   "wall": 0.11627796699758619,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "t0 (always)"
+   ],
+   "command": "python3 scripts/devsys.py verify-structure",
+   "status": "PASS"
+  },
+  {
+   "suite": "audits",
+   "group": "drift",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 0.21780194097664207,
+   "wall": 0.21780194097664207,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "t0 (always)"
+   ],
+   "command": "python3 scripts/drift_detect.py",
+   "status": "PASS"
+  },
+  {
+   "suite": "audits",
+   "group": "doc_integrity",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 0.06544864398892969,
+   "wall": 0.06544864398892969,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "t0 (always)"
+   ],
+   "command": "python3 scripts/doc_integrity.py",
+   "status": "PASS"
+  },
+  {
+   "suite": "audits",
+   "group": "invariants",
+   "shards": 1,
+   "statuses": [
+    "PASS"
+   ],
+   "seconds": 0.06795017095282674,
+   "wall": 0.06795017095282674,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [],
+   "reasons": [
+    "t0 (always)"
+   ],
+   "command": "python3 scripts/invariant_check.py",
+   "status": "PASS"
+  },
+  {
+   "suite": "scripts",
+   "group": "unit",
+   "shards": 1,
+   "statuses": [
+    "CACHED"
+   ],
+   "seconds": 0.0,
+   "wall": 0.0,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [
+    "unchanged since run 20261117T214430-183455 (2026-11-18T02:47:48)"
+   ],
+   "reasons": [
+    "all scope"
+   ],
+   "command": "python3 -m unittest discover -s scripts/tests",
+   "status": "CACHED"
+  },
+  {
+   "suite": "audit_py",
+   "group": "unit",
+   "shards": 1,
+   "statuses": [
+    "CACHED"
+   ],
+   "seconds": 0.0,
+   "wall": 0.0,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [
+    "unchanged since run 20261117T214047-148078 (2026-11-18T02:44:05)"
+   ],
+   "reasons": [
+    "all scope"
+   ],
+   "command": "python3 -m unittest discover -s tools/audit_system/tests",
+   "status": "CACHED"
+  },
+  {
+   "suite": "resonance_core",
+   "group": "unit",
+   "shards": 1,
+   "statuses": [
+    "CACHED"
+   ],
+   "seconds": 0.0,
+   "wall": 0.0,
+   "cases": 0,
+   "failed": [],
+   "flaky": [],
+   "expected": [],
+   "detail": [
+    "unchanged since run 20261118T215528-3502083 (2026-11-19T02:55:43)"
+   ],
+   "reasons": [
+    "all scope"
+   ],
+   "command": "python3 firmware/tools/host_tests.py",
+   "status": "CACHED"
+  }
+ ],
+ "jobs_detail": [
+  {
+   "label": "devsys/structure",
+   "status": "PASS",
+   "seconds": 0.12,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/41-3520151/001/output.log",
+   "cases": []
+  },
+  {
+   "label": "audits/drift",
+   "status": "PASS",
+   "seconds": 0.22,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/41-3520151/003/output.log",
+   "cases": []
+  },
+  {
+   "label": "audits/doc_integrity",
+   "status": "PASS",
+   "seconds": 0.07,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/41-3520151/004/output.log",
+   "cases": []
+  },
+  {
+   "label": "audits/invariants",
+   "status": "PASS",
+   "seconds": 0.07,
+   "rc": 0,
+   "detail": "",
+   "log": "/home/dev/Resonance/tmp/tr/41-3520151/002/output.log",
+   "cases": []
+  },
+  {
+   "label": "scripts/unit",
+   "status": "CACHED",
+   "seconds": 0.0,
+   "rc": null,
+   "detail": "unchanged since run 20261117T214430-183455 (2026-11-18T02:47:48)",
+   "log": null,
+   "cases": []
+  },
+  {
+   "label": "audit_py/unit",
+   "status": "CACHED",
+   "seconds": 0.0,
+   "rc": null,
+   "detail": "unchanged since run 20261117T214047-148078 (2026-11-18T02:44:05)",
+   "log": null,
+   "cases": []
+  },
+  {
+   "label": "resonance_core/unit",
+   "status": "CACHED",
+   "seconds": 0.0,
+   "rc": null,
+   "detail": "unchanged since run 20261118T215528-3502083 (2026-11-19T02:55:43)",
+   "log": null,
+   "cases": []
+  }
+ ]
+}

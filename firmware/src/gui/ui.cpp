@@ -511,6 +511,24 @@ void Ui::drawSound() {
     for (uint8_t i = 0; i < _status.soundCount && i < 4; ++i) {
         snprintf(_entryLabels[i], sizeof(_entryLabels[i]), "%s%s", _status.soundIsDir[i] ? "> " : "",
                  _status.soundEntries[i]);
+        // Every entry is drawn in the same font. A file is shown without
+        // its extension, and a name still too wide for the button is cut
+        // and ends in two dots. (Names used to be cut to a fixed number of
+        // characters; those with wide letters then fell back to the small
+        // font, one entry in a list of otherwise equal ones.)
+        char* text = _entryLabels[i];
+        if (!_status.soundIsDir[i]) {
+            char* dot = strrchr(text, '.');
+            if (dot != nullptr && dot != text) *dot = '\0';
+        }
+        _lcd.setFont(kFontText);
+        size_t length = strlen(text);
+        while (length > 3 && _lcd.textWidth(text) > 232 - 8) {
+            --length;
+            text[length] = '\0';
+            text[length - 1] = '.';
+            text[length - 2] = '.';
+        }
         addButton(4, static_cast<int16_t>(kContentTop + 19 + i * 35), 232, 32, _entryLabels[i],
                   static_cast<uint8_t>(kIdSoundEntry + i));
     }

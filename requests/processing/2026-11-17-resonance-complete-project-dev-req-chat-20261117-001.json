@@ -427,7 +427,8 @@
       "WORK-000032",
       "WORK-000033",
       "WORK-000034",
-      "WORK-000035"
+      "WORK-000035",
+      "WORK-000036"
     ]
   },
   "follow_ups": [
@@ -624,6 +625,11 @@
     {
       "timestamp": "2026-11-19T01:15:06.571595+00:00",
       "text": "It is still stuttering badly when playing a file. Case: I was wrong about shell thickness; the top and bottom are thick enough, but the walls should be thicker. Give a next revision and display it.",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-19T03:02:36.491655+00:00",
+      "text": "The last item on each of the sound library lists is in a smaller font (the last oceans file, the second to last ambient). Check the draw code and address this.",
       "attachments": []
     }
   ]
