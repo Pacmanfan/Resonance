@@ -1,14 +1,26 @@
 # Resonance enclosure
 
 **Requirement:** RES-HW-007 (`docs/requirements/resonance.md`)
-**Sources:** `resonance_case_v3.scad` (the case), `resonance_case_v2.scad`, `resonance_case.scad` (earlier versions), `esp32_2432s032.scad` (reference
+**Sources:** `resonance_case_v4.scad` (the case), `resonance_case_v3.scad`, `resonance_case_v2.scad`, `resonance_case.scad` (earlier versions), `esp32_2432s032.scad` (reference
 model of the board), `battery.scad` (reference model of the cell). OpenSCAD,
 parametric.
-**Status:** version 3 (`resonance_case_v3.scad`) is the current design; it
+**Status:** version 4 (`resonance_case_v4.scad`) is the current design; it
 renders as valid solids and **has not been printed**. Version 1
 (`resonance_case.scad`) was printed once on 2026-11-18: its USB-C, microSD
 and button openings lined up with the board. The sections from "How it goes
 together" to "Hardware" and "The power button" below describe version 1.
+
+## Version 4
+
+`resonance_case_v4.scad`: version 3 with side walls of **2.0 mm** instead of
+1.5 mm (operator: the faces are thick enough, the walls were not). Front and
+back faces stay 1.5 mm. The inside is unchanged; the outside is
+106 × 67 × 25.1 mm. Everything said of versions 3 and 2 below applies. Not
+printed.
+
+![Version 4, front](v4_front.png)
+![Version 4, back](v4_back.png)
+![Version 4, exploded](v4_exploded.png)
 
 ## Version 3
 

@@ -425,7 +425,8 @@
       "WORK-000030",
       "WORK-000031",
       "WORK-000032",
-      "WORK-000033"
+      "WORK-000033",
+      "WORK-000034"
     ]
   },
   "follow_ups": [
@@ -617,6 +618,11 @@
     {
       "timestamp": "2026-11-18T21:20:27.720498+00:00",
       "text": "Case v3 looks good. Make a rounded hole for the USB instead of a rectangular cutout; increase the rounding on all edges.",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-19T01:15:06.571595+00:00",
+      "text": "It is still stuttering badly when playing a file. Case: I was wrong about shell thickness; the top and bottom are thick enough, but the walls should be thicker. Give a next revision and display it.",
       "attachments": []
     }
   ]
