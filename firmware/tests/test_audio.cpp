@@ -12,10 +12,10 @@ using namespace rc;
 namespace {
 
 struct Rig {
-    std::vector<int16_t> storage;
+    std::vector<uint32_t> storage;
     FrameRing ring;
     AudioEngine engine;
-    Rig() : storage(4096 * 2), ring(storage.data(), 4096), engine(ring) {}
+    Rig() : storage(4096), ring(storage.data(), 4096), engine(ring) {}
 };
 
 std::vector<int16_t> render(AudioEngine& engine, size_t frames) {
@@ -56,7 +56,7 @@ std::vector<int16_t> renderWithBackground(Rig& rig, size_t frames, int16_t left,
 }  // namespace
 
 TEST(ring_delivers_what_was_written_in_order_across_the_wrap) {
-    int16_t storage[8 * 2];
+    uint32_t storage[8];
     FrameRing ring(storage, 8);
     CHECK(ring.capacity() == 8 && ring.available() == 0 && ring.space() == 8);
     int16_t in[6 * 2], out[6 * 2];
@@ -75,7 +75,7 @@ TEST(ring_delivers_what_was_written_in_order_across_the_wrap) {
 }
 
 TEST(ring_refuses_more_than_it_holds_and_discard_empties_it) {
-    int16_t storage[4 * 2];
+    uint32_t storage[4];
     FrameRing ring(storage, 4);
     const int16_t in[6 * 2] = {1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6};
     CHECK(ring.write(in, 6) == 4);

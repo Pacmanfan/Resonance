@@ -1,0 +1,36 @@
+{
+ "work": "WORK-000035",
+ "runs": [
+  {
+   "at": "2026-11-19T02:55:57.219840+00:00",
+   "verdict": "PASS",
+   "gate_version": 3,
+   "work": "WORK-000035",
+   "request": "2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+   "request_id": "REQ-CHAT-20261117-001",
+   "request_fingerprint": "9e27685c5f5ada9a4e39184b149638796f3306fb12d224b4c645040f6e6b73bc",
+   "request_code_paths": [
+    "firmware/lib/resonance_core/src/rc_ring.h",
+    "firmware/src/audio/bt_audio.cpp",
+    "firmware/src/audio/bt_audio.h",
+    "firmware/src/audio/player.cpp",
+    "firmware/src/audio/player.h",
+    "firmware/src/main.cpp",
+    "firmware/src/storage/sdcard.cpp",
+    "firmware/src/version.h",
+    "firmware/tests/test_audio.cpp"
+   ],
+   "test_runs": [
+    "20261118T215528-3502083"
+   ],
+   "evidence": [
+    "VER-000036"
+   ],
+   "head": "c2178745ad392138d9f117b4b6a763bd044067af",
+   "agent_id": "agent-dev-20261117205050-9ef7a9",
+   "fails": [],
+   "warns": [],
+   "passes": 13
+  }
+ ]
+}

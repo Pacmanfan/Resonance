@@ -314,3 +314,33 @@ above.
 | M10 | Behaviour on battery: run time, cut-off, light-load shutdown | Section 8 |
 | M11 | Power at radio start: repeat a cold start on a direct USB port and with a battery connected | Section 8 |
 | M12 | ~~microSD with a card inserted~~ **Done: mounts** | Section 4 |
+
+## Data memory and the Bluetooth stream (measured 2026-11-18, firmware 0.8.1)
+
+The ESP32 has two kinds of free memory. Ordinary data (`malloc`) comes from
+the data regions. A further region of about 29 kB allows only 32-bit access
+and cannot hold ordinary data, but `ESP.getFreeHeap()` counts it, so that
+figure reads about 29 kB too high. The firmware's `heap` report and the
+figure on the Settings screen now show data memory only; `caps` lists every
+region.
+
+The Bluetooth stack takes a buffer of about 4.1 kB of data memory for every
+audio packet, usually two packets every 30 ms. When it cannot get the second
+one it drops that audio without any error. Up to firmware 0.8.0 an MP3
+decoder (about 37 kB) left 8 kB of data memory, in pieces of at most 4.3 kB:
+the stream fell from 44100 to about 29900 frames a second, heard as a
+stutter while an MP3 was playing or paused. WAV playback and tones alone
+were not affected.
+
+Two changes give that memory back:
+
+| Change | Data memory gained |
+|---|---|
+| The 16 kB ring between decoder and audio engine holds one 32-bit word per frame and lives in the 32-bit-only region (`rc_ring.h`, `main.cpp`) | 16 kB |
+| The card is mounted for two open files instead of four; each costs 4 kB from the moment of mounting (`sdcard.cpp`) | 8 kB |
+
+Measured with an MP3 playing over Bluetooth: 33 kB of data memory free
+(lowest 24 kB), 44100 frames a second during play, pause and after stop.
+The `bt` report prints the frames a second the stack asks for; anything
+clearly below 44100 means audio is being dropped. **Keep at least about
+16 kB of data memory free while an MP3 plays** when adding features.

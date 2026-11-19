@@ -46,6 +46,12 @@ volatile uint32_t lastCallUs = 0;
 volatile uint32_t worstGapUs = 0;
 volatile uint32_t worstRenderUs = 0;
 volatile uint32_t longGaps = 0;
+volatile uint32_t framesAsked = 0;
+volatile uint32_t calls = 0;
+volatile uint32_t bursts = 0;
+volatile uint32_t smallestCall = 0xFFFFFFFFu;
+volatile uint32_t largestCall = 0;
+uint32_t statsSinceUs = 0;
 
 // The library keeps its state machine protected; scanning again after a
 // disconnect needs access to it.
@@ -90,9 +96,14 @@ int32_t provideFrames(Frame* frames, int32_t frameCount) {
         if (gap < 2000000) {
             if (gap > worstGapUs) worstGapUs = gap;
             if (gap > 60000) ++longGaps;
+            if (gap > 5000) ++bursts;
         }
     }
     lastCallUs = now;
+    framesAsked += static_cast<uint32_t>(frameCount);
+    ++calls;
+    if (static_cast<uint32_t>(frameCount) < smallestCall) smallestCall = static_cast<uint32_t>(frameCount);
+    if (static_cast<uint32_t>(frameCount) > largestCall) largestCall = static_cast<uint32_t>(frameCount);
     engine->render(reinterpret_cast<int16_t*>(frames), static_cast<size_t>(frameCount));
     const uint32_t took = micros() - now;
     if (took > worstRenderUs) worstRenderUs = took;
@@ -243,7 +254,17 @@ void disconnect() {
 const char* peerName() { return chosenName; }
 
 StreamStats takeStreamStats() {
-    const StreamStats stats = {worstGapUs / 1000u, worstRenderUs, longGaps};
+    const uint32_t nowUs = micros();
+    const uint32_t spanUs = nowUs - statsSinceUs;
+    const StreamStats stats = {worstGapUs / 1000u, worstRenderUs, longGaps,
+                               spanUs > 0 ? static_cast<uint32_t>(static_cast<uint64_t>(framesAsked) * 1000000u / spanUs) : 0,
+                               calls, smallestCall, largestCall, bursts};
+    bursts = 0;
+    statsSinceUs = nowUs;
+    framesAsked = 0;
+    calls = 0;
+    smallestCall = 0xFFFFFFFFu;
+    largestCall = 0;
     worstGapUs = 0;
     worstRenderUs = 0;
     longGaps = 0;

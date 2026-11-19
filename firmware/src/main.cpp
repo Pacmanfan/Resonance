@@ -4,6 +4,7 @@
 // (ADR-000204): Play starts Bluetooth and never Wi-Fi, Setup starts Wi-Fi and
 // never Bluetooth. No audio exists yet, so nothing can start playing.
 #include <Arduino.h>
+#include <esp_heap_caps.h>
 
 #include "gui/display.h"
 #include "gui/ui.h"
@@ -26,9 +27,18 @@ namespace {
 
 rc::Settings settings;
 // The engine and the ring that carries decoded sound to it. 4096 frames are
-// 93 ms of audio and 16 kB.
+// 93 ms of audio and 16 kB. The storage is taken from the region that only
+// allows 32-bit access (about 29 kB that nothing else can use), so that it
+// does not take data memory from the Bluetooth stack: with an MP3 decoder
+// loaded there were only 8 kB of data memory left, the stack could not get
+// a buffer for every packet, and a third of the sound was dropped.
 constexpr uint32_t kRingFrames = 4096;
-int16_t ringStorage[kRingFrames * 2];
+uint32_t* allocateRing() {
+    void* p = heap_caps_malloc(kRingFrames * sizeof(uint32_t), MALLOC_CAP_EXEC | MALLOC_CAP_32BIT);
+    if (p == nullptr) p = malloc(kRingFrames * sizeof(uint32_t));
+    return static_cast<uint32_t*>(p);
+}
+uint32_t* ringStorage = allocateRing();
 rc::FrameRing ring(ringStorage, kRingFrames);
 rc::AudioEngine audio(ring);
 
@@ -98,10 +108,14 @@ void markSettingsChanged() {
     settingsChangedMs = millis();
 }
 
+// Data memory: what malloc() can give. ESP.getFreeHeap() also counts the
+// region that only allows 32-bit access, which ordinary data cannot use,
+// and so reads about 29 kB too high (that hid the cause of a stutter).
 void printHeap(const char* stage) {
     Serial.printf("HEAP %-22s free %6lu  min %6lu  largest %6lu\n", stage,
-                  static_cast<unsigned long>(ESP.getFreeHeap()), static_cast<unsigned long>(ESP.getMinFreeHeap()),
-                  static_cast<unsigned long>(ESP.getMaxAllocHeap()));
+                  static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DEFAULT)),
+                  static_cast<unsigned long>(heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT)),
+                  static_cast<unsigned long>(heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT)));
 }
 
 void printReport() {
@@ -199,7 +213,7 @@ void refreshStatus() {
     status.wifiState = static_cast<uint8_t>(wifilink::state());
     wifilink::address(status.address, sizeof(status.address));
     status.network = wifilink::networkName();
-    status.freeHeap = ESP.getFreeHeap();
+    status.freeHeap = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
     status.resetReason = board::resetReason();
     status.unexpectedReset = board::resetWasUnexpected();
     status.radioBlocked = radioBlocked;
@@ -503,12 +517,15 @@ void runDisplayBenchmark() {
 }
 
 // Serial diagnostics, for development (RES-17 "serial diagnostic output").
-//   report | heap | bench | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear
+//   report | heap | caps | bench | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear
 void runCommand(char* line) {
     if (strcmp(line, "report") == 0) {
         printReport();
     } else if (strcmp(line, "bench") == 0) {
         runDisplayBenchmark();
+    } else if (strcmp(line, "caps") == 0) {
+        // Every memory region, for diagnostics.
+        heap_caps_print_heap_info(MALLOC_CAP_DEFAULT);
     } else if (strcmp(line, "heap") == 0) {
         printHeap("now");
     } else if (strcmp(line, "scan") == 0) {
@@ -551,6 +568,10 @@ void runCommand(char* line) {
         startSession();
     } else if (strcmp(line, "session stop") == 0) {
         session.stop();
+    } else if (strcmp(line, "pause") == 0) {
+        player::pause();
+    } else if (strcmp(line, "resume") == 0) {
+        player::resume();
     } else if (strcmp(line, "stop") == 0) {
         player::stop();
     } else if (strcmp(line, "mktest") == 0) {
@@ -563,6 +584,11 @@ void runCommand(char* line) {
         Serial.printf("STREAM worst gap %lu ms, worst render %lu us, %lu long gap(s), %lu underrun(s) since last asked\n",
                       static_cast<unsigned long>(stats.worstGapMs), static_cast<unsigned long>(stats.worstRenderUs),
                       static_cast<unsigned long>(stats.longGaps), static_cast<unsigned long>(audio.underruns()));
+        Serial.printf("STREAM %lu tick(s), task tick %lu ms, clock %lu ms\n", static_cast<unsigned long>(stats.bursts),
+                      static_cast<unsigned long>(xTaskGetTickCount() * portTICK_PERIOD_MS), static_cast<unsigned long>(millis()));
+        Serial.printf("STREAM %lu frames/s in %lu request(s) of %lu..%lu frames\n",
+                      static_cast<unsigned long>(stats.framesPerSecond), static_cast<unsigned long>(stats.calls),
+                      static_cast<unsigned long>(stats.smallestCall), static_cast<unsigned long>(stats.largestCall));
     } else if (strncmp(line, "bt connect ", 11) == 0) {
         btaudio::connect(static_cast<uint8_t>(atoi(line + 11)));
     } else if (strcmp(line, "radio") == 0) {
@@ -585,7 +611,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | bench | scan | radio | mktest | put <path> <bytes> | play <path> | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | caps | bench | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 

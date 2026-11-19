@@ -35,9 +35,11 @@ const char* const kTree[] = {
 };
 
 bool mount() {
-    // Three open files at most: one being played, one directory being
-    // listed, one being written.
-    mounted = SD.begin(pins::kSdCs, sdSpi(), 20000000, "/sd", 4, false);
+    // Two open files at most: one being played, one being written (a
+    // directory being listed is not counted). Every file the card may have
+    // open costs 4 kB of data memory from the moment it is mounted, and
+    // that memory is needed by the Bluetooth stack while an MP3 plays.
+    mounted = SD.begin(pins::kSdCs, sdSpi(), 20000000, "/sd", 2, false);
     if (!mounted) {
         refresh();
         return false;

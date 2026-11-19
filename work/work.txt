@@ -36,3 +36,4 @@ WORK-000031 | completed | Enclosure version 2: snap-fit, flush glass, no divider
 WORK-000032 | completed | Enclosure version 3: window to the measured glass | completed/WORK-000032-enclosure-version-3-window-to-the-measur.md | RES-HW-007 | VER-000033
 WORK-000033 | completed | Enclosure v3: rounded USB-C hole, larger edge radii | completed/WORK-000033-enclosure-v3-rounded-usb-c-hole-larger-e.md | RES-HW-007 | VER-000034
 WORK-000034 | completed | Enclosure version 4: 2 mm walls | completed/WORK-000034-enclosure-version-4-2-mm-walls.md | RES-HW-007 | VER-000035
+WORK-000035 | completed | Stutter while a file is loaded | completed/WORK-000035-stutter-while-a-file-is-loaded.md | RES-PLAY-003 | VER-000036

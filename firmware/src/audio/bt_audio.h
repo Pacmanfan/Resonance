@@ -53,6 +53,11 @@ struct StreamStats {
     uint32_t worstGapMs;     // longest time between two requests for audio
     uint32_t worstRenderUs;  // longest time one request took to fill
     uint32_t longGaps;       // requests that came more than 60 ms after the previous one
+    uint32_t framesPerSecond;  // audio asked for; 44100 when the stream keeps pace
+    uint32_t calls;
+    uint32_t smallestCall;   // frames in the smallest and the largest request
+    uint32_t largestCall;
+    uint32_t bursts;         // groups of requests (one per timer tick of the stack)
 };
 StreamStats takeStreamStats();
 
