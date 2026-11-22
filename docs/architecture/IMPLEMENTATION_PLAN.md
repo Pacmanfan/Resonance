@@ -140,6 +140,33 @@ custom fade length.
 | 8.3 | The acceptance run of the request §19, recorded as executed or not run |
 | 8.4 | Deliverable documents of RES-DOC-001 |
 
+## Mindforge feature integration (operator brief, 2026-11-22)
+
+Six phases on top of the stages above. The default binaural experience stays
+as it is; everything here is off until asked for.
+
+| Phase | Content | State |
+|---|---|---|
+| 1 | DSP foundation: channel phase offset and inversion, golden partials, phase sweep, exponential and custom frequency sweeps (RES-AUDIO-013..015, RES-SESS-006) | **Built (0.9.0, WORK-000038).** Host tests pass; with the new controls at rest the output is bit-identical to 0.8.2. Reached over the serial port only (`tone ...`, `sweep ...`); screens come in phase 5. Not yet heard |
+| 2 | Session engine: user sessions, progressive descent, storage, validation | Not started |
+| 3 | Audio layers: layer mixer, guided voice, crossfades | Not started |
+| 4 | Breathing pacer, Solfeggio sequences | Not started |
+| 5 | Screens: session editor, layer mixer, breathing, access to the Lab | Not started |
+| 6 | Resonance Lab: bilateral timing, stereo width, interaural delay, A/B | Not started |
+
+Render cost measured on the board (`bench audio`, one second of audio in
+blocks of 128 frames, no Bluetooth device connected, 2026-11-22):
+
+| Configuration | Share of one core | Worst block |
+|---|---|---|
+| Tone alone | 17.2 % | 0.50 ms |
+| + partial φ at 100 % | 22.5 % | 0.66 ms |
+| + partial φ² at 100 % | 25.5 % | 0.74 ms |
+| + a phase sweep running | 25.9 % | 0.75 ms |
+
+A block of 128 frames is 2.9 ms of audio. Phase 1 allocates nothing: data
+memory free in Play mode without a connection is 96 kB, as before.
+
 ## Reported limitations
 
 Per RES-PROC-005. Each follows from a decision or a measurement, and none is

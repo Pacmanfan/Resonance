@@ -5,6 +5,7 @@
 
 #include <initializer_list>
 #include <limits>
+#include <math.h>
 #include <stdlib.h>
 
 using namespace rc;
@@ -238,6 +239,118 @@ TEST(scaling_leaves_endless_and_zero_alone_and_shapes_the_sweep) {
     r.advance(180000 + 150000);        // first stage (3 x 60 s) and half of the glide (3 x 100 s)
     CHECK(r.stageIndex() == 1);
     CHECK_NEAR(r.beatHz(), 8.0, 1e-3);
+}
+
+// ---- RES-SESS-006: sweep shapes and custom sweeps ------------------------------
+
+TEST(sweep_shapes_at_their_ends_and_in_the_middle) {
+    CHECK_NEAR(sweepValue(Sweep::Linear, 8.0f, 2.0f, 0.0f), 8.0, 1e-6);
+    CHECK_NEAR(sweepValue(Sweep::Linear, 8.0f, 2.0f, 0.5f), 5.0, 1e-6);
+    CHECK_NEAR(sweepValue(Sweep::Linear, 8.0f, 2.0f, 1.0f), 2.0, 1e-6);
+    CHECK_NEAR(sweepValue(Sweep::Exponential, 8.0f, 2.0f, 0.0f), 8.0, 1e-6);
+    CHECK_NEAR(sweepValue(Sweep::Exponential, 8.0f, 2.0f, 0.5f), 4.0, 1e-5);   // the geometric middle
+    CHECK_NEAR(sweepValue(Sweep::Exponential, 8.0f, 2.0f, 1.0f), 2.0, 1e-6);
+    CHECK_NEAR(sweepValue(Sweep::Exponential, 100.0f, 400.0f, 0.25f), 141.4214, 1e-3);
+    CHECK_NEAR(sweepValue(Sweep::Hold, 8.0f, 2.0f, 0.3f), 2.0, 1e-6);
+    // Outside 0..1, and a fraction that is not a number, stay on the ends.
+    CHECK_NEAR(sweepValue(Sweep::Exponential, 8.0f, 2.0f, -1.0f), 8.0, 1e-6);
+    CHECK_NEAR(sweepValue(Sweep::Exponential, 8.0f, 2.0f, 7.0f), 2.0, 1e-6);
+    CHECK_NEAR(sweepValue(Sweep::Linear, 8.0f, 2.0f, std::numeric_limits<float>::quiet_NaN()), 8.0, 1e-6);
+    // An exponential sweep from or to zero cannot exist: a straight line instead.
+    CHECK_NEAR(sweepValue(Sweep::Exponential, 0.0f, 2.0f, 0.5f), 1.0, 1e-6);
+}
+
+TEST(an_exponential_stage_moves_in_equal_ratios) {
+    Session s = {};
+    strcpy(s.name, "exp");
+    s.stageCount = 2;
+    s.stages[0] = {10, 0, 8.0f, Sweep::Hold};
+    s.stages[1] = {100, 400.0f, 2.0f, Sweep::Exponential};
+    CHECK(isValidSession(s));
+    SessionRunner r;
+    CHECK(r.start(s, 100.0f, 10.0f, 0));
+    r.advance(10000);
+    CHECK_NEAR(r.beatHz(), 8.0, 1e-5);
+    CHECK_NEAR(r.primaryHz(), 100.0, 1e-4);
+    float previous = r.beatHz();
+    for (int i = 0; i < 4; ++i) {
+        r.advance(25000);
+        CHECK_NEAR(r.beatHz() / previous, pow(2.0 / 8.0, 0.25), 1e-4);  // the same ratio every quarter
+        previous = r.beatHz();
+    }
+    CHECK_NEAR(r.beatHz(), 2.0, 1e-5);
+    CHECK_NEAR(r.primaryHz(), 400.0, 1e-3);
+}
+
+TEST(a_stage_can_name_where_its_sweep_starts) {
+    Session s = {};
+    strcpy(s.name, "custom");
+    s.stageCount = 2;
+    s.stages[0] = {20, 0, 12.0f, Sweep::Hold};
+    s.stages[1] = {60, 300.0f, 4.0f, Sweep::Linear, 150.0f, 10.0f};
+    CHECK(isValidSession(s));
+    SessionRunner r;
+    CHECK(r.start(s, 200.0f, 7.0f, 0));
+    r.advance(19999);
+    CHECK_NEAR(r.beatHz(), 12.0, 1e-5);
+    CHECK_NEAR(r.primaryHz(), 200.0, 1e-4);
+    r.advance(1);                           // the stage begins at its own start
+    CHECK_NEAR(r.primaryHz(), 150.0, 1e-4);
+    CHECK_NEAR(r.beatHz(), 10.0, 1e-5);
+    r.advance(30000);
+    CHECK_NEAR(r.primaryHz(), 225.0, 1e-3);
+    CHECK_NEAR(r.beatHz(), 7.0, 1e-4);
+    r.pause();
+    r.advance(100000);
+    CHECK_NEAR(r.primaryHz(), 225.0, 1e-3);
+    r.resume();
+    r.advance(29999);
+    CHECK(r.state() == SessionState::Running);
+    r.advance(1);
+    CHECK(r.state() == SessionState::Finished);
+    CHECK_NEAR(r.primaryHz(), 300.0, 1e-3);
+    CHECK_NEAR(r.beatHz(), 4.0, 1e-5);
+}
+
+TEST(a_custom_sweep_is_a_session_of_one_stage) {
+    const Session s = sweepSession(Sweep::Exponential, 100.0f, 800.0f, 0.0f, 0.0f, 90);
+    CHECK(isValidSession(s));
+    CHECK(sessionSeconds(s) == 90);
+    SessionRunner r;
+    CHECK(r.start(s, 432.0f, 6.0f, 0));
+    CHECK_NEAR(r.primaryHz(), 100.0, 1e-4);   // starts where it was told to
+    r.advance(30000);
+    CHECK_NEAR(r.primaryHz(), 200.0, 1e-2);   // an octave every 30 s
+    CHECK_NEAR(r.beatHz(), 6.0, 1e-6);        // the beat was left alone
+    r.advance(30000);
+    CHECK_NEAR(r.primaryHz(), 400.0, 1e-2);
+    r.stop();                                 // interrupted: no fade asked, ends at once
+    CHECK(r.state() == SessionState::Finished);
+    CHECK(isValidSession(sweepSession(Sweep::Linear, 0.0f, 0.0f, 10.0f, 4.0f, 0)));  // 0 s becomes 1 s
+    CHECK(sessionSeconds(sweepSession(Sweep::Linear, 0.0f, 0.0f, 10.0f, 4.0f, 0)) == 1);
+}
+
+TEST(bad_sweeps_are_refused) {
+    Session s = sweepSession(Sweep::Linear, 100.0f, 200.0f, 10.0f, 4.0f, 60);
+    CHECK(isValidSession(s));
+    Session bad = s;
+    bad.stages[0].sweep = static_cast<Sweep>(3);
+    CHECK(!isValidSession(bad));
+    bad = s;
+    bad.stages[0].fromPrimaryHz = 5.0f;        // below the range
+    CHECK(!isValidSession(bad));
+    bad = s;
+    bad.stages[0].fromBeatHz = 41.0f;          // above the range
+    CHECK(!isValidSession(bad));
+    bad = s;
+    bad.stages[0].fromBeatHz = std::numeric_limits<float>::quiet_NaN();
+    CHECK(!isValidSession(bad));
+    bad = s;
+    bad.stages[0].primaryHz = 0.0f;            // a start without an end
+    CHECK(!isValidSession(bad));
+    SessionRunner r;
+    CHECK(!r.start(bad, 200.0f, 10.0f, 0));
+    CHECK(r.state() == SessionState::Idle);
 }
 
 int main() { return host_test::runAll(); }

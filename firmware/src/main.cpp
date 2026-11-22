@@ -329,6 +329,46 @@ void startSession() {
     Serial.printf("SESSION started: %s\n", chosenSession().name);
 }
 
+// Starts a session that is not one of the chosen programs (a custom sweep).
+void startCustomSession(const rc::Session& custom) {
+    if (settings.mode != rc::Mode::Play) return;
+    if (!session.start(custom, settings.primaryHz, settings.beatHz, 0)) {
+        Serial.println("SESSION refused: values out of range");
+        return;
+    }
+    sessionTickMs = millis();
+    audio.setSessionGain(1.0f);
+    setAudio(true);
+    Serial.printf("SESSION started: %s, %lu s\n", custom.name, static_cast<unsigned long>(rc::sessionSeconds(custom)));
+}
+
+// Times the audio render as it is set up now: one second of audio, in the
+// blocks the Bluetooth stack asks for. Only without a connected device, since
+// the stack would otherwise be rendering at the same time.
+void runAudioBenchmark() {
+    if (btaudio::state() == btaudio::State::Connected) {
+        Serial.println("BENCH audio: disconnect the Bluetooth device first");
+        return;
+    }
+    static int16_t block[2 * 128];
+    const bool wasOn = audio.tone().enabled();
+    audio.tone().setEnabled(true);
+    for (int i = 0; i < 200; ++i) audio.render(block, 128);  // past the start fade
+    uint32_t worst = 0;
+    const uint32_t start = micros();
+    for (uint32_t done = 0; done < rc::kSampleRate; done += 128) {
+        const uint32_t t0 = micros();
+        audio.render(block, 128);
+        const uint32_t took = micros() - t0;
+        if (took > worst) worst = took;
+    }
+    const uint32_t total = micros() - start;
+    audio.tone().setEnabled(wasOn);
+    Serial.printf("BENCH audio: 1 s of audio rendered in %lu us (%lu.%lu %% of one core), worst block of 128 frames %lu us\n",
+                  static_cast<unsigned long>(total), static_cast<unsigned long>(total / 10000),
+                  static_cast<unsigned long>((total / 1000) % 10), static_cast<unsigned long>(worst));
+}
+
 // Advances the running session and applies its values. Called from loop()
 // whatever screen is shown (RES-SESS-005).
 void tickSession() {
@@ -523,6 +563,36 @@ void runCommand(char* line) {
         printReport();
     } else if (strcmp(line, "bench") == 0) {
         runDisplayBenchmark();
+    } else if (strcmp(line, "bench audio") == 0) {
+        runAudioBenchmark();
+    } else if (strcmp(line, "tone") == 0) {
+        Serial.printf("TONE %s, %.1f Hz + %.1f Hz, phase L %.1f R %.1f deg%s\n", audio.tone().enabled() ? "on" : "off",
+                      settings.primaryHz, settings.beatHz, audio.tone().phaseDegrees(rc::Channel::Left),
+                      audio.tone().phaseDegrees(rc::Channel::Right), audio.tone().phaseMoving() ? " (moving)" : "");
+    } else if (strncmp(line, "tone phase ", 11) == 0) {
+        // tone phase <left degrees> <right degrees> [seconds]
+        float left = 0, right = 0, seconds = rc::kPhaseGlideS;
+        if (sscanf(line + 11, "%f %f %f", &left, &right, &seconds) >= 2) audio.tone().setPhase(left, right, seconds);
+    } else if (strncmp(line, "tone invert ", 12) == 0) {
+        // tone invert <left 0|1> <right 0|1>
+        int left = 0, right = 0;
+        if (sscanf(line + 12, "%d %d", &left, &right) == 2) audio.tone().setInverted(left != 0, right != 0);
+    } else if (strncmp(line, "tone partial ", 13) == 0) {
+        // tone partial <1|2> <percent>: 1 = phi, 2 = phi squared
+        int index = 0, percent = 0;
+        if (sscanf(line + 13, "%d %d", &index, &percent) == 2 && index >= 1 && percent >= 0) {
+            audio.tone().setPartial(static_cast<uint8_t>(index - 1), static_cast<uint8_t>(percent > 100 ? 100 : percent));
+        }
+    } else if (strncmp(line, "sweep ", 6) == 0) {
+        // sweep lin|exp <from primary> <to primary> <from beat> <to beat> <seconds>; 0 0 leaves a frequency alone
+        char shape[8] = "";
+        float fromPrimary = 0, toPrimary = 0, fromBeat = 0, toBeat = 0;
+        int seconds = 0;
+        if (sscanf(line + 6, "%7s %f %f %f %f %d", shape, &fromPrimary, &toPrimary, &fromBeat, &toBeat, &seconds) == 6 &&
+            seconds > 0 && seconds <= 65535) {
+            startCustomSession(rc::sweepSession(strcmp(shape, "exp") == 0 ? rc::Sweep::Exponential : rc::Sweep::Linear,
+                                                fromPrimary, toPrimary, fromBeat, toBeat, static_cast<uint16_t>(seconds)));
+        }
     } else if (strcmp(line, "caps") == 0) {
         // Every memory region, for diagnostics.
         heap_caps_print_heap_info(MALLOC_CAP_DEFAULT);
@@ -611,7 +681,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | caps | bench | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 

@@ -1,5 +1,6 @@
 #include "rc_session.h"
 
+#include <math.h>
 #include <string.h>
 
 #include "rc_settings.h"
@@ -35,13 +36,31 @@ bool frequencyOk(float hz, float lo, float hi) { return hz == 0.0f || (hz >= lo 
 
 }  // namespace
 
+float sweepValue(Sweep sweep, float from, float to, float fraction) {
+    if (sweep == Sweep::Hold) return to;
+    if (!(fraction > 0.0f)) return from;
+    if (fraction >= 1.0f) return to;
+    if (sweep == Sweep::Exponential && from > 0.0f && to > 0.0f) return from * powf(to / from, fraction);
+    return from + (to - from) * fraction;
+}
+
+Session sweepSession(Sweep sweep, float fromPrimaryHz, float toPrimaryHz, float fromBeatHz, float toBeatHz,
+                     uint16_t seconds) {
+    Session s = {};
+    strcpy(s.name, "Sweep");
+    s.stageCount = 1;
+    s.stages[0] = {static_cast<uint16_t>(seconds == 0 ? 1 : seconds), toPrimaryHz, toBeatHz, sweep, fromPrimaryHz,
+                   fromBeatHz};
+    return s;
+}
+
 Session timerSession(uint16_t minutes) {
     Session s = {};
     strcpy(s.name, "Timer");
     s.stageCount = 1;
     // 1092 minutes is the most that fits the 16-bit seconds of a stage.
     if (minutes > 1092) minutes = 1092;
-    s.stages[0] = {static_cast<uint16_t>(minutes * 60u), 0.0f, 0.0f, Sweep::Hold};
+    s.stages[0] = {static_cast<uint16_t>(minutes * 60u), 0.0f, 0.0f, Sweep::Hold, 0.0f, 0.0f};
     return s;
 }
 
@@ -76,7 +95,14 @@ bool isValidSession(const Session& session) {
     for (uint8_t i = 0; i < session.stageCount; ++i) {
         const Stage& stage = session.stages[i];
         if (stage.durationS == 0 && session.stageCount != 1) return false;
-        if (stage.sweep != Sweep::Hold && stage.sweep != Sweep::Linear) return false;
+        if (stage.sweep != Sweep::Hold && stage.sweep != Sweep::Linear && stage.sweep != Sweep::Exponential) {
+            return false;
+        }
+        if (!frequencyOk(stage.fromPrimaryHz, kPrimaryMinHz, kPrimaryMaxHz)) return false;
+        if (!frequencyOk(stage.fromBeatHz, kBeatMinHz, kBeatMaxHz)) return false;
+        // A start makes sense only where the stage names an end.
+        if (stage.fromPrimaryHz != 0.0f && stage.primaryHz == 0.0f) return false;
+        if (stage.fromBeatHz != 0.0f && stage.beatHz == 0.0f) return false;
         // NaN fails both comparisons and is refused here.
         if (!frequencyOk(stage.primaryHz, kPrimaryMinHz, kPrimaryMaxHz)) return false;
         if (!frequencyOk(stage.beatHz, kBeatMinHz, kBeatMaxHz)) return false;
@@ -113,6 +139,10 @@ void SessionRunner::enterStage(uint8_t index) {
     if (stage.sweep == Sweep::Hold) {
         if (stage.primaryHz != 0.0f) _primaryHz = stage.primaryHz;
         if (stage.beatHz != 0.0f) _beatHz = stage.beatHz;
+    } else {
+        // A sweep with a start of its own begins there.
+        if (stage.fromPrimaryHz != 0.0f) _primaryHz = _fromPrimary = stage.fromPrimaryHz;
+        if (stage.fromBeatHz != 0.0f) _beatHz = _fromBeat = stage.fromBeatHz;
     }
 }
 
@@ -152,10 +182,10 @@ void SessionRunner::advance(uint32_t ms) {
         _stageMs += step;
         _elapsedMs += step;
         ms -= step;
-        if (stage.sweep == Sweep::Linear) {
+        if (stage.sweep != Sweep::Hold) {
             const float t = static_cast<float>(_stageMs) / static_cast<float>(stageMs);
-            if (stage.primaryHz != 0.0f) _primaryHz = _fromPrimary + (stage.primaryHz - _fromPrimary) * t;
-            if (stage.beatHz != 0.0f) _beatHz = _fromBeat + (stage.beatHz - _fromBeat) * t;
+            if (stage.primaryHz != 0.0f) _primaryHz = sweepValue(stage.sweep, _fromPrimary, stage.primaryHz, t);
+            if (stage.beatHz != 0.0f) _beatHz = sweepValue(stage.sweep, _fromBeat, stage.beatHz, t);
         }
         if (_stageMs >= stageMs) {
             if (_stage + 1 < _session.stageCount) enterStage(static_cast<uint8_t>(_stage + 1));

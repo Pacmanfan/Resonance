@@ -222,6 +222,31 @@ The audio task SHALL NOT block on SD, network, GUI or logging (§6, §17).
 
 ## SD playback
 
+### RES-AUDIO-013 — Channel phase and inversion
+
+The tone engine SHALL allow a phase offset for each channel separately, in
+degrees, and SHALL allow each channel to be inverted separately. A change of
+either SHALL be spread over time so that the output has no step, and SHALL
+not disturb the phase continuity of RES-AUDIO-003. With no offset and no
+inversion the output SHALL be identical to the engine without this feature
+(operator brief "Mindforge feature integration", 2026-11-22, §3.A.1).
+
+### RES-AUDIO-014 — Golden partials
+
+The tone engine SHALL be able to add two partials to each channel, at φ and
+φ² times the primary frequency (φ = 1.618…), each with its own level and
+each off unless switched on. In the right ear a partial SHALL lie above the
+left ear's partial by the beat frequency itself, not by a multiple of it, so
+that every pair beats at the selected beat frequency. The fundamental SHALL
+not be altered by them (brief §3.A.2).
+
+### RES-AUDIO-015 — Phase sweep
+
+A channel's phase offset SHALL be able to move to a new value over a chosen
+time, from a fraction of a second to an hour, without loss of precision over
+that time. This is separate from the frequency sweeps of RES-SESS-001
+(brief §3.A.4).
+
 ### RES-PLAY-001 — Formats
 
 MP3 (common bitrates and sample rates) and standard PCM WAV files SHALL play
@@ -283,6 +308,15 @@ A running session SHALL continue regardless of the screen shown, of screen
 dimming and of GUI updates (§8, §9).
 
 ## Presets and configuration
+
+### RES-SESS-006 — Sweep shapes and custom sweeps
+
+A stage SHALL be able to move to its frequencies in a straight line or
+exponentially (equal ratios in equal times), and SHALL be able to name the
+frequencies it starts from instead of continuing from the previous stage, so
+that a sweep with a chosen start, end and duration can be described. A stage
+that names no start and sweeps in a straight line SHALL behave as before
+(brief §3.A.3).
 
 ### RES-CFG-001 — Presets
 

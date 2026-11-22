@@ -17,14 +17,33 @@ namespace rc {
 enum class Sweep : uint8_t {
     Hold,    // jump to the stage's values at its start and stay there
     Linear,  // glide from the previous values to the stage's values over the stage
+    Exponential,  // the same, in equal ratios per unit of time (RES-SESS-006)
 };
+
+// The value of a sweep of shape `sweep` from `from` to `to` at `fraction`
+// (0..1) of its time. Hold gives `to` throughout. Both ends must be above
+// zero for an exponential sweep; otherwise it falls back to a straight line.
+float sweepValue(Sweep sweep, float from, float to, float fraction);
 
 struct Stage {
     uint16_t durationS;  // 0 only in a one-stage session: runs until stopped
     float primaryHz;     // 0 = leave the primary frequency as it is
     float beatHz;        // 0 = leave the beat frequency as it is
     Sweep sweep;
+    // Where a sweep starts (RES-SESS-006). 0 = from wherever the previous
+    // stage ended, which is the behaviour of every factory program. Given a
+    // value, the stage jumps there at its start (the tone engine glides the
+    // jump) and sweeps on from it. Not used by a Hold stage.
+    float fromPrimaryHz = 0.0f;
+    float fromBeatHz = 0.0f;
 };
+
+// A session of one stage that sweeps from one pair of frequencies to
+// another in `seconds` (1..65535): the custom sweep. A frequency of 0 on
+// both ends leaves that frequency alone.
+struct Session;
+Session sweepSession(Sweep sweep, float fromPrimaryHz, float toPrimaryHz, float fromBeatHz, float toBeatHz,
+                     uint16_t seconds);
 
 constexpr uint8_t kMaxStages = 6;
 

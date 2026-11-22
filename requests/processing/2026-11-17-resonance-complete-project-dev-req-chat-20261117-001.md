@@ -1246,6 +1246,12 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-22T17:06:07.226808+00:00
+
+> Resonance - Mindforge Feature Integration (operator brief of 2026-11-22, condensed here; the brief itself is in the session record). Extend, do not rewrite; the default binaural experience stays unchanged and advanced features are optional. Features: A expanded binaural DSP (independent left/right phase offset and inversion, golden partials phi and phi^2 with own levels that keep the beat, linear/exponential/custom sweeps, phase sweep); B progressive frequency descent; C multi-stage user sessions with a touchscreen editor, stored on the SD card; D breathing pacer with optional audio modulation; E guided voice layered with tone and noise, crossfades; F layer-based mixer; G editable Solfeggio sequences; H Resonance Lab (golden bilateral timing, stereo width, interaural delay, phase controls, A/B comparison). No session journaling, no rebuilt noise, no playback at start-up. Keep at least 16 kB data memory free while an MP3 plays; nothing blocking or allocating in the render. Six phases: 1 DSP foundation, 2 session engine, 3 audio layers, 4 breathing and sequences, 5 user interface, 6 Resonance Lab; per phase: explain, implement, host tests, report memory and performance, name the hardware checks still needed, commit when validated.
+
+
+
 ### Follow-up 2026-11-22T04:21:45.303019+00:00
 
 > alright, I have a new battery I purchased that is thinner (but x*y dimensions are the same) the new thickness is 5.75mm. I want a new variant of the latest case design to fit this new slim body. Create and render, let me know where the files land
@@ -1505,5 +1511,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020, WORK-000021, WORK-000022, WORK-000023, WORK-000024, WORK-000025, WORK-000026, WORK-000027, WORK-000028, WORK-000029, WORK-000030, WORK-000031, WORK-000032, WORK-000033, WORK-000034, WORK-000035, WORK-000036, WORK-000037
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020, WORK-000021, WORK-000022, WORK-000023, WORK-000024, WORK-000025, WORK-000026, WORK-000027, WORK-000028, WORK-000029, WORK-000030, WORK-000031, WORK-000032, WORK-000033, WORK-000034, WORK-000035, WORK-000036, WORK-000037, WORK-000038
 - Evidence: pending
