@@ -318,6 +318,31 @@ that a sweep with a chosen start, end and duration can be described. A stage
 that names no start and sweeps in a straight line SHALL behave as before
 (brief §3.A.3).
 
+### RES-SESS-007 — Transition and hold, stage layers, session fade
+
+A sweeping stage SHALL be able to reach its values in a part of its time and
+hold them for the rest. A stage SHALL be able to set the levels of the
+golden partials and the type and level of the noise; levels SHALL move with
+the stage's transition, and a stage that names no layer SHALL leave the
+layers as the user has them. A session SHALL be able to carry the length of
+its own end fade. A session SHALL have at most ten stages (brief §3.C, §4).
+
+### RES-SESS-008 — Progressive descent
+
+A descent SHALL be describable by a starting pair of frequencies, up to five
+target pairs, a transition time, a hold time and a linear or exponential
+shape, and SHALL run on the session runner with pause, resume and stop like
+any session (brief §3.B).
+
+### RES-SESS-009 — User sessions on the card
+
+User sessions SHALL be stored as text files under `/RESONANCE/SESSIONS` on
+the card, at most twelve, and not in the non-volatile settings store. A file
+SHALL be validated when it is read: a damaged, out-of-range or oversized
+file SHALL be refused with a reason and SHALL never start. A file with
+entries of a later version SHALL still load. Writing SHALL not leave a
+half-written file under the session's name (brief §3.C, RES-CFG-002).
+
 ### RES-CFG-001 — Presets
 
 A preset SHALL hold name, frequencies, waveform, layer volumes, background

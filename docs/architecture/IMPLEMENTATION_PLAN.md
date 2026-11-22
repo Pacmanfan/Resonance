@@ -148,7 +148,7 @@ as it is; everything here is off until asked for.
 | Phase | Content | State |
 |---|---|---|
 | 1 | DSP foundation: channel phase offset and inversion, golden partials, phase sweep, exponential and custom frequency sweeps (RES-AUDIO-013..015, RES-SESS-006) | **Built (0.9.0, WORK-000038).** Host tests pass; with the new controls at rest the output is bit-identical to 0.8.2. Reached over the serial port only (`tone ...`, `sweep ...`); screens come in phase 5. Not yet heard |
-| 2 | Session engine: user sessions, progressive descent, storage, validation | Not started |
+| 2 | Session engine: transition-then-hold stages, stage layers (partials, noise), session end fade, ten stages, progressive descent, user sessions as text files on the card (RES-SESS-007..009) | **Built (0.9.1, WORK-000039).** Host tests pass. On the board a descent built over the serial port ran through its stages and stopped with its fade; data memory unchanged (95.7 kB free without a connection). **Storing and loading on a card is not verified: the board had no card.** Reached over the serial port only (`descent ...`, `usession ...`) |
 | 3 | Audio layers: layer mixer, guided voice, crossfades | Not started |
 | 4 | Breathing pacer, Solfeggio sequences | Not started |
 | 5 | Screens: session editor, layer mixer, breathing, access to the Lab | Not started |

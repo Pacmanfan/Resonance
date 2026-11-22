@@ -18,6 +18,8 @@
 #include "rc_audio.h"
 #include "rc_session.h"
 #include "storage/sdcard.h"
+#include "storage/session_store.h"
+#include "rc_session_text.h"
 #include "storage/settings_store.h"
 #include "version.h"
 
@@ -65,6 +67,13 @@ const uint16_t kTimerMinutes[] = {10, 15, 20, 30, 45, 60, 0};  // 0 = continuous
 const uint16_t kProgramMinutes[] = {0, 10, 15, 20, 30, 45, 60};  // 0 = as written
 const uint16_t kFadeSeconds[] = {0, 30, 60, 300};
 uint32_t sessionTickMs = 0;
+// A session that is not one of the programs above: a custom sweep, a
+// descent, or a user session read from the card. It is the one the serial
+// commands (and later the editor) work on.
+rc::Session customSession = {};
+char runningName[20] = "";    // name of the session that is running
+// Golden partials, percent; not stored: they are off at start.
+uint8_t partialPercent[2] = {0, 0};
 
 // Sound library browsing. One page of four entries is kept; the directory is
 // read again for every page.
@@ -323,6 +332,8 @@ rc::Session chosenSession() {
 void startSession() {
     if (settings.mode != rc::Mode::Play) return;
     if (!session.start(chosenSession(), settings.primaryHz, settings.beatHz, kFadeSeconds[fadeChoice])) return;
+    strlcpy(runningName, chosenSession().name, sizeof(runningName));
+    session.setLayersNow(partialPercent[0], partialPercent[1], noiseType == rc::NoiseType::Off ? 0 : noiseVolume);
     sessionTickMs = millis();
     audio.setSessionGain(1.0f);
     setAudio(true);  // starting a session is the user turning the audio on
@@ -332,10 +343,12 @@ void startSession() {
 // Starts a session that is not one of the chosen programs (a custom sweep).
 void startCustomSession(const rc::Session& custom) {
     if (settings.mode != rc::Mode::Play) return;
-    if (!session.start(custom, settings.primaryHz, settings.beatHz, 0)) {
+    if (!session.start(custom, settings.primaryHz, settings.beatHz, kFadeSeconds[fadeChoice])) {
         Serial.println("SESSION refused: values out of range");
         return;
     }
+    strlcpy(runningName, custom.name, sizeof(runningName));
+    session.setLayersNow(partialPercent[0], partialPercent[1], noiseType == rc::NoiseType::Off ? 0 : noiseVolume);
     sessionTickMs = millis();
     audio.setSessionGain(1.0f);
     setAudio(true);
@@ -382,6 +395,21 @@ void tickSession() {
     if (session.primaryHz() != 0.0f) settings.primaryHz = session.primaryHz();
     if (session.beatHz() != 0.0f) settings.beatHz = session.beatHz();
     audio.tone().setFrequencies(settings.primaryHz, settings.beatHz);
+    // Layers the current stage sets become the device's, like the frequencies.
+    if (session.setsPartials()) {
+        for (uint8_t i = 0; i < 2; ++i) {
+            partialPercent[i] = session.partialPercent(i);
+            audio.tone().setPartial(i, partialPercent[i]);
+        }
+    }
+    if (session.setsNoise()) {
+        const rc::NoiseType type = static_cast<rc::NoiseType>(session.noiseType());
+        if (type != noiseType || session.noiseVolume() != noiseVolume) {
+            noiseType = type;
+            noiseVolume = session.noiseVolume();
+            audio.setNoise(noiseType, noiseVolume);
+        }
+    }
     audio.setSessionGain(session.gain());
     if (session.state() == rc::SessionState::Finished) {
         // Everything stops, then the level is restored for the next start.
@@ -581,8 +609,51 @@ void runCommand(char* line) {
         // tone partial <1|2> <percent>: 1 = phi, 2 = phi squared
         int index = 0, percent = 0;
         if (sscanf(line + 13, "%d %d", &index, &percent) == 2 && index >= 1 && percent >= 0) {
+            if (index <= 2) partialPercent[index - 1] = static_cast<uint8_t>(percent > 100 ? 100 : percent);
             audio.tone().setPartial(static_cast<uint8_t>(index - 1), static_cast<uint8_t>(percent > 100 ? 100 : percent));
         }
+    } else if (strncmp(line, "descent ", 8) == 0) {
+        // descent lin|exp <start beat> <transition s> <hold s> <beat 1> [<beat 2> ...]: builds the custom session
+        rc::Descent d = {};
+        char shape[8] = "";
+        int transition = 0, hold = 0, used = 0;
+        if (sscanf(line + 8, "%7s %f %d %d%n", shape, &d.startBeatHz, &transition, &hold, &used) == 4 && transition > 0 &&
+            transition <= 65535 && hold >= 0 && hold <= 65535) {
+            d.sweep = strcmp(shape, "exp") == 0 ? rc::Sweep::Exponential : rc::Sweep::Linear;
+            d.transitionS = static_cast<uint16_t>(transition);
+            d.holdS = static_cast<uint16_t>(hold);
+            const char* rest = line + 8 + used;
+            float beat = 0;
+            int step = 0;
+            while (d.targetCount < rc::kMaxDescentTargets && sscanf(rest, "%f%n", &beat, &step) == 1) {
+                d.targets[d.targetCount++] = {0.0f, beat};
+                rest += step;
+            }
+            customSession = rc::descentSession(d);
+            Serial.printf("DESCENT %s: %u stage(s), %lu s\n", rc::isValidSession(customSession) ? "ready" : "REFUSED",
+                          static_cast<unsigned>(customSession.stageCount),
+                          static_cast<unsigned long>(rc::sessionSeconds(customSession)));
+        }
+    } else if (strcmp(line, "usession") == 0) {
+        // The custom session as it would be stored, then the slots on the card.
+        char text[rc::kSessionLineMax];
+        for (uint8_t i = 0; rc::sessionLine(customSession, i, text, sizeof(text)); ++i) Serial.printf("USESSION | %s\n", text);
+        for (uint8_t slot = 1; slot <= sessionstore::kSlots; ++slot) {
+            if (!sessionstore::used(slot)) continue;
+            char name[20] = "?";
+            sessionstore::name(slot, name, sizeof(name));
+            Serial.printf("USESSION slot %u: %s\n", static_cast<unsigned>(slot), name);
+        }
+    } else if (strcmp(line, "usession run") == 0) {
+        startCustomSession(customSession);
+    } else if (strncmp(line, "usession save ", 14) == 0) {
+        const bool ok = sessionstore::save(static_cast<uint8_t>(atoi(line + 14)), customSession);
+        Serial.printf("USESSION save %s %s\n", ok ? "ok" : "FAILED:", sessionstore::error());
+    } else if (strncmp(line, "usession load ", 14) == 0) {
+        const bool ok = sessionstore::load(static_cast<uint8_t>(atoi(line + 14)), customSession);
+        Serial.printf("USESSION load %s %s\n", ok ? "ok" : "FAILED:", sessionstore::error());
+    } else if (strncmp(line, "usession delete ", 16) == 0) {
+        Serial.printf("USESSION delete %s\n", sessionstore::remove(static_cast<uint8_t>(atoi(line + 16))) ? "ok" : "FAILED");
     } else if (strncmp(line, "sweep ", 6) == 0) {
         // sweep lin|exp <from primary> <to primary> <from beat> <to beat> <seconds>; 0 0 leaves a frequency alone
         char shape[8] = "";
@@ -590,8 +661,9 @@ void runCommand(char* line) {
         int seconds = 0;
         if (sscanf(line + 6, "%7s %f %f %f %f %d", shape, &fromPrimary, &toPrimary, &fromBeat, &toBeat, &seconds) == 6 &&
             seconds > 0 && seconds <= 65535) {
-            startCustomSession(rc::sweepSession(strcmp(shape, "exp") == 0 ? rc::Sweep::Exponential : rc::Sweep::Linear,
+            customSession = (rc::sweepSession(strcmp(shape, "exp") == 0 ? rc::Sweep::Exponential : rc::Sweep::Linear,
                                                 fromPrimary, toPrimary, fromBeat, toBeat, static_cast<uint16_t>(seconds)));
+            startCustomSession(customSession);
         }
     } else if (strcmp(line, "caps") == 0) {
         // Every memory region, for diagnostics.
@@ -629,7 +701,7 @@ void runCommand(char* line) {
                       player::error());
     } else if (strcmp(line, "session") == 0) {
         Serial.printf("SESSION state %u '%s' stage %u of %u, %lu s left, beat %.2f Hz, level %.2f\n",
-                      static_cast<unsigned>(session.state()), chosenSession().name,
+                      static_cast<unsigned>(session.state()), runningName,
                       static_cast<unsigned>(session.stageIndex() + 1), static_cast<unsigned>(session.stageCount()),
                       static_cast<unsigned long>(session.remainingS()), static_cast<double>(settings.beatHz),
                       static_cast<double>(session.gain()));
@@ -681,7 +753,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | usession | usession run | usession save|load|delete <slot> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 

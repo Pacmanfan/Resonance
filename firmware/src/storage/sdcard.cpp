@@ -193,6 +193,11 @@ bool remove(const char* path) {
 
 bool rename(const char* from, const char* to) { return mounted && SD.rename(from, to); }
 
+fs::File openForRead(const char* path) {
+    if (!mounted || !SD.exists(path)) return fs::File();
+    return SD.open(path, FILE_READ);
+}
+
 fs::File openForWrite(const char* path) { return mounted ? SD.open(path, FILE_WRITE) : fs::File(); }
 
 void removeLeftovers(const char* directory, uint8_t depth) {

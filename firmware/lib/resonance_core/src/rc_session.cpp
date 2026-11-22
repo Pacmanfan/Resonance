@@ -54,6 +54,32 @@ Session sweepSession(Sweep sweep, float fromPrimaryHz, float toPrimaryHz, float 
     return s;
 }
 
+Session descentSession(const Descent& d) {
+    Session s = {};
+    strcpy(s.name, "Descent");
+    const uint32_t stageS = static_cast<uint32_t>(d.transitionS) + d.holdS;
+    const bool shapeOk = d.sweep == Sweep::Linear || d.sweep == Sweep::Exponential;
+    const uint8_t lead = d.startHoldS != 0 ? 1 : 0;
+    if (!shapeOk || d.transitionS == 0 || stageS > 65535 || d.targetCount == 0 ||
+        d.targetCount > kMaxDescentTargets || d.targetCount + lead > kMaxStages) {
+        return s;  // no stages: refused
+    }
+    uint8_t n = 0;
+    if (lead != 0) s.stages[n++] = {d.startHoldS, d.startPrimaryHz, d.startBeatHz, Sweep::Hold};
+    for (uint8_t i = 0; i < d.targetCount; ++i) {
+        Stage stage = {static_cast<uint16_t>(stageS), d.targets[i].primaryHz, d.targets[i].beatHz, d.sweep};
+        stage.transitionS = d.holdS != 0 ? d.transitionS : 0;  // no hold: the sweep fills the stage
+        // Without a lead-in the first move starts from the start values.
+        if (i == 0 && lead == 0) {
+            if (stage.primaryHz != 0.0f) stage.fromPrimaryHz = d.startPrimaryHz;
+            if (stage.beatHz != 0.0f) stage.fromBeatHz = d.startBeatHz;
+        }
+        s.stages[n++] = stage;
+    }
+    s.stageCount = n;
+    return s;
+}
+
 Session timerSession(uint16_t minutes) {
     Session s = {};
     strcpy(s.name, "Timer");
@@ -78,6 +104,14 @@ Session scaledSession(const Session& session, uint16_t minutes) {
                                 : (static_cast<uint64_t>(session.stages[i].durationS) * to + from / 2) / from;
         if (seconds < 1) seconds = 1;
         if (seconds > 65535) seconds = 65535;
+        // The transition keeps its share of the stage.
+        const uint16_t was = out.stages[i].durationS;
+        if (out.stages[i].transitionS != 0 && was != 0) {
+            uint64_t t = static_cast<uint64_t>(out.stages[i].transitionS) * seconds / was;
+            if (t < 1) t = 1;
+            if (t > seconds) t = seconds;
+            out.stages[i].transitionS = static_cast<uint16_t>(t);
+        }
         out.stages[i].durationS = static_cast<uint16_t>(seconds);
         given += static_cast<uint32_t>(seconds);
     }
@@ -92,6 +126,8 @@ uint32_t sessionSeconds(const Session& session) {
 
 bool isValidSession(const Session& session) {
     if (session.stageCount < 1 || session.stageCount > kMaxStages) return false;
+    if (session.endFadeS != kFadeDeviceChoice && session.endFadeS > kEndFadeMaxS) return false;
+    if (memchr(session.name, '\0', sizeof(session.name)) == nullptr) return false;
     for (uint8_t i = 0; i < session.stageCount; ++i) {
         const Stage& stage = session.stages[i];
         if (stage.durationS == 0 && session.stageCount != 1) return false;
@@ -100,6 +136,11 @@ bool isValidSession(const Session& session) {
         }
         if (!frequencyOk(stage.fromPrimaryHz, kPrimaryMinHz, kPrimaryMaxHz)) return false;
         if (!frequencyOk(stage.fromBeatHz, kBeatMinHz, kBeatMaxHz)) return false;
+        if (stage.transitionS != 0 && (stage.sweep == Sweep::Hold || stage.transitionS > stage.durationS)) return false;
+        if ((stage.flags & ~kStageKnownFlags) != 0) return false;
+        if (stage.partial[0] > 100 || stage.partial[1] > 100 || stage.noiseVolume > 100 || stage.noiseType > 3) {
+            return false;
+        }
         // A start makes sense only where the stage names an end.
         if (stage.fromPrimaryHz != 0.0f && stage.primaryHz == 0.0f) return false;
         if (stage.fromBeatHz != 0.0f && stage.beatHz == 0.0f) return false;
@@ -118,7 +159,12 @@ bool SessionRunner::start(const Session& session, float currentPrimaryHz, float 
     if (!isValidSession(session)) return false;
     _session = session;
     _totalMs = sessionSeconds(session) * 1000u;
+    if (session.endFadeS != kFadeDeviceChoice) fadeOutS = session.endFadeS;
     _fadeMs = static_cast<uint32_t>(fadeOutS) * 1000u;
+    for (float& v : _layerFrom) v = 0.0f;
+    for (float& v : _layerNow) v = 0.0f;
+    _flags = 0;
+    _noiseType = 0;
     _elapsedMs = 0;
     _fadeElapsedMs = 0;
     _gain = 1.0f;
@@ -136,6 +182,16 @@ void SessionRunner::enterStage(uint8_t index) {
     _fromPrimary = _primaryHz;
     _fromBeat = _beatHz;
     const Stage& stage = _session.stages[index];
+    for (uint8_t i = 0; i < 3; ++i) _layerFrom[i] = _layerNow[i];
+    _flags = stage.flags;
+    if ((stage.flags & kStageSetsNoise) != 0) _noiseType = stage.noiseType;
+    if (stage.sweep == Sweep::Hold) {
+        if ((stage.flags & kStageSetsPartials) != 0) {
+            _layerNow[0] = stage.partial[0];
+            _layerNow[1] = stage.partial[1];
+        }
+        if ((stage.flags & kStageSetsNoise) != 0) _layerNow[2] = stage.noiseVolume;
+    }
     if (stage.sweep == Sweep::Hold) {
         if (stage.primaryHz != 0.0f) _primaryHz = stage.primaryHz;
         if (stage.beatHz != 0.0f) _beatHz = stage.beatHz;
@@ -183,7 +239,14 @@ void SessionRunner::advance(uint32_t ms) {
         _elapsedMs += step;
         ms -= step;
         if (stage.sweep != Sweep::Hold) {
-            const float t = static_cast<float>(_stageMs) / static_cast<float>(stageMs);
+            // With a transition time the sweep ends there and the stage holds.
+            const uint32_t sweepMs = stage.transitionS != 0 ? static_cast<uint32_t>(stage.transitionS) * 1000u : stageMs;
+            const float t = _stageMs >= sweepMs ? 1.0f : static_cast<float>(_stageMs) / static_cast<float>(sweepMs);
+            if ((stage.flags & kStageSetsPartials) != 0) {
+                _layerNow[0] = _layerFrom[0] + (stage.partial[0] - _layerFrom[0]) * t;
+                _layerNow[1] = _layerFrom[1] + (stage.partial[1] - _layerFrom[1]) * t;
+            }
+            if ((stage.flags & kStageSetsNoise) != 0) _layerNow[2] = _layerFrom[2] + (stage.noiseVolume - _layerFrom[2]) * t;
             if (stage.primaryHz != 0.0f) _primaryHz = sweepValue(stage.sweep, _fromPrimary, stage.primaryHz, t);
             if (stage.beatHz != 0.0f) _beatHz = sweepValue(stage.sweep, _fromBeat, stage.beatHz, t);
         }
@@ -191,6 +254,18 @@ void SessionRunner::advance(uint32_t ms) {
             if (_stage + 1 < _session.stageCount) enterStage(static_cast<uint8_t>(_stage + 1));
             else beginFade();
         }
+    }
+}
+
+void SessionRunner::setLayersNow(uint8_t partial0, uint8_t partial1, uint8_t noiseVolume) {
+    const float now[3] = {static_cast<float>(partial0), static_cast<float>(partial1), static_cast<float>(noiseVolume)};
+    const Stage& stage = _session.stages[_stage];
+    for (uint8_t i = 0; i < 3; ++i) {
+        _layerFrom[i] = now[i];
+        // A first stage that jumps has already taken its own values.
+        const bool taken = _state != SessionState::Idle && stage.sweep == Sweep::Hold &&
+                           (stage.flags & (i < 2 ? kStageSetsPartials : kStageSetsNoise)) != 0;
+        if (!taken) _layerNow[i] = now[i];
     }
 }
 

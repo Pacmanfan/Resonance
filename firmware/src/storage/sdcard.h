@@ -65,6 +65,8 @@ bool makeDirectory(const char* path);
 // Removes a file, or a directory that is empty.
 bool remove(const char* path);
 bool rename(const char* from, const char* to);
+// Opens a file for reading; an empty File when it is not there.
+fs::File openForRead(const char* path);
 // Opens a file for writing, replacing any file of that name.
 fs::File openForWrite(const char* path);
 // Deletes upload leftovers (*.part) in `directory` and below, a few levels deep.

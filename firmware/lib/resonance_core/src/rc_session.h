@@ -36,7 +36,27 @@ struct Stage {
     // jump) and sweeps on from it. Not used by a Hold stage.
     float fromPrimaryHz = 0.0f;
     float fromBeatHz = 0.0f;
+    // Time the move to the stage's values takes (RES-SESS-007). 0 = as
+    // before: a sweep takes the whole stage. Given a value, a sweep takes
+    // that long and the stage holds its values for the rest: a transition
+    // followed by a hold. Not allowed on a Hold stage.
+    uint16_t transitionS = 0;
+    // Layers the stage sets (kStageSets...); a layer whose bit is clear is
+    // left exactly as the user has it, which is what every factory program
+    // does.
+    uint8_t flags = 0;
+    uint8_t partial[2] = {0, 0};  // golden partials phi and phi squared, percent
+    uint8_t noiseType = 0;        // rc::NoiseType
+    uint8_t noiseVolume = 0;      // percent
 };
+
+constexpr uint8_t kStageSetsPartials = 0x01;
+constexpr uint8_t kStageSetsNoise = 0x02;
+constexpr uint8_t kStageKnownFlags = kStageSetsPartials | kStageSetsNoise;
+
+// Session::endFadeS when the fade is left to whoever starts the session.
+constexpr uint16_t kFadeDeviceChoice = 0xFFFF;
+constexpr uint16_t kEndFadeMaxS = 600;
 
 // A session of one stage that sweeps from one pair of frequencies to
 // another in `seconds` (1..65535): the custom sweep. A frequency of 0 on
@@ -45,13 +65,38 @@ struct Session;
 Session sweepSession(Sweep sweep, float fromPrimaryHz, float toPrimaryHz, float fromBeatHz, float toBeatHz,
                      uint16_t seconds);
 
-constexpr uint8_t kMaxStages = 6;
+constexpr uint8_t kMaxStages = 10;
 
 struct Session {
     char name[20];
     uint8_t stageCount;
     Stage stages[kMaxStages];
+    // Fade at the end, in seconds; kFadeDeviceChoice = the length given to
+    // SessionRunner::start(), as for the factory programs.
+    uint16_t endFadeS = kFadeDeviceChoice;
 };
+
+// Progressive descent (RES-SESS-008): from a starting pair of frequencies
+// through up to kMaxDescentTargets further pairs, each reached in
+// `transitionS` and then held for `holdS`.
+constexpr uint8_t kMaxDescentTargets = 5;
+struct DescentTarget {
+    float primaryHz;  // 0 = leave the primary frequency alone
+    float beatHz;     // 0 = leave the beat frequency alone
+};
+struct Descent {
+    float startPrimaryHz;  // 0 = start from the current value
+    float startBeatHz;
+    uint16_t startHoldS;   // time at the start values before the first move
+    Sweep sweep;           // Linear or Exponential
+    uint16_t transitionS;  // at least 1
+    uint16_t holdS;
+    uint8_t targetCount;
+    DescentTarget targets[kMaxDescentTargets];
+};
+// The session a descent describes. For a descent that makes no sense the
+// result has no stages, which isValidSession() and start() refuse.
+Session descentSession(const Descent& descent);
 
 // A session that holds the current frequencies for `minutes` (0 = until
 // stopped): the plain timer of RES-SESS-003.
@@ -115,11 +160,28 @@ public:
     // during the fade.
     uint32_t remainingS() const;
     bool endless() const { return _totalMs == 0; }
+    // Where the layers stand before the session, in percent, so that the
+    // first stage that sets them moves from there instead of jumping. Call
+    // after start().
+    void setLayersNow(uint8_t partial0, uint8_t partial1, uint8_t noiseVolume);
+    // Layers the current stage sets, and their values now. While a stage
+    // sweeps, its levels move with it in a straight line.
+    bool setsPartials() const { return (_flags & kStageSetsPartials) != 0; }
+    bool setsNoise() const { return (_flags & kStageSetsNoise) != 0; }
+    uint8_t partialPercent(uint8_t index) const { return toPercent(_layerNow[index < 2 ? index : 0]); }
+    uint8_t noiseVolume() const { return toPercent(_layerNow[2]); }
+    uint8_t noiseType() const { return _noiseType; }
+
     uint8_t stageIndex() const { return _stage; }
     uint8_t stageCount() const { return _session.stageCount; }
 
 private:
     void enterStage(uint8_t index);
+    static uint8_t toPercent(float v) { return static_cast<uint8_t>(v < 0.0f ? 0.0f : (v > 100.0f ? 100.0f : v + 0.5f)); }
+    float _layerFrom[3] = {0, 0, 0};  // partial 0, partial 1, noise volume
+    float _layerNow[3] = {0, 0, 0};
+    uint8_t _flags = 0;
+    uint8_t _noiseType = 0;
     void beginFade();
 
     Session _session = {};
