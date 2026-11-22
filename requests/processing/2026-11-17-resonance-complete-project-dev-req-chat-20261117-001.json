@@ -428,7 +428,8 @@
       "WORK-000033",
       "WORK-000034",
       "WORK-000035",
-      "WORK-000036"
+      "WORK-000036",
+      "WORK-000037"
     ]
   },
   "follow_ups": [
@@ -630,6 +631,11 @@
     {
       "timestamp": "2026-11-19T03:02:36.491655+00:00",
       "text": "The last item on each of the sound library lists is in a smaller font (the last oceans file, the second to last ambient). Check the draw code and address this.",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-22T04:21:45.303019+00:00",
+      "text": "alright, I have a new battery I purchased that is thinner (but x*y dimensions are the same) the new thickness is 5.75mm. I want a new variant of the latest case design to fit this new slim body. Create and render, let me know where the files land",
       "attachments": []
     }
   ]

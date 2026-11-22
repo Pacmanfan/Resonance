@@ -1,7 +1,7 @@
 # Resonance enclosure
 
 **Requirement:** RES-HW-007 (`docs/requirements/resonance.md`)
-**Sources:** `resonance_case_v4.scad` (the case), `resonance_case_v3.scad`, `resonance_case_v2.scad`, `resonance_case.scad` (earlier versions), `esp32_2432s032.scad` (reference
+**Sources:** `resonance_case_v4.scad` (the case), `resonance_case_v4_slim.scad` (the same for the 5.75 mm cell), `resonance_case_v3.scad`, `resonance_case_v2.scad`, `resonance_case.scad` (earlier versions), `esp32_2432s032.scad` (reference
 model of the board), `battery.scad` (reference model of the cell). OpenSCAD,
 parametric.
 **Status:** version 4 (`resonance_case_v4.scad`) is the current design; it
@@ -9,6 +9,24 @@ renders as valid solids and **has not been printed**. Version 1
 (`resonance_case.scad`) was printed once on 2026-11-18: its USB-C, microSD
 and button openings lined up with the board. The sections from "How it goes
 together" to "Hardware" and "The power button" below describe version 1.
+
+## Version 4 slim
+
+`resonance_case_v4_slim.scad`: version 4 for the operator's second cell
+(2026-11-21), which has the same length and width, 90 × 60 mm, and is
+**5.75 mm thick** instead of 11 mm. The file includes version 4 and changes
+that one number (`bat_t`). The outside is 106 × 67 × **19.85 mm** (version
+4: 25.1). The front shell and the button are the same parts as in version 4;
+only the back shell differs, 6.85 mm high instead of 12.1. The room above
+the cell (1.5 mm, `bat_gap`) and between board and cell (5.5 mm, `comp_h`)
+is unchanged. The cell's thickness is the operator's figure; its length and
+width are still the approximate ones. Renders as valid one-piece solids;
+not printed.
+
+![Version 4 slim, front](v4_slim_front.png)
+![Version 4 slim, back](v4_slim_back.png)
+![Version 4 slim, exploded](v4_slim_exploded.png)
+![Version 4 slim, section through the mounting holes](v4_slim_section.png)
 
 ## Version 4
 
