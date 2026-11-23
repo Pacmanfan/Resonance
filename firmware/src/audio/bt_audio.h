@@ -1,4 +1,4 @@
-// Bluetooth A2DP source: the audio output of Play mode (RES-BT-001,
+// Bluetooth A2DP source: the audio output (RES-BT-001,
 // RES-AUDIO-011, ADR-000204). Owns the Bluetooth stack while it runs.
 //
 // The stack pulls audio through a callback in its own task; the callback
