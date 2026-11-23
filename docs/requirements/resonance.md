@@ -546,6 +546,71 @@ is not built yet.
 
 Touch response SHALL remain acceptable during playback (§17).
 
+## Mindfield
+
+Mindfield is an instrument for recording the output of random-number sources
+under stated conditions. Nothing in the firmware, the interface or the
+documents SHALL state or imply that meditation or intention influences a
+random-number generator (RES-PROC-006).
+
+### RES-MIND-001 — Random-number sources
+
+Every source SHALL be reached through one interface that gives its name, its
+class (hardware entropy, experimental noise, experimental timing, external
+hardware, software control), whether it is available now, whether its output
+is established physical entropy now, whether it is suitable for an
+experiment, its highest validated rate and a status line. The sources SHALL
+be: the ESP32 hardware generator, offered as physical entropy only while the
+Bluetooth controller is enabled (the condition Espressif documents); the
+internal ADC and a timing-jitter source, both experimental and never called
+entropy; a dedicated noise input and an external generator, shown as not
+available while no such hardware is fitted; and a deterministic software
+generator, labelled as a control and never as random. A source that cannot
+deliver SHALL report it; no source SHALL be replaced by another silently. An
+unavailable source SHALL NOT be selectable.
+
+### RES-MIND-002 — Raw data
+
+Samples SHALL be taken on a fixed schedule of 100, 250, 500 or 1000 32-bit
+samples a second that does not depend on the display or on the user, and
+every sample SHALL be written unchanged to a binary file on the card, with a
+header that records the experiment number, source, its class and entropy
+state, rate, window length, planned length, condition, mode, target,
+visualization, seed of the software source, firmware version and the audio
+that was running. Samples that could not be taken or stored SHALL be
+recorded as a gap with their number, and pauses as such. The file SHALL end
+with the totals and a checksum; a file without that end SHALL be recognised
+as interrupted, read up to its last complete record and summarised as
+interrupted. Collecting SHALL allocate its memory only while an experiment
+runs, SHALL NOT run in or be waited for by the audio path, and SHALL refuse
+to start when the card has not the room. Experiment files SHALL be deleted
+only by an explicit action of the user.
+
+### RES-MIND-003 — Statistics
+
+One engine, independent of every picture, SHALL compute from the raw
+samples: bit balance with the proportion of ones, its standard score, a 95 %
+interval and a two-sided probability; for a directed experiment the score
+towards the target and its one-sided probability; the runs of identical bits
+against expectation and their lengths; the distribution of byte values
+against a uniform one; the agreement of bits at lags of 1, 2, 8 and 32; and,
+over fixed windows, the scores, their mean, variance and largest value, the
+number beyond 1.96 with the number expected by chance, a threshold corrected
+for the number of windows, and the correlation of successive windows. Two
+conditions SHALL be compared by the difference of their proportions with its
+interval. Replaying a raw file SHALL give exactly the statistics of the run.
+The summary SHALL say that scores are against ideal fair bits and that a
+small probability is not evidence of a cause.
+
+### RES-MIND-004 — Experiments
+
+An experiment SHALL have a condition (baseline, meditation, control or sham)
+and a mode: directed, with a target chosen before collection starts, or
+open, with none. The target, the source and every other setting SHALL be
+fixed when the experiment starts and SHALL NOT be changeable until it has
+ended. Every experiment SHALL be kept and listed, whatever it shows; none
+SHALL be hidden or dropped. Summaries SHALL be exportable as one table.
+
 ## Deliverables
 
 ### RES-DOC-001 — Project documentation

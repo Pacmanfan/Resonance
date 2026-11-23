@@ -8,6 +8,15 @@ Versions before 0.10.0 were never published as releases.
 "Not verified by a person" means: built, host-tested and exercised on the
 board through serial commands, but not yet judged by ear or eye.
 
+## 0.11.0 — 2026-11-23
+
+- Mindfield, first part: random-number sources behind one interface
+  (hardware generator, timing jitter, software control; ADC and external
+  sources reported as not available on this board), collection of raw
+  samples on a fixed schedule to the card, a statistics engine, history,
+  recovery of interrupted runs and CSV export. Serial commands only; no
+  screens or visualizations yet.
+
 ## 0.10.0 — 2026-11-23 — first public release
 
 - **Removed** the separate Setup boot mode, the Wi-Fi link and the web

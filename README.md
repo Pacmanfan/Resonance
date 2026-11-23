@@ -18,7 +18,7 @@ and — as a direction of research that is **not built yet** — a platform for
 experiments with physical randomness ("Mindfield"). No effect on health or
 mind is claimed for any frequency, preset or setting.
 
-Firmware 0.10.0 · [GPL-3.0-or-later](LICENSE) · [Changelog](CHANGELOG.md)
+Firmware 0.11.0 · [GPL-3.0-or-later](LICENSE) · [Changelog](CHANGELOG.md)
 
 ## What it does today
 
@@ -56,10 +56,18 @@ commands, but **nobody has yet listened to them or looked at their screens**:
 - Frequency sequences, with the Solfeggio set as an editable default.
 - Resonance Lab: stereo width, interaural delay, bilateral alternation, A/B comparison with loudness matching.
 
-### Not in this release
+### Mindfield: the measuring part only
 
-Mindfield (random-number experiments), wired audio output, battery
-measurement and any network function. See the [roadmap](docs/ROADMAP.md).
+Since 0.11.0 the firmware can collect raw output of a random-number source
+on a fixed schedule, record it to the card and compute statistics on it,
+driven over the serial line. There are no screens and no visualizations for
+it yet. It is an instrument under construction; nothing is claimed for it.
+See [docs/MINDFIELD.md](docs/MINDFIELD.md).
+
+### Not built
+
+Wired audio output, battery measurement and any network function. See the
+[roadmap](docs/ROADMAP.md).
 
 ## Hardware
 
@@ -109,7 +117,7 @@ or later, a C++17 compiler on the PC for the host tests (g++ or clang++),
 and the board on a USB-C cable.
 
 ```bash
-# host tests of the portable core (no board needed): 15 programs
+# host tests of the portable core (no board needed): 18 programs
 python3 firmware/tools/host_tests.py
 
 # build the firmware (the first build compiles the ESP-IDF libraries and
@@ -149,8 +157,9 @@ revision, dimensions' sources and how to regenerate the files:
   listened to.
 - **Mindfield:** a research concept under development — collecting raw
   output of physical random-number sources during meditation and analysing
-  it honestly. Nothing of it is implemented, and no ability to influence
-  randomness has been demonstrated or is claimed. See
+  it honestly. Sources, collection and statistics exist since 0.11.0;
+  screens and visualizations do not. No ability to influence randomness has
+  been demonstrated or is claimed. See
   [docs/MINDFIELD.md](docs/MINDFIELD.md).
 
 Full list: [docs/ROADMAP.md](docs/ROADMAP.md).

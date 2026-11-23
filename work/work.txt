@@ -47,3 +47,4 @@ WORK-000042 | completed | Mindforge phase 5: advanced screens | completed/WORK-0
 WORK-000043 | completed | Mindforge phase 6: Resonance Lab | completed/WORK-000043-mindforge-phase-6-resonance-lab.md | RES-AUDIO-017 | VER-000044
 WORK-000044 | completed | Advanced settings kept on the card | completed/WORK-000044-advanced-settings-kept-on-the-card.md | RES-CFG-004 | VER-000045
 WORK-000045 | completed | First public release: one operating mode, GPL-3.0, documentation, CAD | completed/WORK-000045-first-public-release-one-operating-mode.md | RES-ARCH-005, RES-CFG-002, RES-DOC-001 | VER-000046
+WORK-000046 | completed | Mindfield: random sources, raw collection, statistics | completed/WORK-000046-mindfield-random-sources-raw-collection.md | RES-MIND-001, RES-MIND-002, RES-MIND-003, RES-MIND-004 | VER-000047

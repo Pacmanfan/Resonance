@@ -33,6 +33,10 @@ const char* const kTree[] = {
     "/RESONANCE/SESSIONS",
     "/RESONANCE/SEQUENCE",
     "/RESONANCE/CONFIG",
+    "/RESONANCE/MINDFIELD",
+    "/RESONANCE/MINDFIELD/EXPERIMENTS",
+    "/RESONANCE/MINDFIELD/RESULTS",
+    "/RESONANCE/MINDFIELD/EXPORTS",
 };
 
 bool mount() {
@@ -160,6 +164,22 @@ bool nextFile(const char* directory, const char* current, char* out, uint8_t cap
         found = true;
     }
     return found;
+}
+
+bool visitFiles(const char* directory, FileVisitor visitor, void* context) {
+    if (!mounted) return false;
+    File dir = SD.open(directory);
+    if (!dir || !dir.isDirectory()) return false;
+    for (File f = dir.openNextFile(); f; f = dir.openNextFile()) {
+        const char* name = f.name();
+        const bool isDir = f.isDirectory();
+        const uint32_t size = isDir ? 0 : static_cast<uint32_t>(f.size());
+        f.close();
+        if (isDir || name == nullptr || name[0] == '.' || name[0] == '\0') continue;
+        if (!visitor(name, size, context)) break;
+    }
+    dir.close();
+    return true;
 }
 
 bool exists(const char* path) { return mounted && SD.exists(path); }

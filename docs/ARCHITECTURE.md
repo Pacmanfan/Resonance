@@ -30,6 +30,7 @@ compiled and tested on a PC:
 | `rc_presets` | Frequency presets |
 | `rc_settings`, `rc_state` | The settings record and its validation; the advanced settings kept on the card |
 | `rc_paths` | Rules for file names and paths on the card |
+| `rc_rng`, `rc_mindstats`, `rc_mindfile` | Mindfield: the random-source interface and software control source; the statistics engine; the raw-file format and summaries |
 | `rc_pulse`, `rc_repeat` | Home-screen ring animation timing; tap-and-hold repeat |
 
 **The device half** connects the core to the hardware:
@@ -44,6 +45,7 @@ compiled and tested on a PC:
 | `storage/settings_store` | Settings in the ESP32's non-volatile storage (NVS) |
 | `storage/session_store` | Sessions, sequences and advanced settings as text files on the card |
 | `hal/board`, `hal/board_pins.h` | Pins, reset reason, backlight |
+| `mind/rng_sources`, `mind/mindfield` | Mindfield: the board's random-number sources; the sampling task, raw-file writing, history and export |
 | `radio/bt_stack.cpp` | Keeps the memory reserved for Bluetooth |
 
 There is one operating mode and no network function (ADR-000205).
@@ -119,7 +121,7 @@ one level. Widgets are a few hundred lines of our own on LovyanGFX.
 
 `firmware/tests/test_*.cpp`, one program per core module, built by
 `firmware/tools/host_tests.py` with the PC's compiler, `-Werror` and the
-address and undefined-behaviour sanitizers: 15 programs. They check, among
+address and undefined-behaviour sanitizers: 18 programs. They check, among
 other things, that frequency changes are phase-continuous, that every
 optional stage is sample-for-sample neutral when off, and that no malformed
 file or stored record is accepted.

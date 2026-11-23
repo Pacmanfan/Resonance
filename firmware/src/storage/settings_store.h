@@ -30,6 +30,10 @@ void saveDeviceName(const uint8_t address[6], const char* name);
 // none is stored.
 bool loadDeviceName(const uint8_t address[6], char* out, size_t capacity);
 
+// The number of the next Mindfield experiment: counted here, not on the card,
+// so that two cards never give two experiments the same number.
+uint32_t takeExperimentId();
+
 // Radio start guard. Starting a radio draws a current surge; if the supply
 // cannot deliver it the board loses power and would restart into the same
 // surge for ever. markRadioStarting() counts an attempt just before a radio

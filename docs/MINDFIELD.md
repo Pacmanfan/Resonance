@@ -1,6 +1,10 @@
 # Mindfield — a research concept
 
-**Status: concept. Nothing described here is implemented in the firmware.**
+**Status (firmware 0.11.0): the measuring part exists — sources, collection,
+raw files, statistics, history and export, driven over the serial line. The
+touchscreen screens and every visualization are not built yet.** See
+[What is implemented](#what-is-implemented) at the end; everything else in
+this document is the concept it follows.
 
 **No causal relationship between consciousness, meditation or intention and
 the output of a random-number generator has been demonstrated by this
@@ -163,3 +167,62 @@ uncertain that is, in plain numbers.
 It is not evidence. It is not a training game. It is not a claim that the
 device, a frequency, or meditation does anything to a random-number
 generator.
+
+## What is implemented
+
+Firmware 0.11.0, requirements RES-MIND-001..004. Code: `rc_rng`,
+`rc_mindstats`, `rc_mindfile` in the portable core (33 host test cases with
+synthetic data of known answers) and `firmware/src/mind/` on the device.
+
+### Sources, as measured on the board (2026-11-23)
+
+| Source | Class | State on this board | Measured |
+|---|---|---|---|
+| ESP32 hardware RNG | Hardware entropy | Available while the Bluetooth controller is enabled, which is the condition Espressif's header for the framework in use (ESP-IDF 5.5) gives for "true random numbers"; unavailable otherwise, never replaced | 2000 samples: proportion 0.49986, z −0.07, runs z −1.27, bytes z −0.23, lag-1 z 1.29. A 15 s run at 1000 samples/s: no gaps |
+| Internal ADC (IO34, light sensor) | Experimental noise | **Not available on this board: the reading is fixed at 0**, so there is no noise to collect. The source reports this and is not offered | — |
+| ADC noise input (IO35) | Experimental noise | Not available: the pin goes only to an empty connector. A floating pin is not a noise source; a noise circuit would have to be fitted | — |
+| Timing jitter (RC oscillator against crystal) | Experimental timing | Available for study, **marked not suitable for experiments**: its bits are strongly correlated | 2000 samples: runs z 19.4, bytes z 10.4, lag-1 correlation −0.077 (z −19.4); 0.6 ms a sample |
+| External RNG | External hardware | Not available: none fitted. The class is a placeholder | — |
+| Software PRNG | Software control | Available, always labelled a control. xoshiro128** from a recorded seed | 20 s at 1000 samples/s, seed 777: z −0.87; replay from the card gives the same numbers |
+
+Not established: the hardware generator's behaviour over long runs, its
+independence at 1000 samples a second beyond these short tests, and any
+effect of the Bluetooth stack's own use of it. Long baseline runs are the
+next thing this needs.
+
+### Collection
+
+A sampling task above the interface and below the audio player takes one
+sample per slot, counted in 1 ms system ticks; if it is held up the slots are
+made up, so the number of samples follows the clock. The main loop feeds the
+statistics and writes blocks of 128 samples; data reaches the card within a
+second and the card's directory within five. Memory (about 10 kB) is taken
+when an experiment starts and returned when it ends. Measured: 20 000 of
+20 000 samples at 1000/s, no gaps; a run interrupted by a reset was read back
+to its last complete block (7424 samples) and summarised as interrupted.
+
+Not measured yet: collection while an MP3 streams over Bluetooth, and stream
+statistics while collecting — no headset was connected.
+
+### Files
+
+`/RESONANCE/MINDFIELD/EXPERIMENTS/Ennnnn.RMF` is the raw file; its format is
+documented in `firmware/lib/resonance_core/src/rc_mindfile.h`.
+`RESULTS/Ennnnn.TXT` is the summary in text, and `EXPORTS/SUMMARY.CSV` the
+table of all summaries. The device has no clock, so a file records the time
+since the device started, not the date.
+
+### Serial commands
+
+`mind`, `mind sources`, `mind start <source> <rate> <seconds>
+[open|ones|zeros] [baseline|meditation|control|sham] [seed]`, `mind pause`,
+`mind resume`, `mind stop`, `mind list`, `mind recover`, `mind export`,
+`mind replay <id>`, `mind bench <source>`.
+
+### External generator: expected interface
+
+Not built. A future external generator is expected on a serial line
+(UART, 3.3 V; which pins is not decided), sending raw bytes with no framing
+at a fixed speed; the source class would read four bytes a sample, report
+itself unavailable when no byte arrives within one sampling period, and
+record that as a gap.

@@ -92,6 +92,15 @@ bool loadDeviceName(const uint8_t address[6], char* out, size_t capacity) {
     return length > 0 && out[0] != '\0';
 }
 
+uint32_t takeExperimentId() {
+    Preferences prefs;
+    if (!prefs.begin(kNamespace, false)) return 1;
+    const uint32_t id = prefs.getULong("mf_next", 1);
+    prefs.putULong("mf_next", id + 1);
+    prefs.end();
+    return id;
+}
+
 bool radioStartKeepsFailing() { return readGuard() >= kRadioStartAttempts; }
 
 void markRadioStarting() {

@@ -54,6 +54,12 @@ bool nextFile(const char* directory, const char* current, char* out, uint8_t cap
 // Files other than sounds (stored sessions, sequences, settings, uploads
 // over the serial line). Every path is absolute on the card; this module is
 // the only one that touches the card (RES-ARCH-002).
+// Calls `visitor` for every file (not directory) of `directory`, of any
+// kind, with its size, until it returns false. False when the directory
+// cannot be opened.
+typedef bool (*FileVisitor)(const char* name, uint32_t size, void* context);
+bool visitFiles(const char* directory, FileVisitor visitor, void* context);
+
 bool exists(const char* path);
 // Removes a file, or a directory that is empty.
 bool remove(const char* path);

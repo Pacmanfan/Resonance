@@ -1,0 +1,399 @@
+{
+  "request_id": "REQ-CHAT-20261123-001",
+  "source": "chat",
+  "type": "FEATURE",
+  "priority": "NORMAL",
+  "created": "2026-11-23T11:20:58-05:00",
+  "created_utc": "2026-11-23T16:20:58+00:00",
+  "id_date": "2026-11-23",
+  "timezone": "EST (UTC-05:00)",
+  "status": "processing",
+  "original_text": "# RESONANCE \u2014 MASTER DEVELOPMENT DIRECTIVE\n## Complete Audio Expansion, Mindfield Research Platform, RNG Experimentation, Visualization Suite, and Public Release\n\n**Project:** Resonance  \n**Local repository:** `/home/dev/Resonance`  \n**GitHub:** `https://github.com/Pacmanfan/Resonance.git`  \n**Current firmware baseline:** 0.8.2  \n**Target license:** GPL-3.0  \n**Hardware:** ESP32-2432S032C (ESP32-WROOM-32, CYD, 240\u00d7320 touchscreen, 4 MB flash, no PSRAM)\n\n**MISSION: Implement the complete Resonance feature expansion described in this directive.**\n\nThis is an implementation assignment, not another planning or audit exercise.\n\nWork directly in the existing project. Preserve working functionality, integrate with the existing architecture, and deliver tested, usable features.\n\nDo not stop after producing recommendations, design documents, mockups, or a phased proposal. Implement the work, test it, and document what has been completed.\n\nIf a feature cannot safely be implemented on the current hardware, implement the best practical alternative, explain the limitation, and identify what additional hardware or future work would be needed.\n\n---\n\n# PART I \u2014 PRODUCT VISION\n\n## 1. What Resonance is becoming\n\nResonance should remain an excellent, straightforward binaural meditation device while becoming a much more capable audio experimentation platform.\n\nThe product has three interconnected areas:\n\n### Resonance Core\nThe standard meditation experience:\n- Binaural tone generation.\n- Frequency control.\n- Noise generation.\n- Audio playback.\n- Audio mixing.\n- Meditation sessions.\n- Presets and settings.\n\n### Resonance Studio\nAdvanced audio functionality:\n- Advanced binaural DSP.\n- Golden harmonics.\n- Stereo and phase experimentation.\n- Breathing pacer.\n- Guided audio.\n- Custom meditation programs.\n- Modular audio layers.\n- Solfeggio sequences.\n- Resonance Lab.\n\n### Resonance Mindfield\nAn experimental system investigating whether meditation and focused intention are associated with measurable changes in physical random-number-generator output.\n\nMindfield includes:\n- Selectable random-number sources.\n- Raw data collection.\n- Statistical analysis.\n- Experimental controls.\n- Directed-intention and open-exploration sessions.\n- Interactive visualizations.\n- Experiment history.\n- Data export.\n\nAll three areas must share the existing application, audio architecture, storage system, and touchscreen framework.\n\nDo not create separate applications or require a separate boot mode.\n\n## 2. Fundamental product principles\n\n1. Standard binaural operation must remain simple and accessible.\n2. Existing functionality must remain available.\n3. Advanced features should be optional and accessed deliberately.\n4. Mindfield must be a genuine measurement instrument, not merely an animated game.\n5. Preserve raw RNG measurements.\n6. Never represent an ordinary random fluctuation as evidence of successful influence.\n7. Maintain offline operation.\n8. Do not require cloud services or external servers.\n9. Keep the user interface appropriate for a 240\u00d7320 display.\n10. Design around actual hardware limitations.\n11. Do not compromise audio stability to add visual features.\n12. Prefer reusable engines over collections of unrelated implementations.\n\n---\n\n# PART II \u2014 EXISTING PROJECT BASELINE\n\n## 3. Existing architecture\n\nThe repository already contains approximately 7,500 lines of project code.\n\nThe portable core is located in:\n\n`firmware/lib/resonance_core/src/`\n\nThe device implementation is located in:\n\n`firmware/src/`\n\nThe existing portable components include:\n- Tone engine.\n- Audio engine and mixer.\n- Limiter.\n- Noise generators.\n- Resampler.\n- WAV parser.\n- Ring buffer.\n- Session system.\n- Presets.\n- Settings validation.\n- Path handling.\n\nThe existing device implementation includes:\n- Main application.\n- Audio output.\n- File playback.\n- GUI.\n- Storage.\n- Hardware abstraction.\n- Existing application configuration.\n\nThe project uses:\n- PlatformIO.\n- Arduino framework based on ESP-IDF.\n- LovyanGFX.\n- ESP32-A2DP.\n- Helix MP3 decoder.\n- Custom lightweight GUI components.\n- Host-side C++ tests.\n\nDo not introduce LVGL or a large audio framework.\n\n## 4. Existing hardware\n\nThe target hardware is the ESP32-2432S032C CYD.\n\nKnown configuration:\n- ESP32-WROOM-32.\n- 4 MB flash.\n- No PSRAM.\n- ST7789 240\u00d7320 display.\n- GT911 touchscreen.\n- microSD interface.\n- Existing audio output architecture.\n- Bluetooth audio headset support.\n\nThe onboard amplifier and speaker are currently unused.\n\nThe existing wired I2S output is not implemented.\n\nDo not assume additional hardware is available.\n\n## 5. Existing functionality \u2014 preserve it\n\nThe following already exists:\n\n### Audio\n- Two-channel binaural sine-wave generation.\n- Independent left/right oscillators.\n- Adjustable carrier and beat frequencies.\n- Frequency presets.\n- White, pink, and brown noise generation.\n- Audio mixer.\n- Master and source volume.\n- Limiter.\n- WAV playback.\n- MP3 playback.\n- Linear frequency sweeps.\n- Existing fades and transitions.\n\n### Sessions\n- Seven factory programs.\n- Session timer.\n- Pause, resume, and stop.\n- End fade.\n- Existing stage and time tracking.\n\n### Interface\n- HOME.\n- FREQ.\n- SND.\n- SESS.\n- SET.\n- Touchscreen controls.\n- Backlight dimming.\n\n### Storage\n- SD card.\n- Settings persistence.\n- Existing audio file organization.\n\nDo not rebuild the existing noise generators. They are already implemented. Verify their actual output during hardware testing.\n\nDo not remove existing factory programs or presets.\n\nDo not add session journaling or reflection entry. The CYD does not have a practical text-entry method.\n\n---\n\n# PART III \u2014 APPLICATION ARCHITECTURE AND MODE REMOVAL\n\n## 6. Remove the separate Wi-Fi/Setup boot mode\n\nThe existing application has separate Play and Setup boot modes.\n\nThe Setup mode provides the Wi-Fi/web administration functionality and requires a restart to enter.\n\nThe owner has explicitly decided to remove this arrangement.\n\nImplement the following:\n\n- Remove the separate Setup boot mode.\n- Remove boot-mode selection logic.\n- Remove the corresponding persisted mode setting.\n- Remove the Wi-Fi/web administration subsystem.\n- Remove the web administration routes and supporting code.\n- Remove dependencies used exclusively by that subsystem.\n- Remove obsolete mode-related UI.\n- Remove restart requirements that existed solely to switch modes.\n- Preserve normal touchscreen configuration.\n- Preserve settings persistence.\n- Preserve offline operation.\n- Preserve normal audio operation.\n\nThe device should always boot into its normal operating environment.\n\nAll configuration should be accessible through the touchscreen.\n\nDo not introduce a replacement network administration system.\n\nBefore deleting code, identify all dependencies and shared components. Preserve anything required by the normal application.\n\nUpdate the architecture documentation and tests.\n\nVerify the resulting firmware build and actual device behavior.\n\nMeasure flash usage before and after.\n\nImportant: removing Setup mode may recover flash and simplify the application. Do not assume it will automatically recover active audio heap.\n\n---\n\n# PART IV \u2014 EXPANDED AUDIO ENGINE\n\n## 7. Independent phase and inversion\n\nExtend the existing tone engine.\n\nImplement:\n- Independent left-channel phase offset.\n- Independent right-channel phase offset.\n- Relative interaural phase.\n- Left-channel inversion.\n- Right-channel inversion.\n- Phase continuity during parameter changes.\n- Smooth transitions when applying new settings.\n\nDo not introduce clicks or discontinuities.\n\nThe existing standard binaural output must remain unchanged when these options are disabled.\n\n## 8. Golden harmonics\n\nImplement optional golden-ratio partials.\n\nUse:\n\n\\[\n\\phi = \\frac{1+\\sqrt{5}}{2}\n\\]\n\nSupport:\n- Fundamental tone.\n- \u03c6-related partial.\n- \u03c6\u00b2-related partial.\n\nRequirements:\n- Independently enable or disable each partial.\n- Independently adjust each partial's level.\n- Preserve the fundamental carrier and beat relationship.\n- Support appropriate stereo placement and phase configuration.\n- Prevent clipping through appropriate mixer headroom and limiting.\n- Smooth changes in harmonic levels.\n- Avoid unnecessary computation in the audio render callback.\n\nThe golden partials should be an optional layer, not a replacement for the existing binaural tone.\n\n## 9. Expanded sweep engine\n\nSupport:\n- Linear sweeps.\n- Exponential sweeps.\n- Custom sweeps.\n- Multi-stage sweeps.\n- Configurable start frequency.\n- Configurable end frequency.\n- Configurable duration.\n- Configurable hold duration.\n- Smooth transitions.\n- Pause and resume.\n- Session-controlled sweeps.\n\nPreserve existing linear sweep behavior.\n\n## 10. Phase sweep\n\nImplement controlled phase variation over time.\n\nSupport:\n- Starting phase.\n- Ending phase.\n- Sweep duration.\n- Sweep direction.\n- Optional repeated phase sweep.\n- Session integration.\n\nThis feature must be independently controllable and available in Resonance Lab.\n\n## 11. Progressive frequency descent\n\nImplement progressive descent sessions.\n\nSupport:\n- Starting configuration.\n- Target configuration.\n- Multiple intermediate stages.\n- Linear and exponential descent.\n- Configurable hold periods.\n- Configurable transition times.\n- Smooth transitions.\n- Optional noise and harmonic layers.\n- Pause, resume, and stop.\n\nIntegrate with the existing session engine.\n\n---\n\n# PART V \u2014 MULTI-STAGE SESSIONS AND CUSTOM PROGRAMS\n\n## 12. Extend the existing session architecture\n\nImplement user-created meditation programs.\n\nA session should support multiple stages, with each stage defining:\n\n- Carrier frequency.\n- Beat frequency.\n- Duration.\n- Sweep type.\n- Transition behavior.\n- Optional golden harmonics.\n- Optional noise.\n- Optional guided audio.\n- Optional breathing pacer.\n- Layer levels.\n- Stage fade behavior.\n\nProvide a touchscreen session editor.\n\nUsers should be able to:\n- Create a session.\n- Add stages.\n- Delete stages.\n- Select stages.\n- Change stage order.\n- Edit stage parameters.\n- Preview configurations.\n- Save sessions.\n- Load sessions.\n- Start sessions.\n- Modify or delete saved sessions.\n\nUse the existing session structures and validation wherever practical.\n\nPersist custom sessions on the SD card.\n\nDo not consume significant NVS space for collections of user-created programs.\n\nImplement reasonable limits on the number of stages and saved sessions.\n\nPreserve the seven existing factory programs.\n\n---\n\n# PART VI \u2014 AUDIO LAYERS AND GUIDED MEDITATION\n\n## 13. Modular audio mixer\n\nExtend the existing mixer into a lightweight layer-based architecture.\n\nInitial layers:\n\n1. Binaural fundamental.\n2. Golden harmonics.\n3. Noise.\n4. Guided audio.\n\nEach layer should support:\n- Enable/disable.\n- Independent level.\n- Appropriate fade behavior.\n- Session-controlled settings.\n- Smooth transitions.\n\nPreserve the existing master volume and limiter.\n\nDo not introduce a large audio framework.\n\n## 14. Guided audio\n\nExtend the existing SD playback system.\n\nSupport:\n- Guided voice recordings.\n- WAV.\n- MP3 where supported by the existing decoder.\n- Voice mixed with binaural tones.\n- Voice mixed with noise.\n- Independent voice volume.\n- Fade-in.\n- Fade-out.\n- Stage transitions.\n- Optional sequencing of multiple recordings.\n\nContinue streaming and decoding from SD.\n\nDo not load complete recordings into RAM.\n\nImplement crossfades where appropriate, but prioritize reliable playback over elaborate transitions.\n\n## 15. Breathing pacer and coherence\n\nImplement an optional breathing pacer.\n\nSupport:\n- Inhale duration.\n- Exhale duration.\n- Optional hold after inhale.\n- Optional hold after exhale.\n- Repeating cycles.\n- Visual breathing indicator.\n- Optional audio modulation.\n- Configurable modulation depth.\n- Smooth amplitude modulation.\n- Session integration.\n\nThe breathing indicator should be clear and calm.\n\nDo not make breathing modulation mandatory.\n\nIt must be possible to use the device without the breathing pacer.\n\n## 16. Solfeggio sequences\n\nImplement editable Solfeggio sequences.\n\nSupport:\n- Editable frequencies.\n- Configurable stage durations.\n- Multiple stages.\n- Smooth transitions.\n- Save and load.\n- Integration with custom sessions.\n\nKeep Solfeggio sequences distinct from ordinary binaural carrier/beat settings.\n\nDo not hard-code a fixed list in a way that prevents user editing.\n\n---\n\n# PART VII \u2014 RESONANCE LAB\n\n## 17. Advanced audio experimentation\n\nCreate an advanced Resonance Lab within the existing application.\n\nInclude:\n\n- Golden bilateral stereo timing.\n- Stereo width.\n- Interaural delay.\n- Independent left/right phase.\n- Phase inversion.\n- Phase sweep.\n- Golden harmonics.\n- Editable Solfeggio sequences.\n- A/B comparison.\n\n### A/B comparison\n\nUsers should be able to:\n- Store configuration A.\n- Store configuration B.\n- Switch between them.\n- Compare without losing either configuration.\n- Match perceived loudness as closely as practical.\n- Avoid abrupt transitions and clicks.\n\nDo not add unnecessary calibration systems.\n\nThe Lab should be useful to experimenters without becoming part of normal Home operation.\n\n---\n\n# PART VIII \u2014 MINDFIELD EXPERIMENTAL PLATFORM\n\n## 18. Mindfield overview\n\nImplement a new experimental feature area called:\n\n**Resonance Mindfield**\n\nMindfield investigates whether meditation and focused intention are associated with measurable changes in physical random-number-generator output.\n\nThis is an experimental research system.\n\nDo not claim or imply that consciousness has been proven to influence random-number generators.\n\nThe system must distinguish:\n- Actual RNG measurements.\n- Statistical analysis.\n- Visualization.\n- User interpretation.\n\nThe visual display must never substitute for statistical evidence.\n\nMindfield must work offline and use the CYD's existing hardware.\n\n## 19. RNG source architecture\n\nThis is a major requirement.\n\nDo not hard-code one RNG source into Mindfield.\n\nCreate a selectable RNG source abstraction so the experimental system can use different entropy sources and compare them.\n\nDefine an interface conceptually equivalent to:\n\n```cpp\nclass RngSource {\npublic:\n    virtual bool initialize() = 0;\n    virtual bool available() const = 0;\n    virtual bool collect(uint8_t* buffer, size_t length) = 0;\n    virtual const char* name() const = 0;\n    virtual const char* status() const = 0;\n};\n```\n\nAdapt the actual interface to the existing project's coding conventions and resource constraints.\n\nEach RNG source must report its availability and limitations.\n\n### Source A \u2014 ESP32 hardware RNG\n\n<badge>Primary source</badge>\n\nUse the ESP32 hardware RNG through the supported ESP-IDF API.\n\nRelevant functions include:\n- `esp_random()`\n- `esp_fill_random()`\n\nRequirements:\n- Verify the actual ESP-IDF/Arduino implementation used by the project.\n- Verify the entropy-source requirements for the specific ESP32.\n- Confirm which physical entropy sources are active during normal operation.\n- Do not assume that the RNG always has adequate physical entropy simply because the API returns values.\n- Detect and report entropy-source availability where possible.\n- Do not silently substitute a software PRNG.\n- Preserve raw output for analysis.\n\nThis should be the default source if its physical entropy requirements are satisfied.\n\n### Source B \u2014 Internal ADC noise\n\nInvestigate whether the ESP32's internal SAR ADC can provide an additional experimental noise source.\n\nRequirements:\n- Use supported ADC hardware APIs.\n- Investigate ADC resource conflicts with existing audio and other peripherals.\n- Do not enable entropy modes that interfere with existing application functions.\n- Do not assume that ordinary ADC variation is true entropy.\n- Characterize the raw signal.\n- Determine whether it requires conditioning.\n- Record sampling configuration.\n- Report limitations.\n\nIf the SAR ADC entropy mechanism cannot coexist safely with the audio system, expose it as unavailable rather than compromising normal operation.\n\n### Source C \u2014 Dedicated ADC noise experiment\n\nIf an available ADC input can safely be used, implement an experimental sampling mode.\n\nDo not use a floating pin and call the result true randomness.\n\nInvestigate whether a properly configured external noise source would be required.\n\nThe software architecture should permit this source to be added later.\n\nIf no valid independent physical noise source exists on the CYD, document that limitation.\n\n### Source D \u2014 Timing jitter experiment\n\nInvestigate whether measurable timing jitter from available hardware timers or oscillators can be collected.\n\nRequirements:\n- Identify the actual physical timing source.\n- Distinguish physical jitter from scheduling variation and software artifacts.\n- Avoid using touchscreen timing as a trusted entropy source.\n- Do not present CPU scheduling irregularity as proven physical entropy.\n- Keep this source experimental.\n- Provide a way to compare its statistics with the hardware RNG.\n\n### Source E \u2014 External RNG interface\n\nDesign an extension point for an external hardware RNG.\n\nThe current CYD does not have an external RNG installed.\n\nDo not pretend this source is available.\n\nDefine a future interface that can support an external module over an appropriate serial interface if one is added later.\n\nDocument the expected interface and hardware requirements.\n\n### Source F \u2014 Software PRNG control source\n\nImplement a deterministic software PRNG option for testing and control experiments.\n\nThis is not a physical entropy source.\n\nUse it for:\n- Testing visualizations.\n- Reproducing experiments.\n- Testing statistical calculations.\n- Demonstrating expected behavior.\n- Verifying that the display does not introduce bias into measurements.\n\nClearly label it as a software-generated control source.\n\nNever report it as true randomness.\n\n## 20. RNG selection interface\n\nProvide a touchscreen source-selection screen.\n\nShow:\n- Source name.\n- Source type.\n- Availability.\n- Physical entropy status.\n- Current sampling rate.\n- Any known limitations.\n- Whether the source is suitable for experimental collection.\n\nSuggested source categories:\n\n| Source | Category |\n|---|---|\n| ESP32 hardware RNG | Hardware entropy |\n| Internal ADC | Experimental physical noise |\n| ADC noise experiment | Experimental physical noise |\n| Timing jitter | Experimental timing source |\n| External RNG | Optional future hardware |\n| Software PRNG | Deterministic control |\n\nDo not show unavailable sources as selectable.\n\nDo not label a source \"true random\" unless its physical entropy properties have been established.\n\n## 21. Raw data collection\n\nImplement a common sample collector.\n\nRequirements:\n- Fixed sampling schedule.\n- Configurable sampling rate.\n- Fixed measurement windows.\n- Raw 32-bit sample collection where available.\n- Timestamps or relative sample counters.\n- Session identifiers.\n- Source identifiers.\n- Configuration metadata.\n- Error and availability markers.\n- SD card recording.\n- Buffered writes.\n- Recovery from interrupted experiments where practical.\n\nNever discard raw samples after computing summary statistics.\n\nPreserve the original data.\n\n### Sampling rates\n\nProvide configurable rates suitable for the hardware.\n\nStart with conservative defaults:\n- 100 samples/second.\n- 250 samples/second.\n- 500 samples/second.\n- 1,000 samples/second.\n\nValidate the actual source and SD throughput before exposing higher rates.\n\nThe sampling schedule must not depend on animation frame rate or user interaction.\n\n### Data format\n\nUse an efficient binary format for raw data.\n\nInclude a documented file header containing:\n- Format version.\n- Experiment identifier.\n- RNG source.\n- Sampling configuration.\n- Start timestamp if available.\n- Device and firmware version.\n- Experimental condition.\n\nInclude enough information to reconstruct the experiment.\n\nStore summary metadata separately or in a documented footer/index.\n\nProvide an export option for raw data and summary results.\n\nCSV export should be available where practical.\n\nDo not write to the SD card from a real-time audio callback.\n\n## 22. Statistical analysis engine\n\nImplement a common statistical engine that is independent of visualization.\n\nAt minimum calculate:\n\n### Bit balance\n- Total bits.\n- Number of 1s.\n- Number of 0s.\n- Proportion of 1s.\n- Deviation from expected balance.\n\n### Distribution\n- Distribution of byte values.\n- Distribution of selected bit patterns.\n- Frequency of categorical outcomes.\n\n### Runs\n- Consecutive identical bits.\n- Runs of 0s and 1s.\n- Run-length distribution.\n\n### Autocorrelation\n- Correlation between successive samples or bits.\n- Configurable lag measurements.\n\n### Target deviation\n- Difference between observed and expected target proportions.\n- Standardized statistical score.\n- Confidence intervals where appropriate.\n\n### Time-window analysis\n- Fixed measurement windows.\n- Rolling summaries.\n- Session-level summaries.\n- Comparison between baseline and meditation periods.\n\nUse mathematically appropriate statistical tests.\n\nAvoid claiming statistical significance from arbitrary thresholds.\n\nAccount for repeated measurements and multiple comparisons when reporting significance.\n\nDo not assume every measurement window is statistically independent.\n\nPreserve enough data for external analysis.\n\n## 23. Experimental modes\n\nImplement two primary modes.\n\n### Mode A \u2014 Directed intention\n\nThe participant chooses a desired outcome before the experiment.\n\nExamples:\n- More 1s than 0s.\n- More 0s than 1s.\n- Favor one categorical outcome.\n- Encourage the Orb toward a selected target.\n- Favor one side of a Balance visualization.\n\nThe target must be established before collection begins.\n\nThe system should calculate whether observed output differs from the expected distribution in the selected direction.\n\nDo not change the target during an active experiment.\n\n### Mode B \u2014 Open exploration\n\nThe participant has no predefined directional target.\n\nThe device records:\n- Raw output.\n- Statistical deviations.\n- Time-window summaries.\n- Session conditions.\n\nThis mode is intended to explore possible changes without imposing a particular direction.\n\n### Control and baseline conditions\n\nImplement:\n- Resting baseline.\n- Meditation condition.\n- Control condition.\n- Optional sham-meditation condition.\n\nSupport randomized or counterbalanced session ordering.\n\nRecord the condition in the experiment metadata.\n\nDo not assume the user is meditating simply because a session has been started.\n\n## 24. Experimental session workflow\n\nA Mindfield experiment should follow this sequence:\n\n1. Select RNG source.\n2. Verify source availability.\n3. Select visualization.\n4. Select experiment mode.\n5. Choose target if using directed intention.\n6. Select session duration.\n7. Select meditation audio/session if desired.\n8. Establish baseline or control condition.\n9. Start collection.\n10. Run the visualization.\n11. Stop or complete the experiment.\n12. Calculate final results.\n13. Save raw data and summaries.\n14. Display results.\n15. Allow review and export.\n\nThe participant should be able to run an experiment without audio if desired.\n\nMindfield must also integrate with Resonance meditation sessions.\n\nRecord which audio program and settings were active during the experiment.\n\n---\n\n# PART IX \u2014 MINDFIELD VISUALIZATION ENGINE\n\n## 25. Shared visualization architecture\n\nCreate a reusable visualization interface.\n\nEach visualization should consume common experiment data and render it through the existing LovyanGFX drawing framework.\n\nConceptually:\n\n```cpp\nclass MindfieldVisualization {\npublic:\n    virtual void initialize() = 0;\n    virtual void update(const ExperimentMetrics& metrics) = 0;\n    virtual void draw(/* existing graphics context */) = 0;\n    virtual const char* name() const = 0;\n};\n```\n\nAdapt to the existing GUI architecture.\n\nDo not create separate RNG engines for individual visualizations.\n\nDo not let a visualization modify raw samples or statistical calculations.\n\nVisual smoothing must not change the underlying measurement.\n\nSupport deterministic replay using recorded data.\n\n## 26. Visualization A \u2014 The Orb\n\n<badge color=\"success\">First priority</badge>\n\nThe primary visualization.\n\nA glowing sphere starts in the center of a circular field.\n\nThe participant attempts to move it toward a target or toward the perimeter.\n\nRequirements:\n- Center starting position.\n- Circular boundary.\n- Radial movement.\n- Directional target.\n- Smooth motion.\n- Visual representation of measured deviation.\n- Clear neutral state.\n- Configurable measurement threshold.\n- Optional target direction.\n- No automatic outward drift.\n\nThe Orb's position must represent a defined statistical measurement.\n\nDo not simply integrate random values as a random walk.\n\nA standardized statistical score is preferable.\n\nThe center should represent results consistent with expectation.\n\nMovement outward should represent increasing evidence of deviation in the selected direction.\n\nMovement inward should represent deviation in the opposite direction or return toward expectation, according to the chosen metric.\n\nThe animation may be smoothed, but the measured statistical score must remain available independently.\n\n## 27. Visualization B \u2014 Balance\n\n<badge color=\"success\">First priority</badge>\n\nA scale or balance beam begins centered.\n\nThe participant attempts to influence the result toward a selected side.\n\nRequirements:\n- Two opposing sides.\n- Clear center reference.\n- Adjustable target side.\n- Visual balance indicator.\n- Smooth movement.\n- Measured statistical deviation.\n- No arbitrary visual bias.\n\nThis visualization should be particularly suitable for binary experiments.\n\n## 28. Visualization C \u2014 Growth\n\nImplement a reusable growth engine with three visual styles.\n\n### Tree\n- Random branching decisions.\n- Branch direction.\n- Branch length.\n- Branch generation.\n- Cumulative visual history.\n\n### Mandala\n- Radial geometry.\n- Repeating patterns.\n- Symmetry.\n- Incremental construction.\n- Configurable complexity.\n\n### Lotus\n- Unfolding petals.\n- Incremental growth.\n- Radial symmetry.\n- Smooth visual transitions.\n\nThe pattern should be reproducible from recorded experiment data.\n\nThe visualization should distinguish between random pattern development and statistically meaningful deviation.\n\n## 29. Visualization D \u2014 Flow\n\nImplement a reusable flow engine.\n\n### River\nParticles travel through branching channels.\n\nRandom decisions determine the direction of each particle.\n\n### Labyrinth\nA point moves through a maze.\n\nRandom decisions determine path choices.\n\nThe participant attempts to influence progress toward an exit.\n\n### Waterfall\nParticles enter multiple channels or destinations.\n\nThe resulting distribution represents observed outcomes.\n\nAll three should use the same underlying distribution engine where practical.\n\nAvoid excessive particle counts and expensive rendering.\n\n## 30. Visualization E \u2014 Intensity\n\nImplement two lightweight visualizations.\n\n### Star\nA central star changes brightness and size according to measured deviation.\n\n### Flame\nA flame changes height and intensity according to measured deviation.\n\nThese should be lightweight, procedural animations suitable for the CYD.\n\nThey must not generate an artificial impression of success.\n\n## 31. Additional visualization experiments\n\nImplement these if the shared engine and performance budget permit:\n\n### Vortex\n- Radial and angular movement.\n- Configurable target orbit.\n- Statistical deviation mapping.\n\n### Pendulum\n- Oscillation between two extremes.\n- Randomly measured influence represented through changes in amplitude or equilibrium.\n- No arbitrary accumulation.\n\nThe initial release should prioritize:\n1. Orb.\n2. Balance.\n3. Tree.\n4. Mandala.\n5. River.\n6. Star.\n7. Flame.\n\nThe remaining visualizations can follow once the shared engine is stable.\n\n## 32. Visualization performance\n\nThe CYD has no framebuffer or PSRAM.\n\nRequirements:\n- Use the existing direct-drawing approach.\n- Avoid large bitmaps.\n- Avoid allocating memory every frame.\n- Avoid excessive full-screen redraws.\n- Use partial redraws where practical.\n- Keep animation independent from RNG sampling.\n- Maintain stable audio output.\n- Allow the display to pause or reduce frame rate without changing experiment sampling.\n\nThe RNG engine must continue collecting at its configured rate even if rendering slows.\n\n---\n\n# PART X \u2014 USER INTERFACE INTEGRATION\n\n## 33. Main application structure\n\nKeep the normal Resonance experience simple.\n\nPreserve the existing primary functions:\n- Home.\n- Frequency.\n- Sound.\n- Sessions.\n- Settings.\n\nOrganize advanced functionality behind deliberate navigation.\n\nSuggested arrangement:\n\n**HOME**\n- Current binaural state.\n- Carrier and beat status.\n- Volume.\n- Active session.\n- Audio state.\n\n**FREQ**\n- Existing frequency controls.\n- Existing presets.\n- Existing noise controls.\n\n**SND**\n- Existing file browser and playback.\n\n**SESS**\n- Factory sessions.\n- Custom sessions.\n- Session editor.\n\n**STUDIO**\n- Advanced audio configuration.\n- Layer mixer.\n- Breathing pacer.\n- Resonance Lab.\n\n**MINDFIELD**\n- RNG source.\n- Experiment selection.\n- Visualization.\n- Session controls.\n- Results and history.\n\n**SET**\n- Display.\n- Device settings.\n- Storage status.\n- About/version information.\n\nIf adding a permanent top-level tab would overcrowd the display, use a compact navigation entry or contextual menu.\n\nDo not force all features onto the Home screen.\n\n## 34. Mindfield UI\n\nImplement the following screens:\n\n### Mindfield home\n- Select visualization.\n- Start experiment.\n- View recent experiment.\n- Access settings and results.\n\n### RNG source selection\n- Available sources.\n- Source status.\n- Entropy status.\n- Sampling rate.\n- Source limitations.\n\n### Experiment setup\n- Directed intention.\n- Open exploration.\n- Control/baseline.\n- Target selection.\n- Duration.\n- Visualization selection.\n- Optional meditation program.\n\n### Active experiment\n- Full-screen visualization.\n- Elapsed time.\n- Sample count.\n- Collection status.\n- Pause/resume.\n- Stop.\n\nDo not display an emotionally manipulative live success score.\n\n### Results\n- Sample count.\n- Observed distribution.\n- Expected distribution.\n- Deviation.\n- Statistical score.\n- Confidence interval where appropriate.\n- Control/baseline comparison.\n- Data file information.\n- Export option.\n\n### History\n- Previous experiments.\n- Date/time.\n- Source.\n- Condition.\n- Visualization.\n- Summary statistics.\n\nAvoid requiring free-form text entry.\n\nUse selectors, buttons, and sensible defaults.\n\n## 35. Touchscreen interaction\n\nThe display is 240\u00d7320.\n\nUse compact, readable controls.\n\nAvoid:\n- Long forms.\n- Excessive menus.\n- Tiny buttons.\n- Large tables.\n- Required text entry.\n\nUse:\n- Step controls.\n- Selectable lists.\n- Sliders.\n- Compact cards.\n- Clear state indicators.\n- Consistent back navigation.\n\n---\n\n# PART XI \u2014 STORAGE AND EXPERIMENT MANAGEMENT\n\n## 36. SD card organization\n\nUse a dedicated folder structure.\n\nSuggested:\n\n`/Resonance/`\n- `Audio/`\n- `Sessions/`\n- `Mindfield/`\n  - `Experiments/`\n  - `Exports/`\n  - `Results/`\n- `Presets/`\n\nAdapt this to the existing storage architecture and avoid breaking existing audio paths.\n\n## 37. Experiment persistence\n\nEach experiment must have:\n- Unique identifier.\n- RNG source.\n- Source configuration.\n- Sampling rate.\n- Experiment condition.\n- Target if applicable.\n- Visualization.\n- Start and end information.\n- Raw sample file.\n- Summary file.\n- Firmware version.\n\nProvide:\n- Experiment listing.\n- Result review.\n- Raw data export.\n- CSV summary export.\n- Recovery of incomplete experiment metadata where practical.\n- Storage capacity checks.\n\nDo not delete experiment data without explicit user action.\n\n---\n\n# PART XII \u2014 SCIENTIFIC VALIDITY\n\n## 38. Experimental integrity\n\nThis is a critical requirement.\n\nMindfield must not manufacture apparent success through visualization choices or biased analysis.\n\nImplement the following safeguards:\n\n1. Define targets before experiments.\n2. Preserve raw RNG data.\n3. Keep RNG collection independent of visualization.\n4. Use fixed sampling windows.\n5. Record experimental conditions.\n6. Keep baseline and control data.\n7. Do not alter targets during active experiments.\n8. Do not discard unfavorable measurements.\n9. Do not hide unsuccessful sessions.\n10. Do not selectively report favorable metrics.\n11. Account for repeated statistical comparisons.\n12. Distinguish exploratory results from confirmatory experiments.\n\nUse established statistical methods.\n\nFor binary outcomes, use appropriate binomial tests and standardized effect estimates.\n\nFor multiple categories, use appropriate distribution tests.\n\nFor time-series data, investigate autocorrelation and dependence before treating windows as independent observations.\n\nDo not assume a conventional p-value proves causation.\n\nProvide clear explanations in the results interface and documentation.\n\n## 39. Independent validation\n\nDesign the architecture so future experiments can compare the CYD's RNG output with an independent external hardware RNG.\n\nFor now, implement the external-source interface but do not claim it is present.\n\nProvide deterministic software-generated test sequences for validating:\n- Visualizations.\n- Statistical calculations.\n- Target mapping.\n- Data recording.\n- Replay.\n\nThe software PRNG is a control and testing source only.\n\n---\n\n# PART XIII \u2014 MEMORY, PERFORMANCE, AND REAL-TIME SAFETY\n\n## 40. Critical hardware constraints\n\nThe audit measured:\n- Approximately 94.6 KB free heap without active playback.\n- Approximately 33 KB free heap during MP3 playback.\n- Low point around 24 KB.\n- Minimum safety floor of 16 KB during MP3 playback.\n\nThe project has no PSRAM.\n\nThe audio render callback must remain:\n- Nonblocking.\n- Allocation-free.\n- Free of file I/O.\n- Free of logging.\n- Free of unnecessary calculations.\n\nDo not put statistical analysis, SD writing, visualization rendering, or session persistence in the audio callback.\n\n## 41. Task separation\n\nUse a clear separation between:\n\n- Audio rendering.\n- File decoding.\n- RNG sampling.\n- Statistical calculations.\n- SD data writing.\n- GUI rendering.\n- Session control.\n\nUse fixed-size buffers and bounded queues.\n\nAvoid unnecessary task creation.\n\nDo not increase task stack sizes without measuring actual usage.\n\nAvoid priority inversion and blocking dependencies.\n\nDo not allow Mindfield collection to starve audio rendering.\n\n## 42. Memory validation\n\nMeasure heap usage under these conditions:\n\n1. Device idle.\n2. Binaural audio.\n3. Noise enabled.\n4. Guided MP3.\n5. MP3 plus binaural audio.\n6. MP3 plus all practical audio layers.\n7. Mindfield RNG collection.\n8. Mindfield visualization.\n9. Mindfield with audio and SD recording.\n10. Full combined operation.\n\nThe system must remain above the measured 16 KB safety floor during active MP3 playback.\n\nIf necessary:\n- Reduce buffer sizes.\n- Reduce visualization complexity.\n- Lower sampling rates.\n- Reduce task stacks.\n- Move processing outside constrained tasks.\n- Defer nonessential features.\n\nDo not compromise the standard audio experience.\n\n---\n\n# PART XIV \u2014 PUBLIC REPOSITORY AND GPL RELEASE\n\n## 43. GitHub repository\n\nUse:\n\n`https://github.com/Pacmanfan/Resonance.git`\n\nPreserve existing Git history.\n\nDo not create a new unrelated history.\n\nInspect the remote before pushing.\n\nAvoid force pushes.\n\nKeep `master` as the stable branch.\n\nUse feature branches if appropriate.\n\nReview the working tree and `.gitignore`.\n\nDo not commit:\n- Build directories.\n- Temporary audit files.\n- Credentials.\n- Wi-Fi passwords.\n- Personal recordings.\n- Private information.\n- Unrelated local files.\n\n## 44. GPL-3.0\n\nAdd the complete official GPL-3.0 license text.\n\nReview third-party licenses.\n\nPreserve original copyright and attribution notices.\n\nDo not assume all third-party libraries have the same license.\n\nDocument any licensing conflicts or unresolved ownership questions.\n\n## 45. Project documentation\n\nCreate and maintain:\n\n- `README.md`\n- `LICENSE`\n- `CHANGELOG.md`\n- `CONTRIBUTING.md`\n- `docs/ARCHITECTURE.md`\n- `docs/DSP.md`\n- `docs/HARDWARE.md`\n- `docs/ROADMAP.md`\n- `docs/MINDFIELD.md`\n- `hardware/README.md`\n\nREADME requirements:\n- Project overview.\n- Actual implemented capabilities.\n- Hardware description.\n- Architecture overview.\n- Build instructions.\n- Test instructions.\n- CAD links.\n- Project roadmap.\n- License.\n- Screenshots and preview images.\n\nClearly distinguish implemented, tested, unverified, planned, and experimental functionality.\n\nDo not advertise unfinished functionality as complete.\n\n## 46. CAD publication\n\nPublish the actual enclosure design files.\n\nInclude:\n- OpenSCAD source.\n- Corresponding STL exports.\n- Preview images.\n- Revision information.\n- Build and modification instructions.\n\nPreserve all useful historical revisions.\n\nThe v4 and v4 slim designs have been rendered but not physically printed and validated. Clearly identify this.\n\nDo not substitute generated concept art for actual CAD previews.\n\nUse actual OpenSCAD rendering or another suitable CAD renderer.\n\nSuggested structure:\n\n`hardware/`\n- `README.md`\n- `openscad/`\n- `stl/`\n- `previews/`\n- `revisions/`\n\nVerify that each STL matches its source revision.\n\n## 47. Project visual identity\n\nEstablish a cohesive visual language for Resonance.\n\nCreate:\n- README banner.\n- GitHub social preview.\n- Actual device screenshots if available.\n- Actual CAD preview images.\n- Mindfield concept images.\n- Visualization assets where appropriate.\n\nUse a restrained dark scientific aesthetic with subtle luminous color.\n\nGenerated concept imagery must be labeled as concept art.\n\nActual hardware images and CAD renders must remain factual representations.\n\n---\n\n# PART XV \u2014 TESTING AND VALIDATION\n\n## 48. Preserve the existing test suite\n\nRun:\n\n`firmware/tools/host_tests.py`\n\nAll existing nine host-test programs must continue passing.\n\nDo not delete or weaken existing tests to accommodate new functionality.\n\n## 49. Add tests for expanded audio\n\nTest:\n- Phase offsets.\n- Inversion.\n- Phase continuity.\n- Golden harmonic frequencies.\n- Harmonic levels.\n- Linear sweeps.\n- Exponential sweeps.\n- Custom sweeps.\n- Multi-stage transitions.\n- Mixer behavior.\n- Crossfades.\n- Breathing modulation.\n- Session persistence.\n- Solfeggio sequences.\n- A/B comparison.\n\n## 50. Add tests for Mindfield\n\nTest:\n- RNG source availability.\n- Source selection.\n- Source failure.\n- Source metadata.\n- Raw sample collection.\n- Sampling schedule.\n- Binary file format.\n- Interrupted collection.\n- Data integrity.\n- Bit balance.\n- Distribution.\n- Runs.\n- Autocorrelation.\n- Target deviation.\n- Confidence intervals.\n- Multiple-comparison handling.\n- Control conditions.\n- Session metadata.\n- Visualization mapping.\n- Deterministic replay.\n\nInclude known synthetic datasets:\n- Perfectly balanced binary data.\n- Biased binary data.\n- Repeating patterns.\n- Known distributions.\n- Deterministic sequences.\n\nVerify that the statistical engine returns expected results.\n\n## 51. Physical hardware tests\n\nHost tests are not sufficient.\n\nVerify on the actual CYD:\n\n- Normal boot.\n- Touchscreen operation.\n- Frequency controls.\n- Existing audio.\n- Noise output.\n- SD playback.\n- Existing factory sessions.\n- Custom sessions.\n- Audio layer mixing.\n- Mindfield collection.\n- SD recording.\n- Visualization operation.\n- Long-duration operation.\n- Recovery after interruption.\n- No audio dropouts.\n- No memory exhaustion.\n\nDocument any tests that cannot be performed.\n\n---\n\n# PART XVI \u2014 IMPLEMENTATION EXECUTION\n\n## 52. Execute in dependency order\n\nThis is a large project. Implement it in coherent phases, but continue through the complete scope.\n\nDo not stop after each phase merely to ask for approval.\n\nUse the following order unless actual code dependencies justify a change.\n\n### Phase 1 \u2014 Repository and application cleanup\n- Preserve Git history.\n- Verify GitHub remote.\n- Add GPL-3.0.\n- Remove Wi-Fi/Setup boot mode.\n- Remove obsolete web administration.\n- Update build configuration.\n- Verify normal application.\n- Update documentation.\n\n### Phase 2 \u2014 RNG infrastructure\n- RNG source interface.\n- ESP32 hardware RNG.\n- Source validation.\n- Internal ADC investigation and implementation if safe.\n- Timing jitter experiment if defensible.\n- Software PRNG control.\n- External RNG extension point.\n- Source-selection UI.\n\n### Phase 3 \u2014 Mindfield collection and statistics\n- Sample collector.\n- Sampling schedule.\n- Binary recording.\n- SD storage.\n- Experiment metadata.\n- Statistical engine.\n- Baseline and control modes.\n- Results interface.\n\n### Phase 4 \u2014 First Mindfield visualizations\n- Orb.\n- Balance.\n- Tree.\n- Mandala.\n- Deterministic replay.\n- Performance validation.\n\n### Phase 5 \u2014 Remaining visualization families\n- River.\n- Labyrinth.\n- Waterfall.\n- Star.\n- Flame.\n- Vortex.\n- Pendulum.\n- Lotus.\n\n### Phase 6 \u2014 Expanded audio DSP\n- Phase controls.\n- Inversion.\n- Golden harmonics.\n- Exponential sweeps.\n- Custom sweeps.\n- Phase sweep.\n\n### Phase 7 \u2014 Sessions and mixer\n- Multi-stage sessions.\n- Progressive descent.\n- Custom session editor.\n- Modular mixer.\n- Guided audio.\n- Crossfades.\n- Breathing pacer.\n- Solfeggio sequences.\n\n### Phase 8 \u2014 Resonance Lab\n- Stereo width.\n- Interaural delay.\n- Golden bilateral timing.\n- Advanced phase experimentation.\n- A/B comparison.\n- Advanced UI.\n\n### Phase 9 \u2014 Complete integration\n- Mindfield and meditation session integration.\n- Combined audio/RNG/SD/display testing.\n- Memory profiling.\n- Performance optimization.\n- Long-duration hardware testing.\n\n### Phase 10 \u2014 Public release\n- Complete documentation.\n- CAD source and STL publication.\n- CAD preview images.\n- README artwork.\n- Changelog.\n- Contribution instructions.\n- Final license review.\n- GitHub release.\n- Release tag.\n- Final verification.\n\n## 53. Development process\n\nFor each phase:\n\n1. Inspect the relevant existing implementation.\n2. Identify the smallest appropriate architectural changes.\n3. Implement working functionality.\n4. Add tests.\n5. Run the tests.\n6. Build the firmware.\n7. Measure resource use.\n8. Update documentation.\n9. Commit the completed work.\n10. Continue to the next phase.\n\nMaintain a development log documenting:\n- Completed features.\n- Current phase.\n- Files modified.\n- Tests run.\n- Build results.\n- Heap measurements.\n- Hardware verification.\n- Known limitations.\n\nUse meaningful Git commits.\n\nDo not create one enormous unreviewable commit.\n\nDo not leave incomplete placeholder implementations while reporting the feature as complete.\n\nIf a feature is blocked by hardware limitations, implement the software interface and report the exact blocker.\n\nDo not invent hardware capabilities.\n\n## 54. Final acceptance criteria\n\nThe project is considered complete when:\n\n### Existing Resonance\n- Standard binaural operation remains functional.\n- Existing noise generators remain functional.\n- Existing audio playback remains functional.\n- Existing presets and factory sessions remain available.\n- Touchscreen operation remains reliable.\n- Separate Wi-Fi/Setup boot mode is removed.\n- No restart is required to access ordinary configuration.\n\n### Audio expansion\n- Independent phase and inversion work.\n- Golden harmonics work.\n- Advanced sweeps work.\n- Progressive descent works.\n- Custom sessions can be created and saved.\n- Guided audio can be mixed.\n- Breathing pacer works.\n- Solfeggio sequences are editable.\n- Resonance Lab works.\n- A/B comparison works.\n\n### Mindfield\n- RNG source selection works.\n- Physical entropy availability is reported accurately.\n- Software PRNG is clearly labeled as a control source.\n- Raw data is preserved.\n- Experiment metadata is recorded.\n- Statistical calculations are validated.\n- Baseline and meditation conditions are supported.\n- Directed and open-exploration modes work.\n- Orb and Balance work.\n- Growth visualizations work.\n- Flow and Intensity visualizations work.\n- Additional visualizations work where hardware permits.\n- Results can be reviewed and exported.\n\n### Reliability\n- Existing host tests pass.\n- New tests pass.\n- Audio remains stable.\n- Memory remains above the established safety floor.\n- Long-duration experiments do not exhaust storage or memory.\n- Interrupted experiments are handled safely.\n\n### Public project\n- Git history is preserved.\n- GitHub repository is populated.\n- GPL-3.0 is included.\n- README and documentation are complete.\n- CAD source is published.\n- STL exports are published.\n- CAD preview images are included.\n- Project release is tagged and documented.\n\n---\n\n# FINAL INSTRUCTION\n\n**Go for the complete Resonance evolution.**\n\nDo not reduce this assignment to an RNG demonstration or a collection of animated graphics.\n\nThe goal is a complete, integrated product:\n\n- A capable binaural meditation device.\n- An advanced audio laboratory.\n- A customizable meditation-session platform.\n- A physical RNG experimentation system.\n- A collection of engaging scientific visualizations.\n- An open-source hardware and software project.\n\nPreserve the simplicity of normal Resonance operation while making the advanced features genuinely useful.\n\nThe experimental system must be scientifically honest. The audio system must remain reliable. The user interface must remain usable on the CYD. The public repository must be reproducible and properly documented.\n\n**Implement the features, test them, document them, and deliver a working product.**",
+  "file": "requests/inbox/2026-11-23-resonance-master-development-d-req-chat-20261123-001.md",
+  "attachments": [],
+  "context": "",
+  "text_sha256": "d3268c926e52f5680dbb05ad39130009cb13432c1063c448853321659b68221a",
+  "classification": {
+    "proposed_type": "FEATURE",
+    "proposed_source": "override",
+    "normalized_type": "FEATURE",
+    "heuristic_type": "FEATURE",
+    "final_type": "FEATURE",
+    "confidence": "low",
+    "validation": "PASS",
+    "classifier_reason": "no framing in the request statement; body suggests feature: Add, Allow, Build, Build the ",
+    "correction_reason": null,
+    "normalization_note": null,
+    "evidence": [
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "**MISSION: Implement the complete Resonance feature expansion described in this directive.**"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "feature",
+        "strength": "strong",
+        "note": "",
+        "sentence": "**MISSION: Implement the complete Resonance feature expansion described in this directive.**"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "integrate",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Preserve working functionality, integrate with the existing architecture, and deliver tested, usable features."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "deliver",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Preserve working functionality, integrate with the existing architecture, and deliver tested, usable features."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "features",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Preserve working functionality, integrate with the existing architecture, and deliver tested, usable features."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement the work, test it, and document what has been completed."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "feature",
+        "strength": "strong",
+        "note": "",
+        "sentence": "If a feature cannot safely be implemented on the current hardware, implement the best practical alternative, explain the limitation, and identify what additional hardware or future work would be neede"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "If a feature cannot safely be implemented on the current hardware, implement the best practical alternative, explain the limitation, and identify what additional hardware or future work would be neede"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "framework",
+        "strength": "strong",
+        "note": "",
+        "sentence": "All three areas must share the existing application, audio architecture, storage system, and touchscreen framework."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "create",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Do not create separate applications or require a separate boot mode."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "features",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Advanced features should be optional and accessed deliberately."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Design",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Design around actual hardware limitations."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "add",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Do not compromise audio stability to add visual features."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "features",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Do not compromise audio stability to add visual features."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "reusable",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Prefer reusable engines over collections of unrelated implementations."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "framework",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Arduino framework based on ESP-IDF."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "introduce",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Do not introduce LVGL or a large audio framework."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "framework",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Do not introduce LVGL or a large audio framework."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "wired",
+        "strength": "strong",
+        "note": "",
+        "sentence": "The existing wired I2S output is not implemented."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "add",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Do not add session journaling or reflection entry."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "provides",
+        "strength": "strong",
+        "note": "",
+        "sentence": "The Setup mode provides the Wi-Fi/web administration functionality and requires a restart to enter."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement the following:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "introduce",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Do not introduce a replacement network administration system."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Extend",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Extend the existing tone engine."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "new settings",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Smooth transitions when applying new settings."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "introduce",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Do not introduce clicks or discontinuities."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement optional golden-ratio partials."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Support",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Support:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "enable",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Independently enable or disable each partial."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Support",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Support appropriate stereo placement and phase configuration."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Support",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Support:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Configurable",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Configurable start frequency."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Configurable",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Configurable end frequency."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Configurable",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Configurable duration."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Configurable",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Configurable hold duration."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Implement",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Implement controlled phase variation over time."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "Support",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Support:"
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "integration",
+        "strength": "strong",
+        "note": "",
+        "sentence": "Session integration."
+      },
+      {
+        "category": "FEATURE",
+        "where": "body",
+        "phrase": "feature",
+        "strength": "strong",
+        "note": "",
+        "sentence": "This feature must be independently controllable and available in Resonance Lab."
+      }
+    ],
+    "scores": {
+      "FEATURE": {
+        "head": 0,
+        "body": 154
+      },
+      "BUG": {
+        "head": 0,
+        "body": 17
+      },
+      "CRASH": {
+        "head": 0,
+        "body": 0
+      },
+      "REGRESSION": {
+        "head": 0,
+        "body": 0
+      },
+      "PERFORMANCE": {
+        "head": 0,
+        "body": 4
+      },
+      "REFACTOR": {
+        "head": 0,
+        "body": 4
+      },
+      "BUILD": {
+        "head": 0,
+        "body": 0
+      },
+      "DOCUMENTATION": {
+        "head": 0,
+        "body": 25
+      },
+      "INVESTIGATION": {
+        "head": 0,
+        "body": 33
+      },
+      "PROCESS-CHANGE": {
+        "head": 0,
+        "body": 0
+      }
+    },
+    "evidence_total": 237,
+    "validator": "scripts/request_classification.py"
+  },
+  "links": {
+    "work": [
+      "WORK-000046"
+    ]
+  }
+}

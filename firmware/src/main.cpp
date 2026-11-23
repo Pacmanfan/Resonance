@@ -9,6 +9,8 @@
 #include "gui/display.h"
 #include "gui/ui.h"
 #include "hal/board.h"
+#include "mind/mindfield.h"
+#include "mind/rng_sources.h"
 #include "audio/bt_audio.h"
 #include "audio/player.h"
 #include "rc_settings.h"
@@ -126,6 +128,8 @@ void markSettingsChanged() {
 // Data memory: what malloc() can give. ESP.getFreeHeap() also counts the
 // region that only allows 32-bit access, which ordinary data cannot use,
 // and so reads about 29 kB too high (that hid the cause of a stutter).
+void mindCommand(const char* arguments);  // Mindfield over the serial line, below
+
 void printHeap(const char* stage) {
     Serial.printf("HEAP %-22s free %6lu  min %6lu  largest %6lu\n", stage,
                   static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DEFAULT)),
@@ -966,6 +970,8 @@ void runCommand(char* line) {
             sessionstore::name(slot, name, sizeof(name));
             Serial.printf("USESSION slot %u: %s\n", static_cast<unsigned>(slot), name);
         }
+    } else if (strncmp(line, "mind", 4) == 0 && (line[4] == '\0' || line[4] == ' ')) {
+        mindCommand(line[4] == ' ' ? line + 5 : "");
     } else if (strncmp(line, "state", 5) == 0 && (line[5] == '\0' || line[5] == ' ')) {
         // state | state save | state clear: the advanced settings kept on the card
         if (strcmp(line, "state save") == 0) {
@@ -1198,7 +1204,7 @@ void runCommand(char* line) {
     } else if (strcmp(line, "radio") == 0) {
         startRadio();
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | tap <x> <y> | ui | lab | state | state save | state clear | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | breath | breath <in s> <hold s> <out s> <hold s> [depth] | breath off | seq | seq default | seq step <n> <Hz> <s> | seq remove <n> | seq glide <s> | seq beat <Hz> | seq save|load|delete <slot> | seq use | usession | usession breath <stage> <in ds> <hold ds> <out ds> <hold ds> <depth> | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off");
+        Serial.println("commands: report | heap | mind ... | tap <x> <y> | ui | lab | state | state save | state clear | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | breath | breath <in s> <hold s> <out s> <hold s> [depth] | breath off | seq | seq default | seq step <n> <Hz> <s> | seq remove <n> | seq glide <s> | seq beat <Hz> | seq save|load|delete <slot> | seq use | usession | usession breath <stage> <in ds> <hold ds> <out ds> <hold ds> <depth> | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off");
     }
 }
 
@@ -1212,6 +1218,139 @@ void pollSerial() {
         } else if (lineLength < sizeof(lineBuffer) - 1) {
             lineBuffer[lineLength++] = c;
         }
+    }
+}
+
+// ---- Mindfield over the serial line -------------------------------------------
+
+void printMindSummary(const rc::MindHeader& h, const rc::MindSummary& s, rc::MindEnd reason, uint32_t gaps) {
+    char text[rc::kMindSummaryLineMax];
+    for (uint8_t i = 0; rc::mindSummaryLine(h, s, reason, gaps, i, text, sizeof(text)); ++i) Serial.printf("MIND | %s\n", text);
+}
+
+mindfield::Context mindContext() {
+    mindfield::Context context;
+    context.firmware = RESONANCE_VERSION;
+    context.audio = session.state() != rc::SessionState::Idle ? runningName : "";
+    context.primaryHz = settings.primaryHz;
+    context.beatHz = settings.beatHz;
+    context.audioOn = audioOn;
+    return context;
+}
+
+void mindCommand(const char* arguments) {
+    static const char* const kStates[] = {"idle", "running", "paused", "finished"};
+    if (arguments[0] == '\0') {
+        const mindfield::Live& live = mindfield::live();
+        Serial.printf("MIND %s, experiment %lu, %lu sample(s) of %lu, %lu s, %lu window(s), %lu gap(s), z %.3f, directed %.3f, window %.3f, %s%s%s\n",
+                      kStates[static_cast<uint8_t>(live.state)], static_cast<unsigned long>(live.id),
+                      static_cast<unsigned long>(live.samples), static_cast<unsigned long>(live.plannedSamples),
+                      static_cast<unsigned long>(live.elapsedS), static_cast<unsigned long>(live.windows),
+                      static_cast<unsigned long>(live.gaps), static_cast<double>(live.z), static_cast<double>(live.directedZ),
+                      static_cast<double>(live.windowZ), live.recorded ? "recorded" : "not recorded",
+                      mindfield::message()[0] ? ", " : "", mindfield::message());
+        if (live.state == mindfield::State::Finished) {
+            printMindSummary(mindfield::header(), mindfield::summary(), mindfield::endReason(), live.gaps);
+        }
+    } else if (strcmp(arguments, "sources") == 0) {
+        for (uint8_t i = 0; i < rngsources::kCount; ++i) {
+            const rc::RngSource& source = rngsources::at(i);
+            Serial.printf("MIND source %u: %s | %s | %s | physical entropy %s | %s | up to %u/s | %s\n", static_cast<unsigned>(i),
+                          source.name(), rc::rngClassName(source.rngClass()), source.available() ? "available" : "NOT available",
+                          source.physicalEntropy() ? "yes" : "no", source.suitable() ? "suitable for experiments" : "not for experiments",
+                          static_cast<unsigned>(source.maxRate()), source.status());
+        }
+    } else if (strncmp(arguments, "start ", 6) == 0) {
+        // mind start <source> <rate> <seconds> [open|ones|zeros] [baseline|meditation|control|sham] [seed]
+        unsigned source = 0, rate = 100, seconds = 60;
+        unsigned long seed = 1;
+        char target[10] = "open", condition[12] = "baseline";
+        sscanf(arguments + 6, "%u %u %u %9s %11s %lu", &source, &rate, &seconds, target, condition, &seed);
+        mindfield::Setup setup;
+        setup.source = static_cast<uint8_t>(source);
+        setup.rate = static_cast<uint16_t>(rate);
+        setup.seconds = static_cast<uint16_t>(seconds > 65535 ? 65535 : seconds);
+        setup.seed = seed;
+        setup.viz = rc::MindViz::None;
+        if (strcmp(target, "ones") == 0) setup.target = rc::MindTarget::MoreOnes;
+        else if (strcmp(target, "zeros") == 0) setup.target = rc::MindTarget::MoreZeros;
+        setup.mode = setup.target == rc::MindTarget::None ? rc::MindMode::Open : rc::MindMode::Directed;
+        if (strcmp(condition, "meditation") == 0) setup.condition = rc::MindCondition::Meditation;
+        else if (strcmp(condition, "control") == 0) setup.condition = rc::MindCondition::Control;
+        else if (strcmp(condition, "sham") == 0) setup.condition = rc::MindCondition::Sham;
+        const bool ok = mindfield::start(setup, mindContext());
+        Serial.printf("MIND %s%s%s\n", ok ? "started" : "NOT started", mindfield::message()[0] ? ": " : "", mindfield::message());
+        printHeap("mindfield started");
+    } else if (strcmp(arguments, "stop") == 0) {
+        mindfield::stop();
+    } else if (strcmp(arguments, "pause") == 0) {
+        mindfield::pause();
+    } else if (strcmp(arguments, "resume") == 0) {
+        mindfield::resume();
+    } else if (strcmp(arguments, "list") == 0) {
+        static rc::MindRecord page[4];
+        uint8_t total = 0;
+        for (uint8_t skip = 0;; skip = static_cast<uint8_t>(skip + 4)) {
+            const uint8_t n = mindfield::list(skip, page, 4, &total);
+            for (uint8_t i = 0; i < n; ++i) {
+                char row[200];
+                if (page[i].complete && rc::mindCsvRow(page[i], row, sizeof(row))) Serial.printf("MIND %s\n", row);
+                else Serial.printf("MIND %lu,unreadable summary\n", static_cast<unsigned long>(page[i].experimentId));
+            }
+            if (n < 4) break;
+        }
+        Serial.printf("MIND %u experiment(s) listed\n", static_cast<unsigned>(total));
+    } else if (strcmp(arguments, "recover") == 0) {
+        Serial.printf("MIND %u interrupted experiment(s) summarised\n", static_cast<unsigned>(mindfield::recover()));
+    } else if (strcmp(arguments, "export") == 0) {
+        uint8_t rows = 0;
+        const bool ok = mindfield::exportCsv(&rows);
+        Serial.printf("MIND export %s, %u row(s)\n", ok ? "written" : "FAILED", static_cast<unsigned>(rows));
+    } else if (strncmp(arguments, "replay ", 7) == 0) {
+        static rc::MindHeader h;
+        static rc::MindSummary s;
+        bool intact = false;
+        const uint32_t t0 = millis();
+        if (mindfield::replay(strtoul(arguments + 7, nullptr, 10), nullptr, h, s, &intact)) {
+            printMindSummary(h, s, intact ? rc::MindEnd::Completed : rc::MindEnd::Interrupted, 0);
+            Serial.printf("MIND replay: file %s, %lu ms\n", intact ? "intact (totals and checksum agree)" : "NOT intact or interrupted",
+                          static_cast<unsigned long>(millis() - t0));
+        } else {
+            Serial.println("MIND replay: no such file, or not an experiment file");
+        }
+    } else if (strncmp(arguments, "bench ", 6) == 0) {
+        // Time and a first look at a source: 2000 samples, not recorded.
+        const unsigned index = static_cast<unsigned>(atoi(arguments + 6));
+        if (index >= rngsources::kCount || !rngsources::at(static_cast<uint8_t>(index)).begin()) {
+            Serial.println("MIND bench: source not available");
+            return;
+        }
+        rc::RngSource& source = rngsources::at(static_cast<uint8_t>(index));
+        rc::MindStats* stats = new rc::MindStats();
+        stats->begin(100, rc::MindTarget::None);
+        uint32_t worst = 0;
+        const uint32_t start = micros();
+        bool ok = true;
+        for (int i = 0; i < 2000 && ok; ++i) {
+            uint32_t value = 0;
+            const uint32_t t0 = micros();
+            ok = source.collect(&value, 1);
+            const uint32_t took = micros() - t0;
+            if (took > worst) worst = took;
+            stats->add(value);
+            if ((i & 63) == 63) delay(1);  // let the other tasks run
+        }
+        const uint32_t total = micros() - start;
+        static rc::MindSummary s;
+        stats->summary(s);
+        delete stats;
+        source.end();
+        Serial.printf("MIND bench %s: %s, 2000 samples in %lu us (%lu us each, worst %lu), proportion %.5f z %.2f runs z %.2f bytes z %.2f lag1 %.5f (z %.2f) lag32 z %.2f\n",
+                      source.name(), ok ? "ok" : "FAILED", static_cast<unsigned long>(total),
+                      static_cast<unsigned long>(total / 2000), static_cast<unsigned long>(worst), s.proportion, s.z,
+                      s.runsZ, s.chi2Z, s.autocorr[0], s.autocorrZ[0], s.autocorrZ[3]);
+    } else {
+        Serial.println("MIND ? (mind | mind sources | mind start <source> <rate> <seconds> [open|ones|zeros] [baseline|meditation|control|sham] [seed] | mind stop | mind pause | mind resume | mind list | mind recover | mind export | mind replay <id> | mind bench <source>)");
     }
 }
 
@@ -1460,6 +1599,7 @@ void loop() {
     }
     tickSession();
     tickBreath();
+    mindfield::tick();
     // The next track of the folder follows when one has played to its end.
     if (player::takeEnded()) {
         char next[sdcard::kNameLength];
