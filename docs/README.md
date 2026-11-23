@@ -49,13 +49,14 @@ docs/architecture/              current system explanation
 
 Resonance (the product this repository builds):
 
-* `docs/requirements/resonance.md` — the product requirements (`RES-*`): process, hardware, audio engine, playback, sessions, configuration, Bluetooth, Wi-Fi, web administration, GUI.
+* `docs/ARCHITECTURE.md`, `docs/DSP.md`, `docs/HARDWARE.md`, `docs/ROADMAP.md`, `docs/MINDFIELD.md` — the public overviews: firmware architecture, signal path, hardware summary, roadmap, and the Mindfield research concept (not implemented).
+* `docs/requirements/resonance.md` — the product requirements (`RES-*`): process, hardware, audio engine, playback, sessions, configuration, Bluetooth, GUI. The Wi-Fi and web administration requirements are withdrawn (firmware 0.10.0, ADR-000205).
 * `docs/architecture/HARDWARE.md` and `docs/architecture/GPIO_MAP.md` — the audited board, its GPIO ownership and the I2S wiring proposal.
 * `docs/architecture/ARCHITECTURE.md` — the firmware architecture.
 * `docs/architecture/LIBRARY_EVALUATION.md` — the selected libraries and the flash and RAM budgets.
 * `docs/architecture/IMPLEMENTATION_PLAN.md` — the staged plan, decision gates and risks.
-* `docs/architecture/API.md` — the web interface's endpoints, authentication and upload rules.
-* `hardware/case/README.md` — the printable enclosure (draft): parts, what to measure before printing, assembly.
+* `docs/history/web-api-0.9.md` — historical: the web interface that existed up to firmware 0.9.6 (endpoints, authentication, upload rules). Removed in 0.10.0 (ADR-000205).
+* `hardware/README.md` — the printable enclosure: revisions, STL exports, previews, how to regenerate them; `hardware/revisions/HISTORY.md` — its design log: parts, what to measure before printing, assembly.
 
 ## Current architecture location
 

@@ -3,7 +3,7 @@
 **Requirement:** RES-PROC-001, RES-PROC-002, RES-PROC-005 (`docs/requirements/resonance.md`)
 **Work:** WORK-000001 (REQ-CHAT-20261117-001)
 **Status:** Stage 1 evaluation from published sources, researched 2026-11-17, with the first build and heap measurements added (section "Measured"). The rest has not been compiled or measured for this project.
-**Decisions since the audit:** ADR-000204 — no LVGL, no I2S output, one application slot without OTA, exclusive operating modes.
+**Decisions since the audit:** ADR-000204 — no LVGL, no I2S output, one application slot without OTA, exclusive operating modes. ADR-000205 (2026-11-23, firmware 0.10.0) — one operating mode; Wi-Fi, the web server and the Setup mode are removed. Everything below about the web stack, Wi-Fi and the two modes is kept as the record of the evaluation and of the measurements that led there; it does not describe the current firmware.
 
 Versions and dates were read from each project's release page or repository
 on the research date. Items marked *unverified* could not be confirmed from a
@@ -20,8 +20,11 @@ core 2.0.x, unless stated otherwise; none is a measurement of Resonance.
   configuration.
 - **Dual-slot OTA is in doubt** on 4 MB of flash. The A2DP library itself
   recommends the 3 MB single-slot layout.
-- **Since measured:** the reduced library build recovers 57 kB in Play mode
-  (section "Reduced library build").
+- **Since measured:** the reduced library build recovers 57 kB with
+  Bluetooth running (section "Reduced library build").
+- **Since decided:** the firmware runs Bluetooth only. Wi-Fi and the web
+  server were removed in 0.10.0 (ADR-000205), so the question of running
+  them beside A2DP no longer arises for the current firmware.
 - A workable stack exists for every feature taken alone. Whether the
   features can run **at the same time** is the open question, and only
   measurement on the board answers it (`IMPLEMENTATION_PLAN.md`, gates G1–G3).
@@ -30,7 +33,9 @@ core 2.0.x, unless stated otherwise; none is a measurement of Resonance.
 
 Firmware 0.2.0 (Stage 2: display, touch, SD, settings, both radio stacks, the
 interface shell; no audio, no decoder, no web server) on the board,
-2026-11-17, stock libraries of core 3.3.13. Evidence VER-000002.
+2026-11-17, stock libraries of core 3.3.13. Evidence VER-000002. The rows
+named Play mode and Setup mode are the two modes that existed up to 0.9.6
+(removed in 0.10.0, ADR-000205).
 
 | State | Free heap | Largest free block |
 |---|---|---|
@@ -45,7 +50,8 @@ interface shell; no audio, no decoder, no web server) on the board,
 - The combined figure confirms the published reports: with both radios up,
   50 kB remain before A2DP, the decoder, the mixer and a web server are
   added. The exclusive modes of ADR-000204 are therefore the working design,
-  not a fallback. Gate G1 is answered for stock libraries.
+  not a fallback. Gate G1 is answered for stock libraries. (The modes were
+  replaced by one Bluetooth-only mode in 0.10.0, ADR-000205.)
 - The display and the interface of our own cost about 6 kB of heap. LVGL
   was budgeted at 34-42 kB.
 - ESP32-A2DP 1.8.12 builds and runs on core 3.3.13 without the AudioTools
@@ -59,29 +65,44 @@ interface shell; no audio, no decoder, no web server) on the board,
 ### Reduced library build (firmware 0.4.0)
 
 With sound playback added, the stock libraries left too little: 38 kB free
-in Play mode at start and 29 kB while a WAV file played, against about
+with Bluetooth running at start and 29 kB while a WAV file played, against about
 33 kB that the MP3 decoder allocates. The libraries are therefore rebuilt
 through pioarduino's `custom_sdkconfig` with Bluetooth Classic only (no BLE,
 no BLE Mesh, no hands-free or serial-port profile). Measured on the board,
 same firmware source, 2026-11-17 (evidence VER-000007):
 
-| Play mode | Stock libraries | Reduced libraries |
+| Bluetooth running (then called Play mode) | Stock libraries | Reduced libraries |
 |---|---|---|
 | Free heap after Bluetooth A2DP start | 42 kB | 99 kB |
 | While a WAV file plays | 29 kB | 86 kB |
 | While an MP3 file is decoded | not possible | 53 kB (largest block 30 kB) |
 | Image size | 1.94 MB | 1.58 MB |
 
-- Setup mode with the reduced libraries: Wi-Fi starts and scans, 144 kB free.
+- Setup mode with the reduced libraries: Wi-Fi starts and scans, 144 kB free
+  (Setup mode and Wi-Fi removed in 0.10.0, ADR-000205).
 - With a headset connected and an MP3 streaming to it (0.5.0): 45 kB free,
   minimum 36 kB.
 - The image would now fit a 1.875 MB OTA slot with about 290 kB to spare,
-  before the web server is added. OTA stays off (ADR-000204); the question
-  can be reopened when the web interface exists.
+  before the web server is added. OTA stays off (ADR-000204). (The web
+  interface this waited for was removed in 0.10.0, ADR-000205; firmware
+  update stays over USB.)
 - The MP3 decoder is the Helix decoder (arduino-libhelix 0.9.4, pinned to a
   commit). It decoded 128 kbit/s stereo at 44.1 kHz, 320 kbit/s at 48 kHz and
   48 kbit/s mono at 22.05 kHz on the board.
 - Mounting the SD card costs 20 kB of heap, more than estimated.
+
+### Without Wi-Fi and the web server (firmware 0.10.0)
+
+Measured on the same board, 0.9.6 against 0.10.0, 2026-11-23 (ADR-000205):
+
+| | 0.9.6 | 0.10.0 |
+|---|---|---|
+| Image size, as the build reports it | 1,720,931 bytes | 1,065,043 bytes |
+| Image size, as the device reports it (with headers) | 1,750,832 bytes | 1,086,480 bytes |
+| Static RAM | 78,368 bytes | 53,872 bytes |
+| Free heap at rest, Bluetooth started, no headset connected | 71,760 bytes | 97,872 bytes |
+
+Heap during MP3 playback over Bluetooth has not been re-measured on 0.10.0.
 
 ## Selected stack
 
@@ -96,10 +117,11 @@ same firmware source, 2026-11-17 (evidence VER-000007):
 | Mixer, oscillators, noise | Own code | — | — |
 | Display and touch driver | LovyanGFX (ST7789 and GT911 built in) | 1.3.0 | FreeBSD |
 | GUI | A widget layer of our own on LovyanGFX; **no LVGL** (ADR-000204) | — | — |
-| Web server | ESP32Async/ESPAsyncWebServer with AsyncTCP | 3.12.1 / 3.6.1 | LGPL-3.0 |
-| JSON | ArduinoJson 7 | 7.4.x | MIT |
-| mDNS, Wi-Fi, SD, Update | Bundled with the core | — | LGPL-2.1 |
-| Web assets | Gzipped, embedded in the firmware image | — | — |
+| Web server | None since 0.10.0 (ADR-000205). Stage 1 selected ESP32Async/ESPAsyncWebServer with AsyncTCP; firmware 0.7.0 to 0.9.6 used the core's blocking `WebServer` instead | 3.12.1 / 3.6.1 (as evaluated) | LGPL-3.0 |
+| JSON | ArduinoJson 7 (Stage 1 selection; not in `firmware/platformio.ini`) | 7.4.x | MIT |
+| SD | Bundled with the core | — | LGPL-2.1 |
+| mDNS, Wi-Fi, Update | Not used since 0.10.0 (ADR-000205); bundled with the core | — | LGPL-2.1 |
+| Web assets | None since 0.10.0 (ADR-000205) | — | — |
 | Unit tests | Host compiler with a small harness of our own (`firmware/tools/host_tests.py`) | — | — |
 
 Exact versions are pinned in `firmware/platformio.ini`, which is the
@@ -167,7 +189,8 @@ The library's documentation states that Wi-Fi and A2DP cannot be used
 together reliably. Espressif's coexistence table rates a Wi-Fi station
 together with Bluetooth Classic as stable, and an **access point with
 connected clients as "performance unstable"**. This bears directly on
-RES-BT-004 and RES-WEB-007.
+RES-BT-004 and RES-WEB-007. (RES-WEB-007 was withdrawn with the web
+interface in 0.10.0, ADR-000205.)
 
 ## 3. Audio decoding
 
@@ -207,6 +230,11 @@ LVGL:
 
 ## 5. Web stack
 
+*Historical (removed in 0.10.0, ADR-000205).* This is the Stage 1
+evaluation. The firmware that was built (0.7.0 to 0.9.6) used the core's
+blocking `WebServer`, not the asynchronous one chosen here; since 0.10.0
+there is no web server and no Wi-Fi.
+
 - **ESP32Async/ESPAsyncWebServer** and **AsyncTCP** are the maintained forks;
   the me-no-dev and mathieucarbou repositories are archived. They provide
   streamed uploads, WebSocket and static responses, and work without a
@@ -245,7 +273,8 @@ Partition layouts available for 4 MB:
 - RES-WEB-008 asks for OTA "where the flash layout allows it". Whether it
   does is decided at gate G3 from the measured image size. If it does not,
   firmware update is over USB and the limitation is documented
-  (RES-PROC-005).
+  (RES-PROC-005). (Outcome: one 3 MB slot, update over USB, ADR-000204;
+  RES-WEB-008 was withdrawn in 0.10.0, ADR-000205.)
 
 ## 7. RAM budget
 
@@ -282,11 +311,15 @@ Option 3 is the fallback that is known to be achievable. Which option ships
 is decided at gate G2 from measurement, and is reported as RES-PROC-005 and
 RES-BT-004 require.
 
+Outcome: option 1 was done (section "Reduced library build"), option 3 was
+adopted by ADR-000204 as the Play and Setup modes, and in 0.10.0 the web
+interface and Wi-Fi were removed altogether (ADR-000205).
+
 ## 8. Licences
 
 | Licence | Components | Effect if the firmware is distributed |
 |---|---|---|
-| LGPL-2.1 / LGPL-3.0 | Arduino core, async web stack | Must allow relinking; publish the build |
+| LGPL-2.1 / LGPL-3.0 | Arduino core; the async web stack (evaluated, never part of the firmware) | Must allow relinking; publish the build |
 | RPSL | Helix MP3 decoder | Read the terms before distribution |
 | MIT, Apache-2.0, FreeBSD | LVGL, ArduinoJson, ESP32-A2DP, LovyanGFX | Attribution |
 | GPL-3.0 / AGPL-3.0 | audio-tools, ESP8266Audio, ESP32-audioI2S, ElegantOTA | **Not used** |

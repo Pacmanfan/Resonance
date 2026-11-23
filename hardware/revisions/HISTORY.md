@@ -1,4 +1,15 @@
-# Resonance enclosure
+# Resonance enclosure: design history
+
+> **Historical record.** This is the design log that was kept as
+> `hardware/case/README.md` while the enclosure was being developed, moved
+> here unchanged except for the image links. Where it names a `.scad` file,
+> that file is now in [`../openscad/`](../openscad/); where it says
+> `README.md`, it means this file. Its pictures are the ones made at the
+> time, now in [`../previews/original/`](../previews/original/). The current
+> overview, the exported STL files and the validation results are in
+> [`../README.md`](../README.md). The sentence "The STL files are not kept in
+> the repository" below is no longer true: they are in [`../stl/`](../stl/).
+
 
 **Requirement:** RES-HW-007 (`docs/requirements/resonance.md`)
 **Sources:** `resonance_case_v4.scad` (the case), `resonance_case_v4_slim.scad` (the same for the 5.75 mm cell), `resonance_case_v3.scad`, `resonance_case_v2.scad`, `resonance_case.scad` (earlier versions), `esp32_2432s032.scad` (reference
@@ -23,10 +34,10 @@ is unchanged. The cell's thickness is the operator's figure; its length and
 width are still the approximate ones. Renders as valid one-piece solids;
 not printed.
 
-![Version 4 slim, front](v4_slim_front.png)
-![Version 4 slim, back](v4_slim_back.png)
-![Version 4 slim, exploded](v4_slim_exploded.png)
-![Version 4 slim, section through the mounting holes](v4_slim_section.png)
+![Version 4 slim, front](../previews/original/v4_slim_front.png)
+![Version 4 slim, back](../previews/original/v4_slim_back.png)
+![Version 4 slim, exploded](../previews/original/v4_slim_exploded.png)
+![Version 4 slim, section through the mounting holes](../previews/original/v4_slim_section.png)
 
 ## Version 4
 
@@ -36,9 +47,9 @@ back faces stay 1.5 mm. The inside is unchanged; the outside is
 106 × 67 × 25.1 mm. Everything said of versions 3 and 2 below applies. Not
 printed.
 
-![Version 4, front](v4_front.png)
-![Version 4, back](v4_back.png)
-![Version 4, exploded](v4_exploded.png)
+![Version 4, front](../previews/original/v4_front.png)
+![Version 4, back](../previews/original/v4_back.png)
+![Version 4, exploded](../previews/original/v4_exploded.png)
 
 ## Version 3
 
@@ -58,15 +69,15 @@ the board's own corner radius is an estimate (3.5 mm), so if the board does
 not go into the corners, reduce `corner_r`. On the microSD side the rounded
 edge leaves the wall about 0.1 mm below the glass.
 
-![Version 3, back](v3_back.png)
+![Version 3, back](../previews/original/v3_back.png)
 
 Still not measured: where the glass sits along the board's length. It is
 centred on the outline in the drawing, with 0.4 mm of room at each end; if
 the glass does not enter the window, change `glass_x`.
 
-![Version 3, front](v3_front.png)
-![Version 3, exploded](v3_exploded.png)
-![Version 3, front shell from inside](v3_front_inside.png)
+![Version 3, front](../previews/original/v3_front.png)
+![Version 3, exploded](../previews/original/v3_exploded.png)
+![Version 3, front shell from inside](../previews/original/v3_front_inside.png)
 
 ## Version 2
 
@@ -84,12 +95,12 @@ Made from the operator's notes on the printed version 1.
 
 Outer size **105 × 66 × 25.1 mm** (version 1: 106 × 67 × 30.3).
 
-![Front: the glass is level with the face](v2_front.png)
-![Back, with the button and the USB-C opening](v2_back.png)
-![Exploded: front shell and button, board, cell, back shell](v2_exploded.png)
-![Cut along the length](v2_section.png)
-![Front shell from inside](v2_front_inside.png)
-![Back shell from inside: skirt, ridges, cell stops](v2_back_inside.png)
+![Front: the glass is level with the face](../previews/original/v2_front.png)
+![Back, with the button and the USB-C opening](../previews/original/v2_back.png)
+![Exploded: front shell and button, board, cell, back shell](../previews/original/v2_exploded.png)
+![Cut along the length](../previews/original/v2_section.png)
+![Front shell from inside](../previews/original/v2_front_inside.png)
+![Back shell from inside: skirt, ridges, cell stops](../previews/original/v2_back_inside.png)
 
 **Parts:** `front`, `back`, `button`. All print without supports: the front
 on its face, the back on its back face, the button on the end that shows.
@@ -128,11 +139,11 @@ A case for the ESP32-2432S032C with a 90 × 60 × 11 mm LiPo cell behind it,
 USB-C at the bottom; microSD slot on the left edge, power button low on the
 right edge, RGB LED and light sensor above the screen.
 
-![Front, as held](preview_held_front.png)
-![Cut along the length: screen at the bottom, board, divider, cell, lid](preview_section.png)
-![The openings, straight on: USB-C end, microSD side, button side](preview_openings.png)
-![Exploded: front shell, board with its four screws, tray, cell, lid](preview_exploded.png)
-![The reference model of the board, back side up](preview_board.png)
+![Front, as held](../previews/original/preview_held_front.png)
+![Cut along the length: screen at the bottom, board, divider, cell, lid](../previews/original/preview_section.png)
+![The openings, straight on: USB-C end, microSD side, button side](../previews/original/preview_openings.png)
+![Exploded: front shell, board with its four screws, tray, cell, lid](../previews/original/preview_exploded.png)
+![The reference model of the board, back side up](../previews/original/preview_board.png)
 
 ## How it goes together
 

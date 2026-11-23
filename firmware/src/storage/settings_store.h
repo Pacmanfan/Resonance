@@ -13,14 +13,13 @@ enum class LoadResult : uint8_t {
     Defaults,  // nothing usable was stored; factory defaults are in use
 };
 
-// Loads the settings into `out`. Never fails: `out` is always valid.
+// Loads the settings into `out`. Never fails: `out` is always valid. A record
+// of settings version 3 is read once, rewritten in the current form (which
+// drops the Wi-Fi credentials it held) and reported as Repaired.
 LoadResult load(rc::Settings& out);
 
 // Validates `s` and writes it. Returns false when storage refused the write.
 bool save(rc::Settings& s);
-
-// Stores only the operating mode for the next start.
-bool saveMode(rc::Mode mode);
 
 // Names of Bluetooth devices that were connected, kept against their
 // address so that a device which reconnects by itself can be shown by name.

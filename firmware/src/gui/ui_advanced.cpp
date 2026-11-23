@@ -644,7 +644,7 @@ void Ui::drawBreathBar(int16_t x, int16_t y, int16_t w, int16_t h, int16_t& show
 // A thin bar on Home while the pacer runs (it covers nothing and moves
 // nothing), and a larger one on the breathing screen.
 void Ui::animateBreath() {
-    if (_dimmed || setupMode()) return;
+    if (_dimmed) return;
     if (_sub == Sub::Breath) drawBreathBar(20, kTop + 222, 200, 8, _breathBar);
     else if (_sub == Sub::None && _tab == Tab::Home && !_btScreen) drawBreathBar(40, kTop + 136, 160, 3, _homeBar);
 }

@@ -1,7 +1,7 @@
 // Resonance portable core: rules for the paths and files that reach the SD
-// card from outside (RES-WEB-005). Everything the web interface is given -
-// a folder, a file name, the first bytes of an upload - passes through here
-// before the card is touched.
+// card from outside: a folder, a file name, the first bytes of a sound file.
+// Written for the uploads of the web interface (removed in 0.10.0,
+// ADR-000205); a session stage's recording path is still checked here.
 //
 // Portable: no Arduino, ESP-IDF or display header.
 #pragma once

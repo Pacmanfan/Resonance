@@ -26,8 +26,6 @@ constexpr uint8_t kDimPercent = 5;
 // Button ids. Frequency screen: 0-3 primary, 4-7 beat. Settings screen: 10+.
 constexpr uint8_t kIdBrightnessDown = 10;
 constexpr uint8_t kIdBrightnessUp = 11;
-constexpr uint8_t kIdMode = 12;
-constexpr uint8_t kIdBackToPlay = 13;
 constexpr uint8_t kIdAdvanced = 14;
 constexpr uint8_t kIdBuilder = 15;
 constexpr uint8_t kIdAudio = 20;
@@ -111,18 +109,13 @@ void Ui::setStatus(const Status& status) {
                              status.sessionStage != _status.sessionStage;
     const bool tonePushed = status.sessionState != kSessionIdle && sessionTick;
     const bool radioChanged = status.bluetoothRunning != _status.bluetoothRunning ||
-                              status.wifiState != _status.wifiState || status.radioBlocked != _status.radioBlocked ||
-                              strcmp(status.address, _status.address) != 0 || status.network != _status.network;
+                              status.radioBlocked != _status.radioBlocked;
     const bool mixerChanged = noiseChanged || status.backgroundVolume != _status.backgroundVolume;
     _status = status;
     if (_dimmed) return;
     if (_sub != Sub::None) {
         // Of the advanced screens only the mixer shows something of the status.
         if (_sub == Sub::Mixer && mixerChanged) redrawValues();
-        return;
-    }
-    if (setupMode()) {
-        if (sdChanged || radioChanged) drawContent();
         return;
     }
     if (_tab == Tab::Home && audioChanged) drawContent();
@@ -186,7 +179,6 @@ Event Ui::poll() {
     const uint32_t timeoutMs = static_cast<uint32_t>(_settings.screenTimeoutS) * 1000u;
     if (!_dimmed && timeoutMs != 0 && millis() - _lastActivityMs > timeoutMs) {
         _dimmed = true;
-        _modeArmed = false;
         _lcd.setBacklightPercent(kDimPercent);
     }
 
@@ -248,23 +240,16 @@ void Ui::drawFrame() {
 void Ui::drawHeader() {
     _lcd.fillRect(0, 0, kScreenW, kHeaderH, kBackground);
     // Every screen's title is centred, in the same font.
-    // Setup mode has one screen of its own, titled in the warning colour:
-    // nothing can play in it, and the user should see that at a glance.
-    if (setupMode()) {
-        centered("SETUP", kScreenW / 2, kHeaderH / 2 - 1, kWarning, kBackground, kFontTitle);
-    } else {
-        const char* title = _btScreen ? "BLUETOOTH" : (_sub != Sub::None ? subTitle() : kTabTitles[static_cast<uint8_t>(_tab)]);
-        centered(title, kScreenW / 2, kHeaderH / 2 - 1, kCyan, kBackground, kFontTitle);
-        // An advanced screen: the header leads back one level.
-        if (_sub != Sub::None) label("<", 8, 6, kText, kFontTitle);
-    }
+    const char* title = _btScreen ? "BLUETOOTH" : (_sub != Sub::None ? subTitle() : kTabTitles[static_cast<uint8_t>(_tab)]);
+    centered(title, kScreenW / 2, kHeaderH / 2 - 1, kCyan, kBackground, kFontTitle);
+    // An advanced screen: the header leads back one level.
+    if (_sub != Sub::None) label("<", 8, 6, kText, kFontTitle);
     _lcd.fillRect(0, kHeaderH - 2, kScreenW, 2, kOutline);
 }
 
 void Ui::drawTabBar() {
     // Each tab is drawn as a button: a filled, outlined rounded rectangle.
     // The open tab is filled with the highlight colour and dark text.
-    if (setupMode()) return;  // no tabs in Setup mode: its one screen uses the whole height
     const int16_t top = kContentBottom;
     _lcd.fillRect(0, top, kScreenW, kTabBarH, kBackground);
     for (uint8_t i = 0; i < static_cast<uint8_t>(Tab::Count); ++i) {
@@ -283,11 +268,6 @@ void Ui::drawTabBar() {
 
 void Ui::drawContent() {
     _buttonCount = 0;
-    if (setupMode()) {
-        _lcd.fillRect(0, kContentTop, kScreenW, kScreenH - kContentTop, kBackground);
-        drawSetup();
-        return;
-    }
     _lcd.fillRect(0, kContentTop, kScreenW, kContentBottom - kContentTop, kBackground);
     if (_sub != Sub::None) {
         drawAdvanced();
@@ -328,28 +308,23 @@ void Ui::drawHome() {
     snprintf(text, sizeof(text), "R %.1f Hz", static_cast<double>(_settings.primaryHz + _settings.beatHz));
     centered(text, 180, y, kViolet, kBackground, kFontSmall);
 
-    if (_settings.mode == rc::Mode::Play) {
-        // Audio is off until the user turns it on (RES-CFG-003, RES-GUI-003).
-        // A level is shown only while the audio is on.
-        if (_status.audioOn) snprintf(_audioLabel, sizeof(_audioLabel), "ON %u%%", static_cast<unsigned>(_status.volume));
-        else snprintf(_audioLabel, sizeof(_audioLabel), "OFF");
-        addButton(8, kContentTop + 142, 46, 36, "-", kIdVolumeDown);
-        addButton(58, kContentTop + 142, 124, 36, _audioLabel, kIdAudio);
-        addButton(186, kContentTop + 142, 46, 36, "+", kIdVolumeUp);
-        if (_status.btState == kBtConnected) {
-            snprintf(_btLabel, sizeof(_btLabel), "BT: %s", _status.btPeer[0] ? _status.btPeer : "connected");
-        } else if (_status.btState == kBtConnecting) {
-            snprintf(_btLabel, sizeof(_btLabel), "BT: connecting...");
-        } else if (_status.btState == kBtScanning) {
-            snprintf(_btLabel, sizeof(_btLabel), "BT: choose device (%u)", static_cast<unsigned>(_status.btCount));
-        } else {
-            snprintf(_btLabel, sizeof(_btLabel), "BT: off");
-        }
-        addButton(8, kContentTop + 184, 224, 32, _btLabel, kIdBluetooth);
+    // Audio is off until the user turns it on (RES-CFG-003, RES-GUI-003).
+    // A level is shown only while the audio is on.
+    if (_status.audioOn) snprintf(_audioLabel, sizeof(_audioLabel), "ON %u%%", static_cast<unsigned>(_status.volume));
+    else snprintf(_audioLabel, sizeof(_audioLabel), "OFF");
+    addButton(8, kContentTop + 142, 46, 36, "-", kIdVolumeDown);
+    addButton(58, kContentTop + 142, 124, 36, _audioLabel, kIdAudio);
+    addButton(186, kContentTop + 142, 46, 36, "+", kIdVolumeUp);
+    if (_status.btState == kBtConnected) {
+        snprintf(_btLabel, sizeof(_btLabel), "BT: %s", _status.btPeer[0] ? _status.btPeer : "connected");
+    } else if (_status.btState == kBtConnecting) {
+        snprintf(_btLabel, sizeof(_btLabel), "BT: connecting...");
+    } else if (_status.btState == kBtScanning) {
+        snprintf(_btLabel, sizeof(_btLabel), "BT: choose device (%u)", static_cast<unsigned>(_status.btCount));
     } else {
-        label("Audio plays in PLAY mode.", 12, kContentTop + 150, kTextDim, kFontSmall);
-        label("Switch mode under SET.", 12, kContentTop + 166, kTextDim, kFontSmall);
+        snprintf(_btLabel, sizeof(_btLabel), "BT: off");
     }
+    addButton(8, kContentTop + 184, 224, 32, _btLabel, kIdBluetooth);
     drawHomeStatus();
 }
 
@@ -370,7 +345,7 @@ void Ui::drawRing(uint8_t ring, uint8_t offset, bool erase) {
 // ring that moved is erased where it was and drawn where it is, and a ring
 // that did not move is left alone, so most passes draw nothing at all.
 void Ui::animateHome() {
-    if (_dimmed || setupMode() || _tab != Tab::Home || _btScreen || _sub != Sub::None || !_status.audioOn) return;
+    if (_dimmed || _tab != Tab::Home || _btScreen || _sub != Sub::None || !_status.audioOn) return;
     if (!_pulse.advance(millis(), _settings.beatHz)) return;
     bool open = false;
     for (uint8_t i = 0; i < rc::kPulseRings; ++i) {
@@ -393,11 +368,6 @@ void Ui::drawHomeStatus() {
     _lcd.fillRect(0, y, kScreenW, kContentBottom - y, kBackground);
     if (_status.radioBlocked) {
         label("Radio off: power dropped", 12, y, kWarning, kFontSmall);
-        return;
-    }
-    if (_settings.mode == rc::Mode::Setup) {
-        snprintf(text, sizeof(text), "Wi-Fi: %s", _status.address[0] ? _status.address : "starting");
-        label(text, 12, y, kTextDim, kFontSmall);
         return;
     }
     if (_status.unexpectedReset) {
@@ -464,20 +434,18 @@ void Ui::drawFrequency() {
         addButton(x, kContentTop + 48, 53, 34, kPrimaryLabels[i], i);
         addButton(x, kContentTop + 132, 53, 34, kBeatLabels[i], static_cast<uint8_t>(4 + i));
     }
-    if (_settings.mode == rc::Mode::Play) {
-        // The volume is shown beside the word, not inside the button: with it
-        // the longer type names did not fit and were drawn in a smaller font
-        // than the others.
-        char noiseLine[20];
-        // A level is shown only for something that is on.
-        if (_status.noiseType == 0) snprintf(noiseLine, sizeof(noiseLine), "Noise");
-        else snprintf(noiseLine, sizeof(noiseLine), "Noise  %u%%", static_cast<unsigned>(_status.noiseVolume));
-        label(noiseLine, 12, kContentTop + 174, kTextDim, kFontSmall);
-        snprintf(_noiseLabel, sizeof(_noiseLabel), "%s", kNoiseNames[_status.noiseType & 3]);
-        addButton(8, kContentTop + 192, 46, 34, "-", kIdNoiseDown);
-        addButton(58, kContentTop + 192, 124, 34, _noiseLabel, kIdNoise);
-        addButton(186, kContentTop + 192, 46, 34, "+", kIdNoiseUp);
-    }
+    // The volume is shown beside the word, not inside the button: with it
+    // the longer type names did not fit and were drawn in a smaller font
+    // than the others.
+    char noiseLine[20];
+    // A level is shown only for something that is on.
+    if (_status.noiseType == 0) snprintf(noiseLine, sizeof(noiseLine), "Noise");
+    else snprintf(noiseLine, sizeof(noiseLine), "Noise  %u%%", static_cast<unsigned>(_status.noiseVolume));
+    label(noiseLine, 12, kContentTop + 174, kTextDim, kFontSmall);
+    snprintf(_noiseLabel, sizeof(_noiseLabel), "%s", kNoiseNames[_status.noiseType & 3]);
+    addButton(8, kContentTop + 192, 46, 34, "-", kIdNoiseDown);
+    addButton(58, kContentTop + 192, 124, 34, _noiseLabel, kIdNoise);
+    addButton(186, kContentTop + 192, 46, 34, "+", kIdNoiseUp);
     drawFrequencyValues();
 }
 
@@ -509,10 +477,6 @@ void Ui::drawFrequencyValues() {
 }
 
 void Ui::drawSound() {
-    if (_settings.mode != rc::Mode::Play) {
-        label("Sound plays in PLAY mode.", 12, kContentTop + 12, kTextDim, kFontSmall);
-        return;
-    }
     if (!_status.sdMounted) {
         label("No microSD card", 12, kContentTop + 12, kWarning, kFontText);
         label("Insert a card for sound files.", 12, kContentTop + 38, kTextDim, kFontSmall);
@@ -579,10 +543,6 @@ void Ui::drawSoundStatus() {
 }
 
 void Ui::drawSessions() {
-    if (_settings.mode != rc::Mode::Play) {
-        label("Sessions run in PLAY mode.", 12, kContentTop + 12, kTextDim, kFontSmall);
-        return;
-    }
     const bool idle = _status.sessionState == kSessionIdle;
     if (idle) {
         // Choose the program, its length (timer only) and the fade at its end.
@@ -630,49 +590,12 @@ void Ui::drawSessionStatus() {
     centered(text, kScreenW / 2, kContentTop + 124, kViolet, kBackground, kFontSmall);
 }
 
-// The whole interface of Setup mode: how to reach the device from a browser,
-// the login, the state of the card, and the way back. Nothing that belongs
-// to listening is shown, because nothing can play in this mode.
-void Ui::drawSetup() {
-    char text[48];
-    int16_t y = kContentTop + 6;
-    const bool accessPoint = _status.wifiState == 3;
-    const bool station = _status.wifiState == 2;
-    if (accessPoint || station) {
-        label(accessPoint ? "1. Join this Wi-Fi network" : "Connected to Wi-Fi network", 8, y, kTextDim, kFontSmall);
-        label(_status.network, 8, y + 16, kText, kFontText);
-        y += 40;
-        label(accessPoint ? "2. Open in a browser" : "Open in a browser", 8, y, kTextDim, kFontSmall);
-        snprintf(text, sizeof(text), "http://%s", _status.address);
-        label(text, 8, y + 16, kCyan, kFontText);
-        y += 40;
-        // One password serves the device's own network and the web login.
-        label(accessPoint ? "Password (Wi-Fi and login)" : "Login password", 8, y, kTextDim, kFontSmall);
-        label(_settings.apPass, 8, y + 16, kText, kFontText);
-        label("Login name: resonance", 8, y + 38, kTextDim, kFontSmall);
-    } else {
-        label("Wi-Fi is starting...", 8, y, kTextDim, kFontSmall);
-    }
-
-    y = kContentTop + 150;
-    if (_status.sdMounted) snprintf(text, sizeof(text), "SD card: %lu MB free", static_cast<unsigned long>(_status.sdFreeMb));
-    else snprintf(text, sizeof(text), "SD card: none");
-    label(text, 8, y, _status.sdMounted ? kTextDim : kWarning, kFontSmall);
-    snprintf(text, sizeof(text), "Firmware %s", RESONANCE_VERSION);
-    label(text, 8, y + 15, kTextDim, kFontSmall);
-
-    addButton(8, kScreenH - 54, 224, 46, "Back to PLAY", kIdBackToPlay);
-}
-
 void Ui::drawSettings() {
     label("Brightness", 12, kContentTop + 10, kTextDim, kFontSmall);
     addButton(8, kContentTop + 26, 56, 38, "-", kIdBrightnessDown);
     addButton(176, kContentTop + 26, 56, 38, "+", kIdBrightnessUp);
 
-    label("Operating mode", 12, kContentTop + 78, kTextDim, kFontSmall);
-    const char* text = _modeArmed ? "Tap again to restart" : "Restart in SETUP";
-    addButton(8, kContentTop + 94, 224, 38, text, kIdMode);
-    addButton(8, kContentTop + 160, 224, 38, "ADVANCED", kIdAdvanced);
+    addButton(8, kContentTop + 84, 224, 38, "ADVANCED", kIdAdvanced);
     drawSettingsValues();
 }
 
@@ -681,15 +604,12 @@ void Ui::drawSettingsValues() {
     snprintf(text, sizeof(text), "  %u%%  ", static_cast<unsigned>(_settings.brightness));
     centered(text, kScreenW / 2, kContentTop + 45, kText, kBackground, kFontTitle);
 
-    int16_t y = kContentTop + 142;
-    // Two strips of text, above and below the ADVANCED button.
-    _lcd.fillRect(0, y, kScreenW, 16, kBackground);
-    _lcd.fillRect(0, y + 60, kScreenW, kContentBottom - y - 60, kBackground);
-    label("Wi-Fi is off in PLAY mode.", 12, y, kTextDim, kFontSmall);
+    const int16_t y = kContentTop + 136;
+    _lcd.fillRect(0, y, kScreenW, kContentBottom - y, kBackground);
     snprintf(text, sizeof(text), "Firmware %s", RESONANCE_VERSION);
-    label(text, 12, y + 62, kTextDim, kFontSmall);
+    label(text, 12, y, kTextDim, kFontSmall);
     snprintf(text, sizeof(text), "Free memory %lu kB", static_cast<unsigned long>(_status.freeHeap / 1024));
-    label(text, 12, y + 77, kTextDim, kFontSmall);
+    label(text, 12, y + 15, kTextDim, kFontSmall);
 }
 
 // ---- input -----------------------------------------------------------------
@@ -699,7 +619,7 @@ void Ui::onPress(int16_t x, int16_t y) {
         backSub();
         return;
     }
-    if (y >= kContentBottom && !setupMode()) {
+    if (y >= kContentBottom) {
         uint8_t index = static_cast<uint8_t>(x / kTabW);
         if (index >= static_cast<uint8_t>(Tab::Count)) index = static_cast<uint8_t>(Tab::Count) - 1;
         selectTab(static_cast<Tab>(index));
@@ -719,10 +639,6 @@ void Ui::onPress(int16_t x, int16_t y) {
             onButton(id);
             return;
         }
-    }
-    if (_modeArmed) {  // a touch elsewhere cancels the pending restart
-        _modeArmed = false;
-        drawContent();
     }
 }
 
@@ -781,18 +697,7 @@ void Ui::onButton(uint8_t id) {
         _settings.brightness = static_cast<uint8_t>(value);
         _settingsDirty = true;
         _lcd.setBacklightPercent(_settings.brightness);
-        if (setupMode()) drawContent();
-        else drawSettingsValues();
-    } else if (id == kIdBackToPlay) {
-        // One tap: leaving Setup interrupts nothing.
-        _pending = Event::SwitchMode;
-    } else if (id == kIdMode) {
-        if (_modeArmed) {
-            _pending = Event::SwitchMode;
-        } else {
-            _modeArmed = true;
-            drawContent();
-        }
+        drawSettingsValues();
     } else if (id == kIdAudio) {
         _pending = Event::AudioToggle;
     } else if (id == kIdVolumeDown) {
@@ -850,7 +755,6 @@ void Ui::selectTab(Tab tab) {
     _btScreen = false;
     _sub = Sub::None;
     _tab = tab;
-    _modeArmed = false;
     // Edits are stored when the user leaves the screen, not on every tap, to
     // spare the flash.
     if (_settingsDirty) {

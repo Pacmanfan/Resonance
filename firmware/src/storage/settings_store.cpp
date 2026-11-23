@@ -1,7 +1,6 @@
 #include "settings_store.h"
 
 #include <Preferences.h>
-#include <esp_random.h>
 
 namespace storage {
 
@@ -9,17 +8,6 @@ namespace {
 const char kNamespace[] = "resonance";
 const char kKey[] = "settings";
 
-// The set-up access point needs a password that cannot be derived from
-// anything the device broadcasts, so it is drawn from the hardware random
-// generator once and then kept.
-void ensureApPassword(rc::Settings& s) {
-    if (s.apPass[0] != '\0') return;
-    static const char kAlphabet[] = "abcdefghjkmnpqrstuvwxyz23456789";  // no look-alikes
-    for (size_t i = 0; i < 10; ++i) {
-        s.apPass[i] = kAlphabet[esp_random() % (sizeof(kAlphabet) - 1)];
-    }
-    s.apPass[10] = '\0';
-}
 }  // namespace
 
 LoadResult load(rc::Settings& out) {
@@ -34,31 +22,25 @@ LoadResult load(rc::Settings& out) {
                 out = stored;
                 result = repaired ? LoadResult::Repaired : LoadResult::Ok;
             }
+        } else if (prefs.getBytesLength(kKey) == rc::kSettingsV3Size) {
+            uint8_t old[rc::kSettingsV3Size];
+            if (prefs.getBytes(kKey, old, sizeof(old)) == sizeof(old) && rc::migrateFromV3(old, sizeof(old), out)) {
+                result = LoadResult::Repaired;
+            }
         }
         prefs.end();
     }
-    if (out.apPass[0] == '\0' || result != LoadResult::Ok) {
-        ensureApPassword(out);
-        save(out);
-    }
+    if (result != LoadResult::Ok) save(out);
     return result;
 }
 
 bool save(rc::Settings& s) {
     rc::sanitize(s);
-    ensureApPassword(s);
     Preferences prefs;
     if (!prefs.begin(kNamespace, false)) return false;
     const bool ok = prefs.putBytes(kKey, &s, sizeof(s)) == sizeof(s);
     prefs.end();
     return ok;
-}
-
-bool saveMode(rc::Mode mode) {
-    rc::Settings s;
-    load(s);
-    s.mode = mode;
-    return save(s);
 }
 
 namespace {

@@ -1,7 +1,7 @@
 # Resonance Implementation Plan
 
 **Requirement:** RES-PROC-001, RES-PROC-003, RES-PROC-004, RES-PROC-005 (`docs/requirements/resonance.md`)
-**Decision:** ADR-000204 (Bluetooth-only output, no battery measurement, space first, operating modes)
+**Decision:** ADR-000204 (Bluetooth-only output, no battery measurement, space first), ADR-000205 (one operating mode: no Wi-Fi, no web administration)
 **Work:** WORK-000001 (Stage 1), WORK-000002 and WORK-000003 (Stage 2), WORK-000004 (Stage 3), WORK-000007 (Stage 4), WORK-000009 (Stage 6)
 **Inputs:** `HARDWARE.md`, `GPIO_MAP.md`, `ARCHITECTURE.md`, `LIBRARY_EVALUATION.md`
 
@@ -10,19 +10,55 @@
 | Stage | Content | State |
 |---|---|---|
 | 1 | Hardware and software audit | Done |
-| 2 | Board foundation | Done on the board: picture, touch and both modes confirmed by the operator; SD card mounts |
+| 2 | Board foundation | Done on the board: picture, touch and both modes confirmed by the operator; SD card mounts. (The two modes became one in 0.10.0, ADR-000205) |
 | 3 | Audio prototype over Bluetooth | Done: the operator connected a headset and heard the tone |
 | 4 | Playback and mixing | **Implemented. WAV and MP3 decode on the board into the mixer; mixer, limiter, noise, WAV and resampler verified in host tests. Not yet heard. Playlists, shuffle, repeat and previous/next are not built** |
 | — | Frequency presets (RES-AUDIO-006) | Built in 0.5.2: tap a value on FREQ to cycle presets. User-defined presets are not built |
 | 5 | Bluetooth device management | Not started |
 | 6 | Session engine | **Core implemented: timers, four factory programs, sweeps, pause, stop, end fades; verified in host tests and started by the operator on the device. Not built: sessions made by the user, their storage on the card, the editor, session history** |
-| 7 | Web interface (Setup mode) | **First part built (0.7.0): login, status, sound library, upload, delete, folders, Wi-Fi, restart. The server starts on the device; not yet used from a browser. Not built: renaming, playlists, sessions and presets, settings, backup** |
+| 7 | Web interface (Setup mode) | **Removed in 0.10.0 (ADR-000205).** The first part was built in 0.7.0 (login, status, sound library, upload, delete, folders, Wi-Fi, restart) and stayed in the firmware up to 0.9.6 |
 | 8 | Product refinement | Started (0.8.0): the Home rings pulse at the beat frequency while the audio is on, drawn without a buffer; display clock raised from 24 to 40 MHz. Pulse logic verified in host tests; the look and the picture at 40 MHz are **not yet confirmed by the operator**. Reduced-animation setting not built |
 
 The stages of the request are kept, with two changes from ADR-000204: the
 audio prototype of Stage 3 plays over Bluetooth instead of an I2S DAC, so
 the minimum of Bluetooth moves into Stage 3; and battery monitoring is gone
-from Stage 8.
+from Stage 8. One change comes from ADR-000205: Stage 7 was built in part
+and then removed.
+
+The tables below are dated records of what was measured at the time. Where
+they say "Play mode", "Setup mode" or "Wi-Fi" they describe firmware up to
+0.9.6; both modes and Wi-Fi were removed in 0.10.0 (ADR-000205), and what
+was called Play mode is now the device's only way of running.
+
+## Firmware 0.10.0 — one operating mode (2026-11-23)
+
+Setup mode, Wi-Fi and the web interface were removed by the owner's order
+(ADR-000205). The device always starts Bluetooth audio, playback from the
+card and sessions; no setting needs a restart. The settings record is
+version 4; a stored version 3 record is read once, its user values are
+carried over and it is rewritten without the mode, the device name and the
+Wi-Fi credentials. The serial commands `mode play`, `mode setup`, `wifi <ssid> <password>`,
+`wifi clear` and `scan` and the report lines `REPORT mode`, `REPORT wifi` and `REPORT web`
+are gone.
+
+Measured on the same board, 0.9.6 against 0.10.0, 2026-11-23:
+
+| Item | 0.9.6 | 0.10.0 |
+|---|---|---|
+| Firmware image, as the build reports it | 1,720,931 bytes | 1,065,043 bytes |
+| Firmware image, as the device reports it (with headers) | 1,750,832 bytes | 1,086,480 bytes |
+| Static RAM | 78,368 bytes | 53,872 bytes |
+| Free heap at rest, Bluetooth started, no headset connected | 71,760 bytes | 97,872 bytes |
+
+| Item | Result | Verified by |
+|---|---|---|
+| Host tests | 15 programs, all pass | `firmware/tools/host_tests.py` |
+| Start | The board starts | Serial report from the board |
+| Stored settings | The user's values were carried over; the report said `settings repaired` once | Serial report |
+| SET screen | Shows brightness and ADVANCED | On the board |
+| Render cost | `bench audio` unchanged | Serial |
+| Heap during MP3 playback over Bluetooth | **Not re-measured on 0.10.0** | — |
+| Sound, touch | **Not verified by a person** | Needs ears and hands |
 
 ## Stage 2 — what was verified, and how
 
@@ -30,10 +66,10 @@ from Stage 8.
 |---|---|---|
 | Build | 1,877,824-byte image, 60 % of the 3 MB slot | The build |
 | Settings validation | 15 host test cases pass | `firmware/tools/host_tests.py` |
-| Start-up, both modes | Reaches the report in Play and in Setup mode; mode switch by restart works | Serial report from the board |
+| Start-up, both modes | Reaches the report in Play and in Setup mode; mode switch by restart works (modes removed in 0.10.0, ADR-000205) | Serial report from the board |
 | Touch controller | Answers at 0x5D | Serial report |
 | Bluetooth Classic | Starts; 101 kB free afterwards | Serial report |
-| Wi-Fi | Access point starts, scan finds networks; 157 kB free | Serial report |
+| Wi-Fi | Access point starts, scan finds networks; 157 kB free (Wi-Fi removed in 0.10.0, ADR-000205) | Serial report |
 | Both radios at once | 50 kB free: not a basis for the product | Serial report |
 | Display | The operator saw the interface; the first colour scheme was too low in contrast and was replaced in 0.2.1, which the operator found brighter. The flashing of the first corrected build is gone | The operator |
 | Touch input | Did not work in 0.2.0 (the driver waited for an interrupt line that idles high). Fixed in 0.2.1 by polling: 30 presses by the operator, on the tabs and the audio button, registered at the right places | Serial log of presses |
@@ -65,7 +101,7 @@ from Stage 8.
 | Noise | White, pink, brown: no offset, in range, the expected colour | Host tests |
 | WAV on the board | A test file written by the device plays into the buffer; a missing file is reported | Serial (`mktest`, `play`, `player`) |
 | MP3 on the board | 128 kbit/s stereo 44.1 kHz, 320 kbit/s 48 kHz and 48 kbit/s mono 22.05 kHz decode into the buffer; 53 kB of heap free meanwhile | Serial |
-| Heap | Reduced libraries: 99 kB free in Play mode, 86 kB with a WAV, 53 kB with an MP3 | Serial |
+| Heap | Reduced libraries: 99 kB free with Bluetooth started, 86 kB with a WAV, 53 kB with an MP3 | Serial |
 | Tracks following each other, streaming | With a headset connected, the four test files played one after another to their ends; no underrun while streaming; 45 kB of heap free with an MP3 playing to a connected headset (minimum 36 kB) | Serial |
 | Sound quality, the SND and noise controls on the screen | In use by the operator; no report yet beyond the missing noise `+` button (fixed in 0.5.0: the screen held ten buttons and FREQ has eleven) | The operator |
 
@@ -94,8 +130,9 @@ from Stage 8.
 ## Stage 3 — Audio prototype over Bluetooth
 
 Implemented (firmware 0.3.0); see the table above for what is verified.
-Remaining for this stage: the bench checks 1-3, and the Play-mode heap
-while a device is connected and streaming.
+Remaining for this stage: the bench checks 1-3. (The heap while a device is
+connected and streaming was measured later: Stage 4 table and the phase 3
+table below.)
 
 ## Stage 4 — Playback and mixing
 
@@ -121,15 +158,18 @@ the four fade choices, and the SESS screen. Remaining: user sessions as JSON
 on the card with an editor, presets (RES-CFG-001), session history, and a
 custom fade length.
 
-## Stage 7 — Web interface (Setup mode)
+## Stage 7 — Web interface (Setup mode): built, then removed
 
-| Step | Deliverable | Test |
-|---|---|---|
-| 7.1 | REST API, authentication, Wi-Fi configuration page | API tests from a script; unauthenticated requests refused |
-| 7.2 | Library and file management through `sdcard` | Host tests for the path rules (traversal, absolute paths, bad extensions) |
-| 7.3 | Upload: several files, progress, cancel, atomic rename, signature check, overwrite confirmation | Interrupt an upload; upload a renamed non-audio file |
-| 7.4 | Presets, sessions, settings, backup and restore | Desktop and phone browsers |
-| 7.5 | USB firmware update procedure documented (no OTA) | Followed once from the document |
+Historical. The first part was built in firmware 0.7.0 (login, status,
+sound library, upload, delete, folders, Wi-Fi, restart) and was in the
+firmware up to 0.9.6. The server started on the device; this plan records
+no use of it from a browser. Renaming, playlists, sessions and presets,
+settings and backup were not built. The whole stage was removed in 0.10.0
+with Setup mode and Wi-Fi (ADR-000205). What it offered is
+described in `docs/history/web-api-0.9.md`.
+
+Firmware is updated over USB (`firmware/README.md`, "Build and flash");
+there is no OTA.
 
 ## Stage 8 — Product refinement
 
@@ -180,7 +220,7 @@ partials, pink noise, breathing modulation, Lab - 38.3 % of one core, worst
 block 1.17 ms. The Lab allocates nothing.
 
 A block of 128 frames is 2.9 ms of audio. Phase 1 allocates nothing: data
-memory free in Play mode without a connection is 96 kB, as before.
+memory free without a connection is 96 kB, as before.
 
 Phase 3 on the board (0.9.2, headset connected over Bluetooth, 2026-11-22;
 `heap` and `bt` over the serial port, each state held for several seconds):
@@ -208,8 +248,9 @@ silent.
 |---|---|---|
 | Wired stereo output | On hold | ADR-000204 |
 | Battery status | None | ADR-000204; the board has no measurement circuit |
-| OTA update | USB update | Decided when the image did not fit two slots; it now would (1.58 MB), to be revisited with the web interface |
-| Web control of live playback; browser mirroring the touchscreen | Web administration only in Setup mode, where no audio runs | 50 kB of heap with both radios up |
+| OTA update | USB update | Decided when the image did not fit two slots (ADR-000204). The device has no network function since 0.10.0 (ADR-000205) |
+| Web control of live playback; browser mirroring the touchscreen | None. Up to 0.9.6: web administration only in Setup mode, where no audio ran | 50 kB of heap with both radios up; the web interface was then removed in 0.10.0 (ADR-000205) |
+| Wi-Fi, web administration, upload of sound files over the network | None since 0.10.0. Sound files are put on the card in a computer, or sent over the serial line (`firmware/tools/serial_put.py`) | ADR-000205 |
 | LVGL-class interface | Own widget layer | Heap and flash |
 
 ## How the work is tracked
@@ -229,7 +270,7 @@ silent.
 
 | Risk | Likelihood | Effect | Response |
 |---|---|---|---|
-| Play-mode heap too small with a device connected and an MP3 playing | Low to medium: 53 kB free with an MP3 decoding, before a connection | Dropouts or failure to start | Measure at 3.5; custom library build without BLE and HFP |
+| Heap too small with a device connected and an MP3 playing | Low to medium: 53 kB free with an MP3 decoding, before a connection | Dropouts or failure to start | Measure at 3.5; custom library build without BLE and HFP |
 | Power loss at radio start recurs | Seen once (16 events) | Device restarts; the guard skips the radio | Direct USB port, battery; M11 |
 | Board differs from schematic V1.0 | Medium | Wrong pins | So far the touch and display pins behave as drawn |
 | Dropouts from SD, display or radio contention | Medium | Audible glitches | Separate SPI buses; ring buffers; priorities; counters |

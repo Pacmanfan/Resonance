@@ -22,7 +22,6 @@ enum class Tab : uint8_t { Home, Frequency, Sound, Sessions, Settings, Count };
 enum class Event : uint8_t {
     None,
     SettingsChanged,  // the settings record was edited and should be stored
-    SwitchMode,       // restart into the other operating mode
     ToneChanged,      // the frequencies were edited: apply them to the running tone
     AudioToggle,      // audio on / off
     VolumeUp,
@@ -105,21 +104,18 @@ struct Status {
     uint32_t sdTotalMb = 0;
     uint32_t sdFreeMb = 0;
     bool bluetoothRunning = false;
-    uint8_t wifiState = 0;      // wifilink::State
-    char address[20] = "";      // IP address in Setup mode
-    const char* network = "";   // Wi-Fi network name in Setup mode
     uint32_t freeHeap = 0;
     const char* resetReason = "";
     bool unexpectedReset = false;
     bool radioBlocked = false;  // the radio was not started: the last start lost power
-    // Audio and Bluetooth (Play mode).
+    // Audio and Bluetooth.
     bool audioOn = false;
     uint8_t volume = 0;         // percent
     uint8_t btState = 0;        // btaudio::State
     char btPeer[24] = "";       // connected or chosen device
     uint8_t btCount = 0;        // devices found by the scan
     char btDevices[5][24] = {};
-    // Sound library (Play mode).
+    // Sound library.
     char soundDir[28] = "";         // current folder, shortened for display
     bool soundAtRoot = true;
     bool soundHasPrev = false;      // an earlier page exists
@@ -134,7 +130,7 @@ struct Status {
     uint8_t noiseType = 0;          // rc::NoiseType
     uint8_t noiseVolume = 0;        // percent
     uint32_t listVersion = 0;       // changes whenever the listing changed
-    // Sessions (Play mode).
+    // Sessions.
     char sessionName[20] = "";
     bool sessionIsTimer = true;
     uint16_t sessionMinutes = 0;    // length of the chosen session; 0 = continuous
@@ -225,8 +221,6 @@ private:
     void drawSessions();
     void drawSessionStatus();
     void drawSettings();
-    void drawSetup();
-    bool setupMode() const { return _settings.mode == rc::Mode::Setup; }
     void drawSettingsValues();
     void addButton(int16_t x, int16_t y, int16_t w, int16_t h, const char* label, uint8_t id);
     void drawButton(const Button& b, bool pressed);
@@ -247,7 +241,6 @@ private:
     bool _touching = false;
     bool _dimmed = false;
     bool _settingsDirty = false;
-    bool _modeArmed = false;
     rc::HoldRepeat _repeat;        // tap-and-hold on an adjustment button
     uint8_t _heldId = 0xFF;        // the button being held; 0xFF = none
     rc::Pulse _pulse;              // the home-screen rings (rc_pulse.h)

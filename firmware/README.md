@@ -2,9 +2,19 @@
 
 Firmware for the ESP32-2432S032C-I. Architecture:
 `docs/architecture/ARCHITECTURE.md`. Requirements:
-`docs/requirements/resonance.md`. Current state: the binaural tone, sound files from the card
-(WAV, MP3), noise and timed sessions, mixed, over Bluetooth; no web
-interface yet.
+`docs/requirements/resonance.md`.
+
+Current state (0.10.0): the binaural tone, sound files from the card (WAV,
+MP3), noise and timed sessions, mixed, played over Bluetooth to a headset or
+speaker. An advanced menu (SET tab, `ADVANCED`) adds a layer mixer, a
+breathing pacer, a session builder, frequency sequences and the Resonance
+Lab; their settings are kept in `/RESONANCE/ADVANCED.TXT` on the card.
+
+There is one operating mode. The device always starts Bluetooth audio,
+playback and sessions; everything is set on the touchscreen (tabs HOME,
+FREQ, SND, SESS, SET) and nothing needs a restart. There is no Wi-Fi and no
+web interface: both, and the separate Setup mode, were removed in 0.10.0
+(ADR-000205).
 
 ## Requirements
 
@@ -53,12 +63,13 @@ runner (`python3 scripts/run_tests.py --tier t1 --suite resonance_core`).
 ## Serial diagnostics
 
 115200 baud. The device prints a report at start: heap at each start-up
-step, then `REPORT` lines for mode, display, touch, SD card, radios and
+step, then `REPORT` lines for the firmware version, the reset reason, the
+settings, display, touch, SD card, Bluetooth, the user's values and the
 image size.
 
 ```bash
 python3 tools/serial_capture.py --seconds 10                 # the start-up report
-python3 tools/serial_capture.py --seconds 20 --send scan     # then run a command
+python3 tools/serial_capture.py --seconds 20 --send heap     # then run a command
 ```
 
 Opening the serial port restarts the board; that is how the USB adapter is
@@ -69,11 +80,13 @@ wired.
 | `report` | Print the report again |
 | `heap` | Free heap, minimum free heap, largest free block |
 | `bench` | Display benchmark: drawing times at 24, 40 and 80 MHz, a buffered frame, the screen redraw, touch read, loop rate. Shows test patterns |
-| `scan` | Scan for Wi-Fi networks. In Play mode this starts Wi-Fi beside Bluetooth, which is only for measuring the heap |
-| `radio` | Start the current mode's radio, if it was skipped at start |
+| `caps` | Every memory region, as ESP-IDF prints it |
+| `bench audio` | Audio render benchmark: share of one core and the worst block |
+| `radio` | Start Bluetooth, if it was skipped at start (see Troubleshooting) |
 | `mktest` | Write a 5-second test tone to `CUSTOM/test.wav` on the card |
 | `play <path>` | Play a file below `RESONANCE/AUDIO`, e.g. `play CUSTOM/test.wav` |
 | `player` | Player state, position, buffer fill, underruns, last error |
+| `pause` / `resume` | Pause and resume |
 | `stop` | Stop the player |
 | `put <path> <bytes>` | Receive a file over serial; use `tools/serial_put.py` |
 | `session` | Session state, stage, time left, beat frequency, level |
@@ -82,13 +95,34 @@ wired.
 | `bt connect <n>` | Connect to found device number n |
 | `volume <n>` | Set the master volume in percent |
 | `audio on` / `audio off` | Start or stop the tone |
-| `mode play` / `mode setup` | Store the operating mode and restart |
-| `wifi <ssid> <password>` | Store a Wi-Fi network for Setup mode. The password is not echoed |
-| `wifi clear` | Forget the stored network |
+| `tap <x> <y>` / `ui` | Act as if the screen had been touched there / describe the screen now shown |
+
+The advanced functions have commands too:
+
+| Command | Effect |
+|---|---|
+| `layer` | The four mixer layers (tone, partials, noise, voice): on or off, level, fade |
+| `layer <tone\|partials\|noise\|voice> on\|off`, `... level <percent>`, `... fade <seconds>` | Set one layer |
+| `voice fade <in s> <out s>` | How a recording starts, stops and gives way to the next |
+| `noise off\|white\|pink\|brown [percent]` | Noise type and level |
+| `tone` | Tone state, frequencies and channel phases |
+| `tone phase <L deg> <R deg> [seconds]`, `tone invert <L 0\|1> <R 0\|1>`, `tone partial <1\|2> <percent>` | Channel phase, inversion, and the two golden partials |
+| `sweep lin\|exp <from primary> <to primary> <from beat> <to beat> <seconds>` | Build a frequency sweep as the custom session and start it |
+| `descent lin\|exp <start beat> <transition s> <hold s> <beat 1> [<beat 2> ...]` | Build a stepwise descent as the custom session |
+| `breath`, `breath <in s> <hold s> <out s> <hold s> [depth percent]`, `breath off` | Breathing pacer: state, start, stop |
+| `seq`, `seq default`, `seq step <n> <Hz> <seconds>`, `seq remove <n>`, `seq glide <seconds>`, `seq beat <Hz>`, `seq save\|load\|delete <slot>`, `seq use` | The frequency sequence: show, reset, edit, keep on the card, turn into the custom session |
+| `usession`, `usession breath ...`, `usession voice <stage> <percent> [path]`, `usession run`, `usession save\|load\|delete <slot>` | The custom session: show, give a stage a breathing pattern or a recording, start, keep on the card |
+| `lab` | Both Resonance Lab settings (A and B) |
+| `state`, `state save`, `state clear` | The advanced settings as kept in `/RESONANCE/ADVANCED.TXT`: show, write now, remove the file |
+
+An unknown command prints the list. The commands `mode play`, `mode setup`,
+`wifi <ssid> <password>`, `wifi clear` and `scan`, and the report lines
+`REPORT mode`, `REPORT wifi` and `REPORT web`, were removed in 0.10.0 with
+Setup mode and Wi-Fi (ADR-000205).
 
 ## Listening
 
-1. Start in Play mode (no `SETUP` marker at the top of the screen).
+1. Switch the device on. Bluetooth starts by itself.
 2. Put the headset or speaker in pairing mode.
 3. On HOME tap the `BT:` button, then tap the device in the list.
 4. Back on HOME, tap `OFF` to start the tone; `-` and `+` set the volume.
@@ -98,17 +132,21 @@ itself.
 
 ## Sound files
 
-Copy `.wav` (PCM) and `.mp3` files into `RESONANCE/AUDIO` on the card, in
+Put the card in a computer and copy `.wav` (PCM) and `.mp3` files into
+`RESONANCE/AUDIO`, in
 its folders (`OCEAN`, `RAIN`, `CUSTOM`, ...) or your own. On the SND tab, tap
 a folder to open it and a file to play it; `UP` goes back, `<` and `>` turn
 pages. The button below shows `PLAY` or `PAUSE` and the background volume;
 `-` and `+` change it. Noise (white, pink, brown) is on the FREQ tab.
 
-For a test file without removing the card:
+To send a file without removing the card, use the serial line (the `put`
+command):
 
 ```bash
 python3 tools/serial_put.py some.mp3 CUSTOM/some.mp3   # about 10 kB per second
 ```
+
+There is no upload over the network.
 
 ## Frequency presets
 
@@ -136,39 +174,30 @@ proportion) and the fade at the end, then START. The audio starts with the sessi
 the fade, at its end. PAUSE holds the clock and the audio; STOP ends through
 the fade.
 
-## Web interface
+## Settings and the advanced menu
 
-In Setup mode the device serves a web page for managing sound files and
-Wi-Fi. The Setup screen shows everything needed:
+The SET tab has the brightness and `ADVANCED`, and shows the firmware
+version and the free memory. `ADVANCED` opens a menu: LAYER MIXER,
+BREATHING, SESSION BUILDER (also reached with `BUILD` on the SESS tab),
+SEQUENCE and RESONANCE LAB. A `<` in the header leads back one level.
 
-1. Join the Wi-Fi network shown (`Resonance-Setup`) with the password shown.
-2. Open the address shown (`http://192.168.4.1`).
-3. Log in as `resonance` with the same password.
-
-There you can browse `RESONANCE/AUDIO`, upload `.mp3` and `.wav` files (drag
-and drop, several at once), delete files, create folders, give the device
-your home network, and restart it into Play mode. Once it is on a home
-network, the Setup screen shows its address there. The endpoints are in
-`docs/architecture/API.md`.
-
-## Operating modes
-
-| Mode | Radio | For |
-|---|---|---|
-| Play | Bluetooth | Listening |
-| Setup | Wi-Fi | Administration from a browser (not built yet) |
-
-Enter Setup from the SET tab (tap `Restart in SETUP` twice) and leave it
-with `Back to PLAY` (one tap), or use the serial command. Setup mode shows
-one screen only: without a stored network the device opens the access point
-`Resonance-Setup`, and the screen gives its password and the address to
-open in a browser.
+- The mixer, breathing and Lab settings are kept in
+  `/RESONANCE/ADVANCED.TXT` on the card, written about four seconds after
+  the last change and brought back at start. Without a card, or without the
+  file, the device starts as the plain binaural device.
+- Sessions made in the builder are kept as text files
+  `/RESONANCE/SESSIONS/USER01.TXT` to `USER12.TXT`, sequences as
+  `/RESONANCE/SEQUENCE/SEQ01.TXT` to `SEQ08.TXT`.
+- The other settings (frequencies, volumes, brightness, session choices) are
+  kept in the device itself. A record stored by firmware 0.9.6 or earlier is
+  read once and rewritten; this removes the Wi-Fi credentials it held, and
+  the start-up report says `REPORT settings repaired` for that start.
 
 ## Troubleshooting
 
 | Symptom | Cause and remedy |
 |---|---|
-| "Radio off: power dropped at start" on the Home screen | The board lost power three times in a row while the radio was starting, and the firmware skipped the radio once so as not to loop. Restart; if it returns, use a USB port directly on the computer, a shorter cable, or connect a battery |
+| "Radio off: power dropped" on the Home screen | The board lost power three times in a row while Bluetooth was starting, and the firmware skipped the radio once so as not to loop. Restart, or send the serial command `radio`; if it returns, use a USB port directly on the computer, a shorter cable, or connect a battery |
 | The serial port disappears and returns repeatedly | The same power loss, seen from the computer |
 | Touch does nothing | Set `-DRESONANCE_TOUCH_DEBUG=1` in `platformio.ini`: every press is then printed as `TOUCH x,y` and marked on the screen. The report line `REPORT touch chip` shows what the controller says about itself |
 | Screen black, serial shows "No bootable app partitions" | An upload was interrupted (the board was restarted or unplugged while flashing). Flash again and leave the board alone until it finishes |

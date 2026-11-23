@@ -140,15 +140,13 @@ Buffer sizes, task stack sizes and heap use SHALL be explicit and budgeted for
 an ESP32 without PSRAM. Dynamic allocation on the audio path SHALL be avoided
 (§3).
 
-### RES-ARCH-005 — Space first, and operating modes
+### RES-ARCH-005 — Space first, one operating mode
 
 Where a requirement can be met by a smaller means, the smaller means SHALL be
-used. A subsystem not needed in the current operating mode SHALL NOT be
-started. The firmware SHALL provide a **Play** mode (Bluetooth, audio,
-playback, sessions) and a **Setup** mode (Wi-Fi, web administration, file
-management), selected by the user and entered by a restart; a combined mode
-MAY be offered if measurement on the board shows it to be reliable
-(ADR-000204).
+used. The firmware SHALL have one operating mode: Bluetooth audio, playback
+from the card and sessions, configured on the touchscreen. No setting SHALL
+need a restart, and Wi-Fi SHALL NOT be started (ADR-000205, which replaces
+the Play and Setup modes of ADR-000204).
 
 ## Audio engine
 
@@ -498,77 +496,22 @@ A lost Bluetooth connection SHALL NOT crash the device (§17).
 
 All core functions SHALL work with Wi-Fi and Bluetooth off (§1).
 
-### RES-NET-002 — Station and access point
+### RES-NET-002..005 — withdrawn
 
-Station mode with saved credentials and automatic connection, a configuration
-access point on first boot, a fallback access point when the station
-connection fails, reconnection after loss, manual disconnect and forgetting a
-network SHALL be provided (§12).
-
-### RES-NET-003 — Discovery
-
-The device SHALL answer as `resonance.local` (configurable hostname) through
-mDNS and SHALL show its IP address on the touchscreen (§12).
-
-### RES-NET-004 — Credentials are not disclosed
-
-Saved Wi-Fi passwords SHALL NOT appear in API responses or status pages (§12).
-
-### RES-NET-005 — Network does not stop audio
-
-Loss of Wi-Fi and network load SHALL NOT stop or interrupt the audio engine
-(§3, §17).
+Station and access point, discovery, credential handling and "network does
+not stop audio" were requirements of the Wi-Fi link of the Setup mode. They
+are **withdrawn** with that mode (ADR-000205, firmware 0.10.0): the device
+has no network function. Their text is in the history of this file.
 
 ## Web administration
 
-### RES-WEB-001 — Local responsive interface
+### RES-WEB-001..008 — withdrawn
 
-A browser interface for desktop, tablet and phone SHALL be served by the
-device from local storage, without a cloud service, through documented
-REST-style endpoints (§13).
-
-### RES-WEB-002 — Panels
-
-It SHALL provide Dashboard, Music Library, File Upload, Audio Configuration,
-Session Configuration, Bluetooth Configuration and System Configuration with
-the contents of §13.1–§13.7.
-
-### RES-WEB-003 — State synchronisation
-
-Changes made in the browser SHALL take effect on the device, and changes made
-on the touchscreen SHALL appear in the browser, through WebSocket updates or
-polling. In Setup mode, where audio does not run, this applies to settings,
-presets, sessions and files (RES-ARCH-005) (§13.4).
-
-### RES-WEB-004 — Uploads
-
-MP3 and WAV uploads SHALL support several files, drag and drop, progress,
-cancellation, a destination folder and the free-space display, and SHALL be
-atomic: written to a temporary file and renamed on success (§13.3).
-
-### RES-WEB-005 — Upload validation
-
-Uploads SHALL be validated by extension and file signature, not by the
-browser's MIME type. Path traversal and paths outside `/RESONANCE` SHALL be
-refused. An existing file SHALL NOT be overwritten without explicit
-confirmation (§6.1, §13.3).
-
-### RES-WEB-006 — Authentication
-
-File management, configuration and firmware update SHALL require
-authentication. There SHALL be no unauthenticated upload service (§13.7, §17).
-
-### RES-WEB-007 — Uploads and playback
-
-An upload SHALL NOT block playback. If both together are unreliable on the
-hardware, the interface SHALL warn or defer the upload (§13.3).
-
-### RES-WEB-008 — System functions
-
-Restart, configuration backup/restore and firmware version SHALL be provided.
-OTA update is not provided: the flash holds one application slot
-(ADR-000204); firmware is updated over USB and the procedure documented
-(§13.7).
+The browser interface (panels, state synchronisation, uploads and their
+validation, authentication, system functions) is **withdrawn** with the Setup
+mode (ADR-000205, firmware 0.10.0). Sound files reach the card in a computer
+or over the serial line; firmware is updated over USB. The interface as it
+was built is described in `docs/history/web-api-0.9.md`.
 
 ## Touchscreen GUI
 

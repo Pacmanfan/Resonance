@@ -1,5 +1,10 @@
 # Resonance Web API
 
+> **Historical:** the web interface described here existed up to firmware
+> 0.9.6 and was removed in 0.10.0 (ADR-000205). Kept for reference. The
+> requirements it names are withdrawn, and the source files `net/webui.cpp`
+> and `net/webpage.h` no longer exist. The text below is as it stood at 0.9.6.
+
 **Requirement:** RES-WEB-001, RES-WEB-004..006, RES-NET-002, RES-NET-004 (`docs/requirements/resonance.md`)
 **Code:** `firmware/src/net/webui.cpp`, page in `firmware/src/net/webpage.h`, rules in `firmware/lib/resonance_core/src/rc_paths.h`
 **Status:** first part of the web interface (firmware 0.7.0). The server starts on the device; **no request has been made to it over the network yet.**

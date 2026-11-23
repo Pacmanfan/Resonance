@@ -1,19 +1,16 @@
 // Resonance firmware entry point (docs/architecture/ARCHITECTURE.md).
 //
-// Stage 2: board foundation. The device starts in the stored operating mode
-// (ADR-000204): Play starts Bluetooth and never Wi-Fi, Setup starts Wi-Fi and
-// never Bluetooth. No audio exists yet, so nothing can start playing.
+// One operating mode (ADR-000205): Bluetooth audio, playback from the card
+// and sessions, set up on the touchscreen. Wi-Fi is never started. The audio
+// itself is off until the user turns it on (RES-CFG-003).
 #include <Arduino.h>
 #include <esp_heap_caps.h>
 
 #include "gui/display.h"
 #include "gui/ui.h"
 #include "hal/board.h"
-#include "net/webui.h"
 #include "audio/bt_audio.h"
 #include "audio/player.h"
-#include "radio/bt_stack.h"
-#include "radio/wifi_link.h"
 #include "rc_settings.h"
 #include "rc_audio.h"
 #include "rc_session.h"
@@ -140,7 +137,6 @@ void printReport() {
     const sdcard::Info sd = sdcard::info();
     Serial.printf("REPORT firmware %s\n", RESONANCE_VERSION);
     Serial.printf("REPORT reset %s%s\n", board::resetReason(), board::resetWasUnexpected() ? " (unexpected)" : "");
-    Serial.printf("REPORT mode %s\n", settings.mode == rc::Mode::Setup ? "setup" : "play");
     Serial.printf("REPORT settings %s\n", loadResult == storage::LoadResult::Ok ? "loaded"
                                           : loadResult == storage::LoadResult::Repaired ? "repaired" : "defaults");
     Serial.printf("REPORT display %s id 0x%06lX\n", displayOk ? "ok" : "FAILED",
@@ -156,17 +152,11 @@ void printReport() {
                   static_cast<unsigned long>(sd.totalMb), static_cast<unsigned long>(sd.freeMb));
     Serial.printf("REPORT bluetooth %s%s\n", (btaudio::state() != btaudio::State::Off) ? "running" : "off",
                   radioBlocked ? " (radio skipped at this start)" : "");
-    char address[20];
-    wifilink::address(address, sizeof(address));
-    Serial.printf("REPORT wifi state %u network '%s' address %s\n", static_cast<unsigned>(wifilink::state()),
-                  wifilink::networkName(), address);
     Serial.printf("REPORT user values: volume %u, background %u, noise %u, program %u, timer %u, length %u, fade %u, %.1f / %.1f Hz\n",
                   static_cast<unsigned>(volume), static_cast<unsigned>(backgroundVolume), static_cast<unsigned>(noiseVolume),
                   static_cast<unsigned>(sessionProgram), static_cast<unsigned>(timerChoice),
                   static_cast<unsigned>(programLength), static_cast<unsigned>(fadeChoice),
                   static_cast<double>(settings.primaryHz), static_cast<double>(settings.beatHz));
-    Serial.printf("REPORT web %lu request(s), %lu upload(s)\n", static_cast<unsigned long>(webui::requestCount()),
-                  static_cast<unsigned long>(webui::uploadCount()));
     Serial.printf("REPORT flash image %lu bytes\n", static_cast<unsigned long>(ESP.getSketchSize()));
     // Raw identification reads, to settle which controller the panel carries.
     Serial.printf("REPORT panel RDDID 0x%06lX RDDST 0x%08lX\n", static_cast<unsigned long>(lcd().panelId()),
@@ -174,7 +164,7 @@ void printReport() {
     printHeap("now");
 }
 
-// Starts the radio of the current mode. The guard mark is cleared from loop()
+// Starts Bluetooth and the audio path. The guard mark is cleared from loop()
 // once the device has stayed up.
 void startRadio() {
     storage::markRadioStarting();
@@ -182,21 +172,12 @@ void startRadio() {
     radioPending = true;
     Serial.println("RADIO starting");
     Serial.flush();
-    if (settings.mode == rc::Mode::Setup) {
-        btstack::releaseMemory();
-        printHeap("bluetooth released");
-        wifilink::begin(settings);
-        printHeap("wifi started");
-        webui::begin(settings);
-        printHeap("web server started");
-    } else {
-        audio.tone().setFrequencies(settings.primaryHz, settings.beatHz);
-        audio.setMasterVolume(volume);
-        audio.setBackgroundVolume(backgroundVolume);
-        player::begin(audio, ring);
-        btOk = btaudio::begin("Resonance", audio);
-        printHeap("bluetooth started");
-    }
+    audio.tone().setFrequencies(settings.primaryHz, settings.beatHz);
+    audio.setMasterVolume(volume);
+    audio.setBackgroundVolume(backgroundVolume);
+    player::begin(audio, ring);
+    btOk = btaudio::begin("Resonance", audio);
+    printHeap("bluetooth started");
 }
 
 // Writes everything the user has adjusted to storage.
@@ -212,14 +193,6 @@ void storeUserValues() {
     storage::save(settings);
 }
 
-void switchMode(rc::Mode mode) {
-    settings.mode = mode;
-    storeUserValues();
-    Serial.printf("MODE restarting in %s\n", mode == rc::Mode::Setup ? "setup" : "play");
-    Serial.flush();
-    delay(100);
-    ESP.restart();
-}
 
 void refreshStatus() {
     gui::Status status;
@@ -228,9 +201,6 @@ void refreshStatus() {
     status.sdTotalMb = sd.totalMb;
     status.sdFreeMb = sd.freeMb;
     status.bluetoothRunning = (btaudio::state() != btaudio::State::Off);
-    status.wifiState = static_cast<uint8_t>(wifilink::state());
-    wifilink::address(status.address, sizeof(status.address));
-    status.network = wifilink::networkName();
     status.freeHeap = heap_caps_get_free_size(MALLOC_CAP_DEFAULT);
     status.resetReason = board::resetReason();
     status.unexpectedReset = board::resetWasUnexpected();
@@ -340,7 +310,6 @@ rc::Session chosenSession() {
 }
 
 void startSession() {
-    if (settings.mode != rc::Mode::Play) return;
     if (!session.start(chosenSession(), settings.primaryHz, settings.beatHz, kFadeSeconds[fadeChoice])) return;
     strlcpy(runningName, chosenSession().name, sizeof(runningName));
     session.setLayersNow(partialPercent[0], partialPercent[1], noiseType == rc::NoiseType::Off ? 0 : noiseVolume);
@@ -352,7 +321,6 @@ void startSession() {
 
 // Starts a session that is not one of the chosen programs (a custom sweep).
 void startCustomSession(const rc::Session& custom) {
-    if (settings.mode != rc::Mode::Play) return;
     if (!session.start(custom, settings.primaryHz, settings.beatHz, kFadeSeconds[fadeChoice])) {
         Serial.println("SESSION refused: values out of range");
         return;
@@ -886,7 +854,7 @@ void runDisplayBenchmark() {
 }
 
 // Serial diagnostics, for development (RES-17 "serial diagnostic output").
-//   report | heap | caps | bench | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear
+//   report | heap | caps | bench | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off
 void runCommand(char* line) {
     if (strcmp(line, "report") == 0) {
         printReport();
@@ -1168,10 +1136,6 @@ void runCommand(char* line) {
         heap_caps_print_heap_info(MALLOC_CAP_DEFAULT);
     } else if (strcmp(line, "heap") == 0) {
         printHeap("now");
-    } else if (strcmp(line, "scan") == 0) {
-        const int n = wifilink::scanToSerial();
-        Serial.printf("SCAN %d network(s)\n", n);
-        printHeap("after wifi scan");
     } else if (strncmp(line, "volume ", 7) == 0) {
         setVolume(atoi(line + 7));
         markSettingsChanged();
@@ -1233,25 +1197,8 @@ void runCommand(char* line) {
         btaudio::connect(static_cast<uint8_t>(atoi(line + 11)));
     } else if (strcmp(line, "radio") == 0) {
         startRadio();
-    } else if (strcmp(line, "mode play") == 0) {
-        switchMode(rc::Mode::Play);
-    } else if (strcmp(line, "mode setup") == 0) {
-        switchMode(rc::Mode::Setup);
-    } else if (strcmp(line, "wifi clear") == 0) {
-        settings.wifiSsid[0] = '\0';
-        settings.wifiPass[0] = '\0';
-        Serial.printf("WIFI cleared, stored %s\n", storage::save(settings) ? "ok" : "FAILED");
-    } else if (strncmp(line, "wifi ", 5) == 0) {
-        char* ssid = line + 5;
-        char* pass = strchr(ssid, ' ');
-        if (pass != nullptr) *pass++ = '\0';
-        strlcpy(settings.wifiSsid, ssid, sizeof(settings.wifiSsid));
-        strlcpy(settings.wifiPass, pass != nullptr ? pass : "", sizeof(settings.wifiPass));
-        // The password is never echoed (RES-NET-004).
-        Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
-                      storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | tap <x> <y> | ui | lab | state | state save | state clear | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | breath | breath <in s> <hold s> <out s> <hold s> [depth] | breath off | seq | seq default | seq step <n> <Hz> <s> | seq remove <n> | seq glide <s> | seq beat <Hz> | seq save|load|delete <slot> | seq use | usession | usession breath <stage> <in ds> <hold ds> <out ds> <hold ds> <depth> | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | tap <x> <y> | ui | lab | state | state save | state clear | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | breath | breath <in s> <hold s> <out s> <hold s> [depth] | breath off | seq | seq default | seq step <n> <Hz> <s> | seq remove <n> | seq glide <s> | seq beat <Hz> | seq save|load|delete <slot> | seq use | usession | usession breath <stage> <in ds> <hold ds> <out ds> <hold ds> <depth> | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off");
     }
 }
 
@@ -1297,8 +1244,7 @@ void setup() {
     loadSoundPage();
     printHeap("sd");
 
-    // One radio per mode. The other one is never started, so it costs no RAM.
-    // If the last starts all died while a radio was coming up, no radio is
+    // If the last starts all died while the radio was coming up, it is not
     // started this time: the device stays usable and says why.
     radioBlocked = storage::radioStartKeepsFailing();
     if (radioBlocked) {
@@ -1334,9 +1280,6 @@ void loop() {
             break;
     }
     switch (event) {
-        case gui::Event::SwitchMode:
-            switchMode(settings.mode == rc::Mode::Setup ? rc::Mode::Play : rc::Mode::Setup);
-            break;
         case gui::Event::ToneChanged:
             audio.tone().setFrequencies(settings.primaryHz, settings.beatHz);
             break;
@@ -1505,14 +1448,6 @@ void loop() {
             break;
     }
     pollSerial();
-    if (settings.mode == rc::Mode::Setup) {
-        webui::tick();
-        bool toSetup = false;
-        if (webui::takeRestartRequest(&toSetup)) {
-            delay(400);  // let the answer reach the browser
-            switchMode(toSetup ? rc::Mode::Setup : rc::Mode::Play);
-        }
-    }
 
     const uint32_t now = millis();
     if (radioPending && now - radioStartedMs > 3000) {
@@ -1535,7 +1470,6 @@ void loop() {
         lastStatusMs = now;
         loopsLastSecond = loopsThisSecond;
         loopsThisSecond = 0;
-        wifilink::tick();
         tickState();
         // Card sizes are re-read now and then, but never while a track plays.
         if (++statusTicks % 10 == 0 && player::state() != player::State::Playing) sdcard::refresh();

@@ -6,3 +6,10 @@
 __pycache__/
 *.pyc
 /build/
+
+# Local editor and operating-system files.
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store

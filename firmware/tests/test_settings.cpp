@@ -1,4 +1,4 @@
-// Settings validation (RES-CFG-002, RES-CFG-003, RES-AUDIO-005, RES-ARCH-005).
+// Settings validation (RES-CFG-002, RES-CFG-003, RES-AUDIO-005).
 #include "host_test.h"
 #include "rc_settings.h"
 
@@ -10,10 +10,8 @@ TEST(defaults_are_already_valid) {
     Settings s;
     setDefaults(s);
     CHECK(!sanitize(s));
-    CHECK(s.mode == Mode::Play);
     CHECK_NEAR(s.primaryHz, 200.0, 1e-6);
     CHECK_NEAR(s.beatHz, 10.0, 1e-6);
-    CHECK(strcmp(s.hostname, "resonance") == 0);
     CHECK(s.startVolume <= kStartVolumeMax);
 }
 
@@ -33,14 +31,11 @@ TEST(a_record_of_garbage_becomes_valid) {
     s.version = kSettingsVersion;
     CHECK(sanitize(s));
     CHECK(!sanitize(s));  // stable after one pass
-    CHECK(s.mode == Mode::Play);
     CHECK(s.startVolume <= kStartVolumeMax);
     CHECK(s.brightness >= kBrightnessMin && s.brightness <= kBrightnessMax);
     CHECK(s.screenTimeoutS <= kScreenTimeoutMaxS);
     CHECK(s.primaryHz >= kPrimaryMinHz && s.primaryHz <= kPrimaryMaxHz);
     CHECK(s.beatHz >= kBeatMinHz && s.beatHz <= kBeatMaxHz);
-    CHECK(strcmp(s.hostname, "resonance") == 0);
-    CHECK(s.wifiSsid[0] == '\0' && s.wifiPass[0] == '\0' && s.apPass[0] == '\0');
 }
 
 TEST(frequencies_are_clamped_to_their_ranges) {
@@ -108,75 +103,73 @@ TEST(brightness_never_reaches_zero) {
     CHECK(s.brightness == kBrightnessMin);
 }
 
-TEST(an_unknown_mode_falls_back_to_play) {
+// A version 3 record, byte for byte as the device stored it: offsets 0 version,
+// 1 mode, 2 start volume, 3 brightness, 4 screen timeout, 8 and 12 the two
+// frequencies, 16 name, 40 network, 73 its password, 138 the access-point
+// password, 150..155 the six values added in version 3.
+static void v3Record(unsigned char* r) {
+    memset(r, 0, kSettingsV3Size);
+    r[0] = 3;
+    r[1] = 1;  // Setup mode
+    r[2] = 45;
+    r[3] = 70;
+    const uint16_t timeout = 300;
+    memcpy(r + 4, &timeout, 2);
+    const float primary = 136.1f, beat = 7.8f;
+    memcpy(r + 8, &primary, 4);
+    memcpy(r + 12, &beat, 4);
+    strcpy(reinterpret_cast<char*>(r + 40), "home");
+    strcpy(reinterpret_cast<char*>(r + 73), "secret-password");
+    r[150] = 55;
+    r[151] = 25;
+    r[152] = 2;
+    r[153] = 4;
+    r[154] = 3;
+    r[155] = 2;
+}
+
+TEST(a_version_3_record_keeps_what_the_user_had_set) {
+    unsigned char record[kSettingsV3Size];
+    v3Record(record);
     Settings s;
-    setDefaults(s);
-    s.mode = static_cast<Mode>(7);
-    CHECK(sanitize(s));
-    CHECK(s.mode == Mode::Play);
-    s.mode = Mode::Setup;
+    CHECK(migrateFromV3(record, sizeof(record), s));
+    CHECK(s.version == kSettingsVersion);
+    CHECK(s.startVolume == 45 && s.brightness == 70 && s.screenTimeoutS == 300);
+    CHECK_NEAR(s.primaryHz, 136.1, 1e-3);
+    CHECK_NEAR(s.beatHz, 7.8, 1e-3);
+    CHECK(s.backgroundVolume == 55 && s.noiseVolume == 25);
+    CHECK(s.sessionProgram == 2 && s.timerChoice == 4 && s.programLength == 3 && s.fadeChoice == 2);
     CHECK(!sanitize(s));
-    CHECK(s.mode == Mode::Setup);
+    // Nothing of the old network credentials is in the new record.
+    const unsigned char* bytes = reinterpret_cast<const unsigned char*>(&s);
+    for (size_t i = 0; i + 4 <= sizeof(s); ++i) CHECK(memcmp(bytes + i, "secr", 4) != 0 && memcmp(bytes + i, "home", 4) != 0);
 }
 
-TEST(hostname_rules) {
-    CHECK(isValidHostname("resonance"));
-    CHECK(isValidHostname("Resonance-2"));
-    CHECK(!isValidHostname(""));
-    CHECK(!isValidHostname("-resonance"));
-    CHECK(!isValidHostname("resonance-"));
-    CHECK(!isValidHostname("res onance"));
-    CHECK(!isValidHostname("res.local"));
-    CHECK(!isValidHostname("../etc"));
-    CHECK(isValidHostname("abcdefghijklmnopqrstuvw"));    // 23 characters
-    CHECK(!isValidHostname("abcdefghijklmnopqrstuvwx"));  // 24 characters
+TEST(a_version_3_record_is_validated_on_the_way) {
+    unsigned char record[kSettingsV3Size];
+    v3Record(record);
+    record[2] = 100;  // louder than a start may be
+    record[3] = 0;
+    const float bad = std::numeric_limits<float>::quiet_NaN();
+    memcpy(record + 8, &bad, 4);
+    Settings s;
+    CHECK(migrateFromV3(record, sizeof(record), s));
+    CHECK(s.startVolume == kStartVolumeMax && s.brightness == kBrightnessMin);
+    CHECK_NEAR(s.primaryHz, 200.0, 1e-6);
 }
 
-TEST(an_invalid_hostname_is_replaced) {
+TEST(only_a_version_3_record_is_migrated) {
+    unsigned char record[kSettingsV3Size];
+    v3Record(record);
     Settings s;
     setDefaults(s);
-    strcpy(s.hostname, "bad name!");
-    CHECK(sanitize(s));
-    CHECK(strcmp(s.hostname, "resonance") == 0);
-}
-
-TEST(an_unterminated_text_field_is_emptied) {
-    Settings s;
-    setDefaults(s);
-    memset(s.wifiSsid, 'A', sizeof(s.wifiSsid));
-    CHECK(sanitize(s));
-    CHECK(s.wifiSsid[0] == '\0');
-}
-
-TEST(a_control_character_empties_the_field) {
-    Settings s;
-    setDefaults(s);
-    strcpy(s.wifiSsid, "home\nnet");
-    CHECK(sanitize(s));
-    CHECK(s.wifiSsid[0] == '\0');
-}
-
-TEST(a_password_without_a_network_is_dropped) {
-    Settings s;
-    setDefaults(s);
-    strcpy(s.wifiPass, "secret-password");
-    CHECK(sanitize(s));
-    CHECK(s.wifiPass[0] == '\0');
-
-    strcpy(s.wifiSsid, "home");
-    strcpy(s.wifiPass, "secret-password");
-    CHECK(!sanitize(s));
-    CHECK(strcmp(s.wifiPass, "secret-password") == 0);
-}
-
-TEST(a_short_access_point_password_is_dropped) {
-    Settings s;
-    setDefaults(s);
-    strcpy(s.apPass, "1234567");
-    CHECK(sanitize(s));
-    CHECK(s.apPass[0] == '\0');
-    strcpy(s.apPass, "12345678");
-    CHECK(!sanitize(s));
+    s.brightness = 33;
+    CHECK(!migrateFromV3(record, sizeof(record) - 1, s));
+    CHECK(!migrateFromV3(nullptr, sizeof(record), s));
+    record[0] = 2;
+    CHECK(!migrateFromV3(record, sizeof(record), s));
+    CHECK(s.brightness == 33);
+    CHECK(sizeof(Settings) != kSettingsV3Size);
 }
 
 int main() { return host_test::runAll(); }

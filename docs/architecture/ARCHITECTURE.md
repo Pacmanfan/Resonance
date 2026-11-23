@@ -1,9 +1,9 @@
 # Resonance Firmware Architecture
 
 **Requirement:** RES-ARCH-001..005 and the domains they structure (`docs/requirements/resonance.md`)
-**Decision:** ADR-000204 (Bluetooth-only output, space first, operating modes)
+**Decision:** ADR-000204 (Bluetooth-only output, space first), ADR-000205 (one operating mode: no Wi-Fi, no web administration)
 **Work:** WORK-000001 (design), WORK-000002 and WORK-000003 (Stage 2), WORK-000004 (Stage 3), WORK-000007 (Stage 4), WORK-000009 (Stage 6)
-**Status:** Stages 2 to 4 and the core of Stage 6 are implemented: board, display, touch, SD, settings, operating modes, interface, the binaural tone, the Bluetooth audio output, WAV and MP3 playback from the card, the mixer, the noise generator and sessions (timers, factory programs, fades). The tone and sound files have been heard through a Bluetooth headset. Sections marked *planned* describe code that does not exist yet.
+**Status:** Stages 2 to 4 and the core of Stage 6 are implemented: board, display, touch, SD, settings, interface, the binaural tone, the Bluetooth audio output, WAV and MP3 playback from the card, the mixer, the noise generator and sessions (timers, factory programs, fades). The tone and sound files have been heard through a Bluetooth headset. Sections marked *planned* describe code that does not exist yet. Since firmware 0.10.0 there is one operating mode; Setup mode, Wi-Fi and the web interface are removed (ADR-000205).
 **Inputs:** `HARDWARE.md`, `GPIO_MAP.md`, `LIBRARY_EVALUATION.md`
 
 ## Principles
@@ -12,54 +12,50 @@
    for storage, network, GUI or logging (RES-AUDIO-012).
 2. **One owner per resource.** Each bus, peripheral and buffer belongs to
    exactly one module (RES-ARCH-001).
-3. **Commands in, state out.** The interface and the web server change the
-   device only by reporting events or posting commands; they read it only
-   from a status snapshot (RES-ARCH-002).
+3. **Commands in, state out.** The interface changes the device only by
+   reporting events or posting commands; it reads it only from a status
+   snapshot (RES-ARCH-002).
 4. **Portable core.** Everything that is arithmetic or logic compiles and is
    tested on a PC. Only thin adapters touch the hardware.
-5. **Space first.** The smaller means is used, and a subsystem the current
-   mode does not need is never started (RES-ARCH-005).
+5. **Space first.** The smaller means is used, and a subsystem the device
+   does not need is never started: Wi-Fi never is (RES-ARCH-005).
 
-## Operating modes
+## One operating mode
 
-The measured heap decides this design: with Bluetooth and Wi-Fi both
-running, 50 kB remain before any audio code exists
-(`LIBRARY_EVALUATION.md`, "Measured"). So each mode starts one radio.
+The device has one operating mode (ADR-000205, firmware 0.10.0). Every start
+brings up Bluetooth audio (A2DP source), playback from the card and
+sessions. Wi-Fi is never started. No setting needs a restart: everything is
+set on the touchscreen.
 
-| | Play | Setup |
-|---|---|---|
-| Purpose | Listening | Administration |
-| Radio | Bluetooth Classic (A2DP) | Wi-Fi (station, or the set-up access point) |
-| Runs | Audio engine, SD playback, sessions, interface | Web server, file management, interface |
-| Never started | Wi-Fi | Bluetooth; its reserved memory is returned to the heap |
-| Free heap at start, measured | 99 kB with A2DP started (reduced libraries) | 144 kB |
-
-- The mode is a field of the settings record. It changes only through a
-  restart, requested on the Settings screen (two taps) or by the serial
-  command `mode play` / `mode setup`. A restart takes about two seconds.
-- Stopping a radio at run time is not used: ESP-IDF releases Bluetooth
-  memory one way only, and start/stop cycles fragment the heap.
-- Play mode is the normal state and is not marked on the screen. Setup mode
-  has a single screen of its own, titled `SETUP`, with no tab bar: the
-  network to join and its password (when the device is its own access
-  point), the address to open in a browser, the login name and password, the
-  card's free space, the firmware version, and `Back to PLAY` (one tap, since leaving
-  Setup interrupts nothing; entering it from Play takes two). Nothing that
-  belongs to listening is shown there.
-- Consequence: in Setup mode there is no audio, so the web interface manages
-  files, presets, sessions and settings but cannot control live playback.
-  This limits RES-WEB-003 and is reported as RES-PROC-005 requires.
+- Up to firmware 0.9.6 there were two modes, each entered by a restart:
+  Play (Bluetooth, audio, sessions) and Setup (Wi-Fi and a web page for
+  files and settings). They existed because the measured heap does not carry
+  both radios: with Bluetooth and Wi-Fi both running, 50 kB remained before
+  any audio code existed (`LIBRARY_EVALUATION.md`, "Measured"). Setup mode,
+  Wi-Fi and the web interface were removed in 0.10.0 (ADR-000205). The
+  measurement still holds: a network function would need a new decision.
+- Sound files reach the card by putting the card in a computer, or over the
+  serial line (`firmware/tools/serial_put.py`, the `put` command). There is
+  no upload over the network.
+- The radio is not stopped at run time: ESP-IDF releases Bluetooth memory
+  one way only, and start/stop cycles fragment the heap.
+- `radio/bt_stack.cpp` holds one hook, `btInUse()`, which tells the Arduino
+  start-up code that Bluetooth is in use, so that the memory reserved for it
+  is not handed back to the heap.
+- Free heap at rest with Bluetooth started and no headset connected:
+  97,872 bytes, measured on 0.10.0 (`IMPLEMENTATION_PLAN.md`, "Firmware
+  0.10.0").
 
 ### Radio start guard
 
-Starting a radio draws a current surge. On the first start the board lost
+Starting the radio draws a current surge. On the first start the board lost
 power sixteen times in a row (`HARDWARE.md`, section 8), which without a
 guard is an endless restart loop. So:
 
-- an attempt counter in non-volatile storage is raised just before a radio
+- an attempt counter in non-volatile storage is raised just before the radio
   starts and cleared after three seconds of stable running;
 - a start that finds three failed attempts in a row does not start the
-  radio, shows "Radio off: power dropped at start" on the Home screen, and
+  radio, shows "Radio off: power dropped" on the Home screen, and
   clears the counter, so the following start tries again;
 - one or two failed attempts are tolerated, because a reset from the USB
   adapter or the reset button during those seconds cannot be told from a
@@ -71,11 +67,11 @@ The device therefore always reaches a usable screen.
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
-│ Presentation      gui/ (screens, widgets)    web/ (planned)      │
+│ Presentation      gui/ (screens, widgets)                        │
 └───────────────┬──────────────────────────────────┬───────────────┘
                 │ events                    status │
 ┌───────────────▼──────────────────────────────────▼───────────────┐
-│ Application       main.cpp: mode, status snapshot, serial        │
+│ Application       main.cpp: start-up, status snapshot, serial    │
 │                   SessionManager, PresetManager (planned)        │
 └───────────────┬──────────────────────────────────────────────────┘
                 │
@@ -110,10 +106,12 @@ firmware/
     rc_resample.h/.cpp        conversion to 44.1 kHz
     rc_session.h/.cpp         sessions: stages, sweeps, runner, factory programs
     rc_presets.h/.cpp         frequency presets for the Frequency Studio
-    rc_paths.h/.cpp           rules for names, paths and uploaded content; JSON escaping
+    rc_paths.h/.cpp           rules for file names and paths on the card (written for the
+                              removed web interface; a session stage's recording path
+                              is still checked with them)
     rc_repeat.h               tap-and-hold timing
   src/
-    main.cpp                  start-up, mode, status, serial diagnostics
+    main.cpp                  start-up, status, serial diagnostics
     version.h
     hal/board_pins.h          the only place with pin numbers
     hal/board.h/.cpp          quiet pins, status LED, reset reason
@@ -124,14 +122,11 @@ firmware/
     storage/sdcard            the card and its SPI bus; /RESONANCE tree
     audio/bt_audio            Bluetooth A2DP source: scan, connect, audio feed
     audio/player              decoder task: WAV and MP3 from the card into the ring
-    radio/bt_stack            Bluetooth memory hook and release (Setup mode)
-    radio/wifi_link           station, set-up access point, mDNS
-    net/webui                 web server: authentication, files, upload, Wi-Fi, restart
-    net/webpage.h             the web interface's single page
+    radio/bt_stack.cpp        Bluetooth memory hook (btInUse)
   tests/                      host tests of the portable core
   tools/host_tests.py         builds and runs them with the host compiler
   tools/serial_capture.py     reads the device's serial report
-  tools/serial_put.py         sends a sound file to the card over serial (development)
+  tools/serial_put.py         sends a sound file to the card over serial
   partitions.csv              one 3 MB application slot
 ```
 
@@ -143,8 +138,14 @@ planned (ADR-000204).
 
 - One fixed-size settings record in NVS, so the device works without a card
   (`rc::Settings`). Every load passes `rc::sanitize()`: a record of another
-  version, an unknown mode, an out-of-range or non-finite frequency, an
-  unterminated text field are all corrected to safe values (RES-CFG-002).
+  version is replaced by the defaults, and an out-of-range value or a
+  non-finite frequency is corrected to a safe one (RES-CFG-002).
+- The record is version 4. A stored version 3 record (firmware up to 0.9.6)
+  is read once, the user's values are carried over, and it is rewritten
+  (`rc::migrateFromV3`). Version 3 also held the operating mode, a device
+  name and Wi-Fi credentials; these are not carried, so the rewrite removes
+  the stored credentials from the device. The start-up report says
+  `settings repaired` for that one start.
 - The device comes back as it was left: the frequencies, the master,
   background and noise volumes, brightness, and the session choices
   (program, lengths, fade) are part of the settings record. They are written
@@ -152,10 +153,6 @@ planned (ADR-000204).
 - The master volume is stored capped at 60 %, so a restart cannot come back
   loud, and the noise type is not stored at all: nothing plays at start
   (RES-CFG-003).
-- The set-up access point's password is generated once from the hardware
-  random generator and shown on the Settings screen. It is not derived from
-  anything the device broadcasts.
-- Wi-Fi passwords are never printed or shown (RES-NET-004).
 - `sdcard` owns the card. It creates the `/RESONANCE` tree (RES-PLAY-004).
   The board has no card-detect signal, so a failing operation is treated as
   a possible removal and the card is reported as absent.
@@ -167,8 +164,12 @@ planned (ADR-000204).
 - LovyanGFX draws directly to the panel; there is no GUI framework and no
   frame buffer. Screens are redrawn only where something changed.
 - Five tabs: Home, Frequency Studio, Sound Library, Sessions, Settings
-  (RES-GUI-001). The tab bar is a row of five buttons, each outlined
+  (RES-GUI-001), labelled HOME, FREQ, SND, SESS and SET. The tab bar is a
+  row of five buttons, each outlined
   and filled; the open one is filled with the highlight colour. Controls that are not built yet say so on the screen.
+- The SET tab has the brightness, an ADVANCED entry (layer mixer,
+  breathing, session builder, sequence, Resonance Lab), the firmware
+  version and the free memory. Nothing on it needs a restart.
 - The SND tab browses `RESONANCE/AUDIO` on the card: folders and `.wav` /
   `.mp3` files, four to a page; tapping a file plays it. Below are
   play/pause with the background volume and the track's elapsed time. The
@@ -297,47 +298,27 @@ planned (ADR-000204).
 - The frequencies a session sets are the device's frequencies while it
   runs: the screens show them, and they stay when it ends. They reach
   storage only with the next change the user makes.
-- *Planned:* sessions made by the user, stored as JSON on the card, with an
-  editor (the web interface is the natural place for it).
+- Sessions made by the user are built on the touchscreen (ADVANCED, session
+  builder) and stored as text files on the card (`IMPLEMENTATION_PLAN.md`,
+  Mindforge phases 2 and 5).
 
-## Web administration (Setup mode only)
+## Web administration (removed in 0.10.0)
 
-First part built (firmware 0.7.0); the endpoints are in `API.md`.
-
-- **The core's small blocking `WebServer`**, not an asynchronous one. The
-  Stage 1 evaluation chose an asynchronous server so that requests could
-  not stall audio; with the operating modes of ADR-000204 nothing plays
-  while the server runs, so the simpler one is enough and saves a
-  dependency and its RAM. It is served from `loop()`.
-- One page (`net/webpage.h`), HTML, style and script together in flash,
-  nothing loaded from outside the device. It shows status, browses the
-  sound library, uploads (several files, drag and drop, progress, cancel),
-  deletes, creates folders, sets the home Wi-Fi network and the device
-  name, and restarts into either mode.
-- **Every request needs Digest authentication** with the device password
-  shown on the Setup screen (RES-WEB-006). The same password protects the
-  device's own access point.
-- Handlers hold no reference to hardware. Files go through `sdcard`,
-  settings through `settings_store`.
-- Every folder, name and uploaded file passes the portable rules of
-  `rc_paths` first: no path can leave the sound library, only `.mp3` and
-  `.wav` are accepted, and the first bytes must be the format the name
-  claims, whatever type the browser declares (RES-WEB-005).
-- Uploads are written to `<name>.part` and renamed when complete; nothing is
-  overwritten without the page having asked (RES-WEB-004).
-- The Wi-Fi password is write-only: no answer contains it (RES-NET-004).
-- File names from the card are escaped for JSON by the device and for HTML
-  by the page before they are shown.
-- *Not built yet:* renaming, playlists, sessions and presets, settings,
-  backup and restore.
+Firmware 0.7.0 to 0.9.6 had a web interface in Setup mode: the Arduino
+core's blocking `WebServer` served from `loop()`, one page held in flash,
+Digest authentication on every request, and file management on the card
+through `sdcard`. It was removed in 0.10.0 together with Setup mode and
+Wi-Fi (ADR-000205); the files `net/webui.cpp`, `net/webui.h`,
+`net/webpage.h`, `radio/wifi_link.cpp`, `radio/wifi_link.h` and
+`radio/bt_stack.h` no longer exist. The interface as it was built is
+described in `docs/history/web-api-0.9.md`.
 
 ## Tasks
 
 | Task | State | Notes |
 |---|---|---|
 | Arduino loop (core 1) | exists | Interface, status, serial diagnostics |
-| Bluetooth controller and host (core 0) | exists | Started only in Play mode |
-| Wi-Fi and network (core 0) | exists | Started only in Setup mode |
+| Bluetooth controller and host (core 0) | exists | Started at every start, unless the radio start guard skips it |
 | Bluetooth audio callback (inside the stack's task) | exists | Renders the tone; no blocking, no logging |
 | Player (core 1, priority 4, 6 kB stack) | exists | SD reads, WAV/MP3 decoding, resampling; waits when the ring is full |
 
@@ -345,7 +326,9 @@ First part built (firmware 0.7.0); the endpoints are in `API.md`.
 
 | Decision | Depends on |
 |---|---|
-| A combined mode beside Play and Setup | Play-mode heap with a device connected and an MP3 playing; then whether Wi-Fi still fits |
-| OTA | The image now fits a 1.875 MB slot; decide when the web interface exists |
-| Second decoder for crossfade | Play-mode heap in Stage 4 |
+| Second decoder for crossfade | Heap while an MP3 plays to a connected headset |
 | Return of the wired output | The operator |
+
+Closed by ADR-000205 (firmware 0.10.0): a combined mode beside Play and
+Setup is no longer considered; OTA waited for the web interface, which is
+gone, and firmware update stays over USB.

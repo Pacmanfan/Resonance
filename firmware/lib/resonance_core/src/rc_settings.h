@@ -1,7 +1,7 @@
 // Resonance portable core: device settings and their validation.
 // RES-CFG-002 (validated on load, safe defaults), RES-CFG-003 (never loud at
 // start), RES-AUDIO-002 / RES-AUDIO-005 (frequency ranges, invalid values
-// rejected), RES-ARCH-005 (operating modes).
+// rejected).
 //
 // Portable: this file must not include an Arduino, ESP-IDF or display header.
 #pragma once
@@ -10,13 +10,6 @@
 #include <stdint.h>
 
 namespace rc {
-
-// Operating mode (ADR-000204). A subsystem that the current mode does not
-// need is never started; the mode changes only through a restart.
-enum class Mode : uint8_t {
-    Play = 0,   // Bluetooth, audio, playback, sessions. Wi-Fi not started.
-    Setup = 1,  // Wi-Fi, web administration, files. Bluetooth not started.
-};
 
 // Ranges of RES-AUDIO-002, in hertz.
 constexpr float kPrimaryMinHz = 20.0f;
@@ -40,24 +33,22 @@ constexpr uint8_t kBrightnessDefault = 100;
 constexpr uint16_t kScreenTimeoutMaxS = 3600;  // 0 = never dim
 constexpr uint16_t kScreenTimeoutDefaultS = 60;
 
-constexpr uint8_t kSettingsVersion = 3;  // 2: brightness default 100; 3: layer volumes and session choices
+// 2: brightness default 100; 3: layer volumes and session choices; 4: the
+// operating mode, device name and Wi-Fi fields are gone with the Setup mode
+// (ADR-000205).
+constexpr uint8_t kSettingsVersion = 4;
 
 constexpr uint8_t kBackgroundVolumeDefault = 70;
 constexpr uint8_t kNoiseVolumeDefault = 40;
 
-// Stored as one fixed-size record. Every text field is NUL-terminated.
+// Stored as one fixed-size record.
 struct Settings {
     uint8_t version;
-    Mode mode;
     uint8_t startVolume;     // percent, <= kStartVolumeMax
     uint8_t brightness;      // percent
     uint16_t screenTimeoutS;
     float primaryHz;
     float beatHz;
-    char hostname[24];       // mDNS / DHCP name, RFC 1123 label
-    char wifiSsid[33];
-    char wifiPass[65];
-    char apPass[12];         // password of the set-up access point; empty = not generated yet
     // What the user last set, so that the device comes back as it was left.
     // The master volume is kept in startVolume, and so can never come back
     // above kStartVolumeMax. The noise type is deliberately not kept:
@@ -81,12 +72,13 @@ bool sanitize(Settings& s);
 // value that is not finite.
 float sanitizeFrequency(float hz, float lo, float hi, float fallback);
 
-// One DNS label: 1-23 characters, letters, digits and '-', not starting or
-// ending with '-'.
-bool isValidHostname(const char* name);
+// Size of the version 3 record, which also held the operating mode, a
+// device name and Wi-Fi credentials.
+constexpr size_t kSettingsV3Size = 156;
 
-// True when `text` holds a NUL within `capacity` bytes and only printable
-// ASCII before it.
-bool isPrintableField(const char* text, size_t capacity);
+// Carries what the user had set in a version 3 record over into `out`, and
+// validates it. The mode, the name and the credentials are not carried.
+// Returns false, with `out` untouched, when `bytes` is not such a record.
+bool migrateFromV3(const void* bytes, size_t size, Settings& out);
 
 }  // namespace rc

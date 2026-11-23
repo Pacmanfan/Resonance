@@ -41,7 +41,7 @@ that come from the board in hand.
 | Display | Runs at a 40 MHz write clock since firmware 0.8.0 (24 MHz before; picture at 40 MHz not yet confirmed by eye), SPI mode 0, and shows the interface: the operator saw the dark blue screen, so inversion is right. The first colour scheme was too low in contrast and was replaced; the operator has not yet seen the new one. Colour order (red and blue not swapped) is not explicitly confirmed. **Read-back returns zero** (display ID and status), so MISO on IO12 does not deliver data on this board | M7, partly |
 | microSD | Without a card: "card failed" on command 0. With a 32 GB FAT32 card: mounts at 20 MHz on IO5/18/19/23, 30,509 MB reported (firmware 0.3.1) | M12 |
 | Bluetooth Classic | Starts and stays up | — |
-| Wi-Fi | Access point starts; a scan found 8 networks | — |
+| Wi-Fi | Access point starts; a scan found 8 networks (reading of firmware 0.2.0; the firmware has not started Wi-Fi since 0.10.0, ADR-000205) | — |
 | Supply at radio start | **The board lost power 16 times in 37 seconds** while Bluetooth was first being started (the USB bridge dropped off the bus each time), then started normally and has been stable since. See section 8 | — |
 
 ## Sources
@@ -290,7 +290,7 @@ the N, R and C variants): board 93.7 × 55.0 mm; four mounting holes of
 64.8 × 48.6 mm; about 40 g. Not documented: thickness, component heights,
 the cover-glass outline and the positions of the connectors and buttons.
 The enclosure and the list of what to measure for it are in
-`hardware/case/README.md`.
+`hardware/README.md` and `hardware/revisions/HISTORY.md`.
 
 The board's battery button (to the power IC's KEY pin) is reported by
 sellers as single press on, double press off. Not verified on this board.
