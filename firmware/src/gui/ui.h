@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include "display.h"
+#include "rc_edit.h"
 #include "rc_pulse.h"
 #include "rc_repeat.h"
 #include "rc_settings.h"
@@ -42,6 +43,47 @@ enum class Event : uint8_t {
     SessionStart,
     SessionPauseResume,
     SessionStop,
+    // The advanced screens (RES-GUI-006). They change the Advanced record
+    // themselves and say what changed.
+    MixerChanged,     // layer switches, tone and partial levels, fade time
+    BreathChanged,    // the pacer's pattern, depth or on/off
+    CustomStart,      // start Advanced::session
+    SlotsRefresh,     // fill the slot list: eventArg() 0 = sessions, 1 = sequences
+    SessionSave,      // to / from slot eventArg()
+    SessionLoad,
+    SequenceSave,
+    SequenceLoad,
+    StageCapture,     // stage Advanced::stageIndex takes (or drops) what is set now: eventArg() 0 partials, 1 noise, 2 breathing, 3 recording
+};
+
+// Fade times offered on the mixer screen, in seconds.
+constexpr float kFadeChoices[] = {0.05f, 0.5f, 1.0f, 2.0f, 5.0f, 10.0f};
+constexpr uint8_t kFadeChoiceCount = sizeof(kFadeChoices) / sizeof(kFadeChoices[0]);
+constexpr uint8_t kSlotListMax = 12;
+
+// What the advanced screens edit. Owned by the application; the interface
+// changes it and reports an event, as it does with the settings record.
+struct Advanced {
+    // Layer mixer. Noise and recording levels are the ones of Status.
+    bool layerOn[4] = {true, true, true, true};  // rc::Layer order
+    uint8_t toneLevel = 100;
+    uint8_t partialsLevel = 100;
+    uint8_t partial[2] = {0, 0};  // phi, phi squared
+    uint8_t fadeChoice = 2;
+    // Breathing pacer.
+    rc::BreathPattern breath = {40, 0, 60, 0};
+    uint8_t breathDepth = 0;
+    bool breathOn = false;
+    float breathLevel = 0.0f;  // written on every pass of the main loop
+    // Session builder and sequence.
+    rc::Session session = rc::newSession();
+    rc::Sequence sequence = rc::defaultSequence();
+    uint8_t stageIndex = 0;
+    // Slot list, filled on SlotsRefresh.
+    bool slotsReady = false;
+    bool slotUsed[kSlotListMax] = {};
+    char slotName[kSlotListMax][20] = {};
+    const char* message = "";  // outcome of the last store or load
 };
 
 // Everything the interface shows that it does not own.
@@ -92,7 +134,11 @@ struct Status {
 
 class Ui {
 public:
-    Ui(Display& display, rc::Settings& settings);
+    Ui(Display& display, rc::Settings& settings, Advanced& advanced);
+
+    // Draws the open advanced screen again, after the application changed
+    // what it shows.
+    void refreshAdvanced();
 
     void begin();
 
@@ -105,6 +151,12 @@ public:
 
     // Replaces the status snapshot; the visible screen is refreshed.
     void setStatus(const Status& status);
+
+    // Development aids, used over the serial port: a press at a point as if
+    // the screen had been touched there, and a list of the buttons shown
+    // with the width of each label, to check a layout without a camera.
+    void press(int16_t x, int16_t y);
+    void describe(Print& out);
 
     // Argument of the last event returned by poll(), where it has one.
     uint8_t eventArg() const { return _eventArg; }
@@ -120,7 +172,27 @@ private:
         const char* label;
         uint8_t id;
     };
-    static constexpr uint8_t kMaxButtons = 18;  // the FREQ tab has seventeen
+    static constexpr uint8_t kMaxButtons = 22;  // the FREQ tab has seventeen, the mixer screen twenty-one
+
+    // Screens opened over a tab; None = the tab itself.
+    enum class Sub : uint8_t { None, Menu, Mixer, Breath, Builder, Stage, Slots, Sequence };
+    void openSub(Sub sub);
+    void backSub();
+    const char* subTitle() const;
+    void drawAdvanced();
+    void drawMenu();
+    void drawMixer();
+    void drawBreath();
+    void drawBuilder();
+    void drawStage();
+    void drawSlots();
+    void drawSequence();
+    void onAdvancedButton(uint8_t id);
+    void animateBreath();
+    void drawBreathBar(int16_t x, int16_t y, int16_t w, int16_t h, int16_t& shown);
+    void row(int16_t y, const char* name, const char* value, uint8_t idMinus, uint8_t idPlus);
+    void valueAt(int16_t cx, int16_t y, int16_t w, const char* value);
+    void redrawValues();
 
     void drawFrame();
     void drawHeader();
@@ -167,6 +239,17 @@ private:
     rc::Pulse _pulse;              // the home-screen rings (rc_pulse.h)
     uint8_t _ringOffset[rc::kPulseRings] = {};  // where each ring is drawn now
     bool _btScreen = false;  // the Bluetooth device list is open over Home
+    Advanced& _adv;
+    Sub _sub = Sub::None;
+    bool _valuesOnly = false;      // a draw pass that renews the values and leaves the rest
+    uint8_t _step = 0;             // selected step on the sequence screen
+    uint8_t _slotKind = 0;         // 0 sessions, 1 sequences
+    bool _slotSave = false;
+    uint8_t _slotArmed = 0xFF;     // a used slot tapped once for saving
+    int16_t _homeBar = 0;          // breathing bar as drawn on Home, in pixels
+    int16_t _breathBar = 0;        // and on the breathing screen
+    char _advLabel[6][28] = {};
+    char _slotLabel[kSlotListMax][24] = {};
     uint8_t _eventArg = 0;
     char _audioLabel[12] = "";
     char _btLabel[36] = "";

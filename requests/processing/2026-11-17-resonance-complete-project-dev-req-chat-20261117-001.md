@@ -1246,6 +1246,12 @@ Conversational context: User pasted the full Resonance specification in chat, th
 - Follow-ups will be appended under ## Follow-up Context
 
 
+### Follow-up 2026-11-23T02:50:40.654986+00:00
+
+> Mindforge feature integration, phase 5: touchscreen screens for the session builder (create, add, remove, select, edit, reorder stages, save, load, start), the layer mixer, the breathing pacer and frequency sequences, reached from one ADVANCED entry; a small breathing indicator on Home.
+
+
+
 ### Follow-up 2026-11-23T02:36:50.873516+00:00
 
 > Mindforge feature integration, phase 4: breathing pacer (inhale, exhale, optional holds, optional audio modulation with depth, standalone or set by a session stage) and editable frequency sequences (Solfeggio set as an editable default, stored on the card, turned into a session).
@@ -1523,5 +1529,5 @@ User pasted the full Resonance specification in chat, then said: 'add that as a 
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020, WORK-000021, WORK-000022, WORK-000023, WORK-000024, WORK-000025, WORK-000026, WORK-000027, WORK-000028, WORK-000029, WORK-000030, WORK-000031, WORK-000032, WORK-000033, WORK-000034, WORK-000035, WORK-000036, WORK-000037, WORK-000038, WORK-000039, WORK-000040, WORK-000041
+- Work: WORK-000001, WORK-000002, WORK-000003, WORK-000004, WORK-000005, WORK-000006, WORK-000007, WORK-000008, WORK-000009, WORK-000010, WORK-000011, WORK-000012, WORK-000013, WORK-000014, WORK-000015, WORK-000016, WORK-000017, WORK-000018, WORK-000019, WORK-000020, WORK-000021, WORK-000022, WORK-000023, WORK-000024, WORK-000025, WORK-000026, WORK-000027, WORK-000028, WORK-000029, WORK-000030, WORK-000031, WORK-000032, WORK-000033, WORK-000034, WORK-000035, WORK-000036, WORK-000037, WORK-000038, WORK-000039, WORK-000040, WORK-000041, WORK-000042
 - Evidence: pending

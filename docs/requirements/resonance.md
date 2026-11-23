@@ -396,6 +396,21 @@ under the rules of RES-SESS-009, and SHALL be turned into a session that the
 session builder can run, change and store like any other (brief §3.G). No
 effect SHALL be claimed for any frequency (RES-PROC-006).
 
+### RES-GUI-006 — Advanced screens
+
+The layer mixer, the breathing pacer, the session builder and the frequency
+sequences SHALL each have a touchscreen screen, reached from one ADVANCED
+entry on the SET tab (the session builder also from the SESS tab). The five
+tabs SHALL stay as they are and Home SHALL gain no button. The header of an
+advanced screen SHALL lead back one level, and a tab SHALL leave them
+altogether. The session builder SHALL create a session, add, remove, select,
+change and reorder its stages, store it in and load it from a slot on the
+card and start it; no screen SHALL need text to be typed. A stage SHALL take
+its layers, breathing pattern and recording from what is set on the device at
+that moment. An edit SHALL never produce a session or sequence that
+validation refuses. While the pacer runs, Home SHALL show its level as a thin
+bar that does not move or cover anything else (brief §3.C, §3.D, §4).
+
 ### RES-CFG-001 — Presets
 
 A preset SHALL hold name, frequencies, waveform, layer volumes, background

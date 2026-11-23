@@ -28,6 +28,8 @@ constexpr uint8_t kIdBrightnessDown = 10;
 constexpr uint8_t kIdBrightnessUp = 11;
 constexpr uint8_t kIdMode = 12;
 constexpr uint8_t kIdBackToPlay = 13;
+constexpr uint8_t kIdAdvanced = 14;
+constexpr uint8_t kIdBuilder = 15;
 constexpr uint8_t kIdAudio = 20;
 constexpr uint8_t kIdVolumeDown = 21;
 constexpr uint8_t kIdVolumeUp = 22;
@@ -80,7 +82,8 @@ const float kBeatSteps[] = {-1.0f, -0.1f, 0.1f, 1.0f};
 
 }  // namespace
 
-Ui::Ui(Display& display, rc::Settings& settings) : _lcd(display), _settings(settings) {}
+Ui::Ui(Display& display, rc::Settings& settings, Advanced& advanced)
+    : _lcd(display), _settings(settings), _adv(advanced) {}
 
 void Ui::begin() {
     _lastActivityMs = millis();
@@ -110,8 +113,14 @@ void Ui::setStatus(const Status& status) {
     const bool radioChanged = status.bluetoothRunning != _status.bluetoothRunning ||
                               status.wifiState != _status.wifiState || status.radioBlocked != _status.radioBlocked ||
                               strcmp(status.address, _status.address) != 0 || status.network != _status.network;
+    const bool mixerChanged = noiseChanged || status.backgroundVolume != _status.backgroundVolume;
     _status = status;
     if (_dimmed) return;
+    if (_sub != Sub::None) {
+        // Of the advanced screens only the mixer shows something of the status.
+        if (_sub == Sub::Mixer && mixerChanged) redrawValues();
+        return;
+    }
     if (setupMode()) {
         if (sdChanged || radioChanged) drawContent();
         return;
@@ -172,6 +181,7 @@ Event Ui::poll() {
     }
     _touching = down;
     animateHome();
+    animateBreath();
 
     const uint32_t timeoutMs = static_cast<uint32_t>(_settings.screenTimeoutS) * 1000u;
     if (!_dimmed && timeoutMs != 0 && millis() - _lastActivityMs > timeoutMs) {
@@ -243,8 +253,10 @@ void Ui::drawHeader() {
     if (setupMode()) {
         centered("SETUP", kScreenW / 2, kHeaderH / 2 - 1, kWarning, kBackground, kFontTitle);
     } else {
-        centered(_btScreen ? "BLUETOOTH" : kTabTitles[static_cast<uint8_t>(_tab)], kScreenW / 2, kHeaderH / 2 - 1,
-                 kCyan, kBackground, kFontTitle);
+        const char* title = _btScreen ? "BLUETOOTH" : (_sub != Sub::None ? subTitle() : kTabTitles[static_cast<uint8_t>(_tab)]);
+        centered(title, kScreenW / 2, kHeaderH / 2 - 1, kCyan, kBackground, kFontTitle);
+        // An advanced screen: the header leads back one level.
+        if (_sub != Sub::None) label("<", 8, 6, kText, kFontTitle);
     }
     _lcd.fillRect(0, kHeaderH - 2, kScreenW, 2, kOutline);
 }
@@ -256,7 +268,7 @@ void Ui::drawTabBar() {
     const int16_t top = kContentBottom;
     _lcd.fillRect(0, top, kScreenW, kTabBarH, kBackground);
     for (uint8_t i = 0; i < static_cast<uint8_t>(Tab::Count); ++i) {
-        const bool active = i == static_cast<uint8_t>(_tab) && !_btScreen;
+        const bool active = i == static_cast<uint8_t>(_tab) && !_btScreen && _sub == Sub::None;
         const int16_t x = static_cast<int16_t>(i * kTabW + 2);
         const int16_t y = static_cast<int16_t>(top + 4);
         const int16_t w = kTabW - 4;
@@ -277,6 +289,10 @@ void Ui::drawContent() {
         return;
     }
     _lcd.fillRect(0, kContentTop, kScreenW, kContentBottom - kContentTop, kBackground);
+    if (_sub != Sub::None) {
+        drawAdvanced();
+        return;
+    }
     switch (_tab) {
         case Tab::Home:
             if (_btScreen) drawBluetooth(); else drawHome();
@@ -293,6 +309,7 @@ void Ui::drawContent() {
 
 void Ui::drawHome() {
     char text[40];
+    _homeBar = 0;  // the content was cleared: the breathing bar is drawn afresh
     const int16_t cx = kScreenW / 2, cy = kContentTop + 62;
     // Concentric rings. They rest while the audio is off and pulse at the
     // beat frequency while it is on (animateHome).
@@ -353,7 +370,7 @@ void Ui::drawRing(uint8_t ring, uint8_t offset, bool erase) {
 // ring that moved is erased where it was and drawn where it is, and a ring
 // that did not move is left alone, so most passes draw nothing at all.
 void Ui::animateHome() {
-    if (_dimmed || setupMode() || _tab != Tab::Home || _btScreen || !_status.audioOn) return;
+    if (_dimmed || setupMode() || _tab != Tab::Home || _btScreen || _sub != Sub::None || !_status.audioOn) return;
     if (!_pulse.advance(millis(), _settings.beatHz)) return;
     bool open = false;
     for (uint8_t i = 0; i < rc::kPulseRings; ++i) {
@@ -581,7 +598,8 @@ void Ui::drawSessions() {
         else if (_status.sessionFadeS < 60) snprintf(_fadeLabel, sizeof(_fadeLabel), "%u s", static_cast<unsigned>(_status.sessionFadeS));
         else snprintf(_fadeLabel, sizeof(_fadeLabel), "%u min", static_cast<unsigned>(_status.sessionFadeS / 60));
         addButton(8, kContentTop + 132, 224, 34, _fadeLabel, kIdSessionFade);
-        addButton(8, kContentTop + 186, 224, 44, "START", kIdSessionStart);
+        addButton(8, kContentTop + 186, 146, 44, "START", kIdSessionStart);
+        addButton(160, kContentTop + 186, 72, 44, "BUILD", kIdBuilder);
         return;
     }
     label(_status.sessionName, 12, kContentTop + 6, kTeal, kFontText);
@@ -654,6 +672,7 @@ void Ui::drawSettings() {
     label("Operating mode", 12, kContentTop + 78, kTextDim, kFontSmall);
     const char* text = _modeArmed ? "Tap again to restart" : "Restart in SETUP";
     addButton(8, kContentTop + 94, 224, 38, text, kIdMode);
+    addButton(8, kContentTop + 160, 224, 38, "ADVANCED", kIdAdvanced);
     drawSettingsValues();
 }
 
@@ -663,7 +682,9 @@ void Ui::drawSettingsValues() {
     centered(text, kScreenW / 2, kContentTop + 45, kText, kBackground, kFontTitle);
 
     int16_t y = kContentTop + 142;
-    _lcd.fillRect(0, y, kScreenW, kContentBottom - y, kBackground);
+    // Two strips of text, above and below the ADVANCED button.
+    _lcd.fillRect(0, y, kScreenW, 16, kBackground);
+    _lcd.fillRect(0, y + 60, kScreenW, kContentBottom - y - 60, kBackground);
     label("Wi-Fi is off in PLAY mode.", 12, y, kTextDim, kFontSmall);
     snprintf(text, sizeof(text), "Firmware %s", RESONANCE_VERSION);
     label(text, 12, y + 62, kTextDim, kFontSmall);
@@ -674,6 +695,10 @@ void Ui::drawSettingsValues() {
 // ---- input -----------------------------------------------------------------
 
 void Ui::onPress(int16_t x, int16_t y) {
+    if (y < kHeaderH && _sub != Sub::None) {
+        backSub();
+        return;
+    }
     if (y >= kContentBottom && !setupMode()) {
         uint8_t index = static_cast<uint8_t>(x / kTabW);
         if (index >= static_cast<uint8_t>(Tab::Count)) index = static_cast<uint8_t>(Tab::Count) - 1;
@@ -705,7 +730,8 @@ void Ui::onPress(int16_t x, int16_t y) {
 // switch, start, open or cycle something do not: holding "START" or a tab
 // must never act twice.
 bool Ui::repeats(uint8_t id) {
-    return id < 8 ||                                             // frequency steps
+    return (id >= 100 && id < 150) ||                            // adjusters of the advanced screens
+           id < 8 ||                                             // frequency steps
            id == kIdBrightnessDown || id == kIdBrightnessUp ||
            id == kIdVolumeDown || id == kIdVolumeUp ||
            id == kIdSoundVolDown || id == kIdSoundVolUp ||
@@ -714,7 +740,13 @@ bool Ui::repeats(uint8_t id) {
 }
 
 void Ui::onButton(uint8_t id) {
-    if (id < 4) {
+    if (_sub != Sub::None) {
+        onAdvancedButton(id);
+    } else if (id == kIdAdvanced) {
+        openSub(Sub::Menu);
+    } else if (id == kIdBuilder) {
+        openSub(Sub::Builder);
+    } else if (id < 4) {
         _settings.primaryHz = rc::sanitizeFrequency(_settings.primaryHz + kPrimarySteps[id], rc::kPrimaryMinHz,
                                                     rc::kPrimaryMaxHz, rc::kPrimaryDefaultHz);
         _settingsDirty = true;
@@ -814,8 +846,9 @@ void Ui::onButton(uint8_t id) {
 }
 
 void Ui::selectTab(Tab tab) {
-    if (tab == _tab && !_btScreen) return;
+    if (tab == _tab && !_btScreen && _sub == Sub::None) return;
     _btScreen = false;
+    _sub = Sub::None;
     _tab = tab;
     _modeArmed = false;
     // Edits are stored when the user leaves the screen, not on every tap, to

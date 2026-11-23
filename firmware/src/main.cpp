@@ -70,15 +70,18 @@ uint32_t sessionTickMs = 0;
 // A session that is not one of the programs above: a custom sweep, a
 // descent, or a user session read from the card. It is the one the serial
 // commands (and later the editor) work on.
-rc::Session customSession = {};
-rc::Sequence sequence = rc::defaultSequence();  // the sequence being worked on
+// What the advanced screens edit (gui::Advanced); the serial commands work
+// on the same session, sequence and partial levels.
+gui::Advanced advanced;
+rc::Session& customSession = advanced.session;
+rc::Sequence& sequence = advanced.sequence;  // the sequence being worked on
+uint8_t (&partialPercent)[2] = advanced.partial;
 rc::BreathPacer breath;
 uint8_t breathDepth = 0;                 // percent of audio modulation; 0 = the pacer is seen only
 uint32_t breathTickMs = 0;
 bool breathFromSession = false;          // a session stage started the pacer: it stops with the session
 char runningName[20] = "";    // name of the session that is running
 // Golden partials, percent; not stored: they are off at start.
-uint8_t partialPercent[2] = {0, 0};
 
 // Sound library browsing. One page of four entries is kept; the directory is
 // read again for every page.
@@ -99,7 +102,7 @@ gui::Display& lcd() {
     return instance;
 }
 gui::Ui& screen() {
-    static gui::Ui instance(lcd(), settings);
+    static gui::Ui instance(lcd(), settings, advanced);
     return instance;
 }
 storage::LoadResult loadResult;
@@ -398,6 +401,90 @@ void setBreath(const rc::BreathPattern& pattern, uint8_t depth) {
     }
     breathTickMs = millis();
     audio.setBreathGain(rc::breathGain(breath.level(), breathDepth));
+    // The breathing screen shows what runs, whoever started it.
+    advanced.breathOn = breath.running();
+    advanced.breathLevel = breath.level();
+    if (breath.running()) {
+        advanced.breath = breath.pattern();
+        advanced.breathDepth = breathDepth;
+    }
+}
+
+// Applies the mixer screen's record to the audio engine and the player.
+void applyMixer() {
+    static const rc::Layer kLayers[rc::kLayerCount] = {rc::Layer::Tone, rc::Layer::Partials, rc::Layer::Noise, rc::Layer::Voice};
+    const float fade = gui::kFadeChoices[advanced.fadeChoice < gui::kFadeChoiceCount ? advanced.fadeChoice : 0];
+    for (uint8_t i = 0; i < rc::kLayerCount; ++i) {
+        audio.setLayerFade(kLayers[i], fade);
+        audio.setLayerEnabled(kLayers[i], advanced.layerOn[i]);
+    }
+    if (audio.layerLevel(rc::Layer::Tone) != advanced.toneLevel) audio.setLayerLevel(rc::Layer::Tone, advanced.toneLevel);
+    if (audio.layerLevel(rc::Layer::Partials) != advanced.partialsLevel) {
+        audio.setLayerLevel(rc::Layer::Partials, advanced.partialsLevel);
+    }
+    for (uint8_t i = 0; i < 2; ++i) audio.tone().setPartial(i, advanced.partial[i]);
+    player::setFades(fade, fade);
+}
+
+// Fills the slot list of the advanced screens: 0 = sessions, 1 = sequences.
+void readSlots(uint8_t kind) {
+    for (uint8_t i = 0; i < gui::kSlotListMax; ++i) {
+        const uint8_t slot = static_cast<uint8_t>(i + 1);
+        advanced.slotName[i][0] = '\0';
+        if (kind == 0) {
+            advanced.slotUsed[i] = sessionstore::used(slot);
+            if (advanced.slotUsed[i] && !sessionstore::name(slot, advanced.slotName[i], sizeof(advanced.slotName[i]))) {
+                strlcpy(advanced.slotName[i], "?", sizeof(advanced.slotName[i]));
+            }
+        } else {
+            advanced.slotUsed[i] = slot <= sequencestore::kSlots && sequencestore::used(slot);
+            if (advanced.slotUsed[i] && !sequencestore::name(slot, advanced.slotName[i], sizeof(advanced.slotName[i]))) {
+                strlcpy(advanced.slotName[i], "?", sizeof(advanced.slotName[i]));
+            }
+        }
+    }
+    advanced.slotsReady = true;
+}
+
+// The stage being edited takes what is set on the device now for one of its
+// layers, or - when it already sets that layer - lets go of it.
+void captureStage(uint8_t kind) {
+    if (advanced.stageIndex >= customSession.stageCount) return;
+    rc::Session edited = customSession;
+    rc::Stage& stage = edited.stages[advanced.stageIndex];
+    static const uint8_t kFlags[4] = {rc::kStageSetsPartials, rc::kStageSetsNoise, rc::kStageSetsBreath, rc::kStageSetsVoice};
+    if (kind >= 4) return;
+    const bool had = (stage.flags & kFlags[kind]) != 0;
+    stage.flags = static_cast<uint8_t>(had ? stage.flags & ~kFlags[kind] : stage.flags | kFlags[kind]);
+    if (kind == 0) {
+        stage.partial[0] = had ? 0 : partialPercent[0];
+        stage.partial[1] = had ? 0 : partialPercent[1];
+    } else if (kind == 1) {
+        stage.noiseType = had ? 0 : static_cast<uint8_t>(noiseType);
+        stage.noiseVolume = had || noiseType == rc::NoiseType::Off ? 0 : noiseVolume;
+    } else if (kind == 2) {
+        const bool on = !had && breath.running();
+        stage.breath = on ? breath.pattern() : rc::BreathPattern{0, 0, 0, 0};
+        stage.breathDepth = on ? breathDepth : 0;
+    } else {
+        // The recording that plays or is paused now; none = the stage stops playback.
+        stage.voice[0] = '\0';
+        stage.voiceVolume = 0;
+        const bool playing = player::state() == player::State::Playing || player::state() == player::State::Paused;
+        if (!had && playing && trackName[0] != '\0') {
+            const size_t root = strlen(sdcard::kAudioRoot);
+            char relative[200];
+            if (strlen(trackDir) > root) snprintf(relative, sizeof(relative), "%s/%s", trackDir + root + 1, trackName);
+            else strlcpy(relative, trackName, sizeof(relative));
+            if (strlen(relative) < sizeof(stage.voice)) {
+                strlcpy(stage.voice, relative, sizeof(stage.voice));
+                stage.voiceVolume = backgroundVolume;
+            } else {
+                advanced.message = "That name is too long";
+            }
+        }
+    }
+    if (rc::isValidSession(edited)) customSession = edited;
 }
 
 // Advances the pacer and, when the modulation is on, hands its level to the
@@ -407,6 +494,7 @@ void tickBreath() {
     const uint32_t now = millis();
     breath.advance(now - breathTickMs);
     breathTickMs = now;
+    advanced.breathLevel = breath.level();
     // The engine ramps the gain, so the pacer starting or stopping in the
     // middle of a sound is a short glide, not a step.
     if (breathDepth != 0) audio.setBreathGain(rc::breathGain(breath.level(), breathDepth));
@@ -750,6 +838,12 @@ void runCommand(char* line) {
             sessionstore::name(slot, name, sizeof(name));
             Serial.printf("USESSION slot %u: %s\n", static_cast<unsigned>(slot), name);
         }
+    } else if (strncmp(line, "tap ", 4) == 0) {
+        // tap <x> <y>: as if the screen had been touched there
+        int x = 0, y = 0;
+        if (sscanf(line + 4, "%d %d", &x, &y) == 2) screen().press(static_cast<int16_t>(x), static_cast<int16_t>(y));
+    } else if (strcmp(line, "ui") == 0) {
+        screen().describe(Serial);
     } else if (strcmp(line, "breath") == 0) {
         static const char* const names[] = {"off", "inhale", "hold in", "exhale", "hold out"};
         const rc::BreathPattern& p = breath.pattern();
@@ -969,7 +1063,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | breath | breath <in s> <hold s> <out s> <hold s> [depth] | breath off | seq | seq default | seq step <n> <Hz> <s> | seq remove <n> | seq glide <s> | seq beat <Hz> | seq save|load|delete <slot> | seq use | usession | usession breath <stage> <in ds> <hold ds> <out ds> <hold ds> <depth> | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | tap <x> <y> | ui | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | breath | breath <in s> <hold s> <out s> <hold s> [depth] | breath off | seq | seq default | seq step <n> <Hz> <s> | seq remove <n> | seq glide <s> | seq beat <Hz> | seq save|load|delete <slot> | seq use | usession | usession breath <stage> <in ds> <hold ds> <out ds> <hold ds> <depth> | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 
@@ -1137,6 +1231,45 @@ void loop() {
         case gui::Event::SessionStart:
             startSession();
             refreshStatus();
+            break;
+        case gui::Event::MixerChanged:
+            applyMixer();
+            break;
+        case gui::Event::BreathChanged:
+            if (advanced.breathOn) setBreath(advanced.breath, advanced.breathDepth);
+            else setBreath({0, 0, 0, 0}, 0);
+            breathFromSession = false;
+            break;
+        case gui::Event::CustomStart:
+            startCustomSession(customSession);
+            refreshStatus();
+            break;
+        case gui::Event::SlotsRefresh:
+            readSlots(screen().eventArg());
+            screen().refreshAdvanced();
+            break;
+        case gui::Event::SessionSave:
+        case gui::Event::SessionLoad: {
+            const uint8_t slot = screen().eventArg();
+            const bool ok = event == gui::Event::SessionSave ? sessionstore::save(slot, customSession)
+                                                              : sessionstore::load(slot, customSession);
+            advanced.message = ok ? (event == gui::Event::SessionSave ? "Stored" : "Loaded") : sessionstore::error();
+            advanced.stageIndex = 0;
+            screen().refreshAdvanced();
+            break;
+        }
+        case gui::Event::SequenceSave:
+        case gui::Event::SequenceLoad: {
+            const uint8_t slot = screen().eventArg();
+            const bool ok = event == gui::Event::SequenceSave ? sequencestore::save(slot, sequence)
+                                                               : sequencestore::load(slot, sequence);
+            advanced.message = ok ? "" : sequencestore::error();
+            screen().refreshAdvanced();
+            break;
+        }
+        case gui::Event::StageCapture:
+            captureStage(screen().eventArg());
+            screen().refreshAdvanced();
             break;
         case gui::Event::SessionPauseResume:
             if (session.state() == rc::SessionState::Paused) {
