@@ -12,6 +12,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "rc_breath.h"
+
 namespace rc {
 
 enum class Sweep : uint8_t {
@@ -55,13 +57,18 @@ struct Stage {
     // library, such as "VOICE/Body scan.mp3". Empty with the flag set stops
     // what is playing.
     uint8_t voiceVolume = 0;      // percent
+    // The breathing pacer (RES-SESS-011): all four times zero switches it
+    // off; `breathDepth` is the audio modulation in percent, 0 = none.
+    BreathPattern breath = {0, 0, 0, 0};
+    uint8_t breathDepth = 0;
     char voice[kStageVoiceLength] = "";
 };
 
 constexpr uint8_t kStageSetsPartials = 0x01;
 constexpr uint8_t kStageSetsNoise = 0x02;
 constexpr uint8_t kStageSetsVoice = 0x04;
-constexpr uint8_t kStageKnownFlags = kStageSetsPartials | kStageSetsNoise | kStageSetsVoice;
+constexpr uint8_t kStageSetsBreath = 0x08;
+constexpr uint8_t kStageKnownFlags = kStageSetsPartials | kStageSetsNoise | kStageSetsVoice | kStageSetsBreath;
 
 // Session::endFadeS when the fade is left to whoever starts the session.
 constexpr uint16_t kFadeDeviceChoice = 0xFFFF;
@@ -187,6 +194,15 @@ public:
         _voicePending = false;
         return pending;
     }
+    // The same for the breathing pacer: its pattern (all zero = off) and
+    // modulation depth are those of the current stage.
+    bool takeBreathChange() {
+        const bool pending = _breathPending;
+        _breathPending = false;
+        return pending;
+    }
+    const BreathPattern& stageBreath() const { return _session.stages[_stage].breath; }
+    uint8_t stageBreathDepth() const { return _session.stages[_stage].breathDepth; }
     const char* stageVoice() const { return _session.stages[_stage].voice; }
     uint8_t stageVoiceVolume() const { return _session.stages[_stage].voiceVolume; }
 
@@ -201,6 +217,7 @@ private:
     uint8_t _flags = 0;
     uint8_t _noiseType = 0;
     bool _voicePending = false;
+    bool _breathPending = false;
     void beginFade();
 
     Session _session = {};

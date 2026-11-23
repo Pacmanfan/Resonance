@@ -90,6 +90,19 @@ bool sessionLine(const Session& session, uint8_t index, char* out, size_t capaci
         ok = ok && appendText(out, capacity, used, " noise=", stage.noiseType < 4 ? kNoiseNames[stage.noiseType] : "off");
         ok = ok && append(out, capacity, used, " nv=%.0f", stage.noiseVolume);
     }
+    if ((stage.flags & kStageSetsBreath) != 0) {
+        const BreathPattern& b = stage.breath;
+        if (b.inhaleDs == 0) {
+            ok = ok && appendText(out, capacity, used, " breath=", "off");
+        } else {
+            // Tenths of a second: inhale/hold/exhale/hold.
+            ok = ok && append(out, capacity, used, " breath=%.0f", b.inhaleDs);
+            ok = ok && append(out, capacity, used, "/%.0f", b.holdInDs);
+            ok = ok && append(out, capacity, used, "/%.0f", b.exhaleDs);
+            ok = ok && append(out, capacity, used, "/%.0f", b.holdOutDs);
+            ok = ok && append(out, capacity, used, " bd=%.0f", stage.breathDepth);
+        }
+    }
     if ((stage.flags & kStageSetsVoice) != 0) {
         // Last on the line: a file name may hold spaces.
         char voice[kStageVoiceLength];
@@ -209,6 +222,26 @@ bool SessionParser::stageLine(char* text) {
             if (!readCount(value, 100, count)) return fail("bad noise volume");
             stage.noiseVolume = static_cast<uint8_t>(count);
             stage.flags |= kStageSetsNoise;
+        } else if (strcmp(token, "breath") == 0) {
+            stage.flags |= kStageSetsBreath;
+            if (strcmp(value, "off") != 0) {
+                // Four whole numbers of tenths of a second, joined by '/'.
+                uint8_t parts[4] = {0, 0, 0, 0};
+                char* part = value;
+                for (uint8_t i = 0; i < 4; ++i) {
+                    char* slash = strchr(part, '/');
+                    if ((slash == nullptr) != (i == 3)) return fail("bad breathing pattern");
+                    if (slash != nullptr) *slash = '\0';
+                    if (!readCount(part, kBreathMaxDs, count)) return fail("bad breathing pattern");
+                    parts[i] = static_cast<uint8_t>(count);
+                    part = slash + 1;
+                }
+                stage.breath = {parts[0], parts[1], parts[2], parts[3]};
+                if (!isValidBreath(stage.breath)) return fail("bad breathing pattern");
+            }
+        } else if (strcmp(token, "bd") == 0) {
+            if (!readCount(value, kBreathDepthMax, count)) return fail("bad breathing depth");
+            stage.breathDepth = static_cast<uint8_t>(count);
         } else if (strcmp(token, "vv") == 0) {
             if (!readCount(value, 100, count)) return fail("bad recording volume");
             stage.voiceVolume = static_cast<uint8_t>(count);

@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "rc_sequence.h"
 #include "rc_session.h"
 
 namespace sessionstore {
@@ -37,3 +38,18 @@ bool name(uint8_t slot, char* out, size_t capacity);
 const char* error();
 
 }  // namespace sessionstore
+
+// Frequency sequences (RES-SESS-012): /RESONANCE/SEQUENCE/SEQ01.TXT ..
+// SEQ08.TXT in the form of rc_sequence.h, under the same rules.
+namespace sequencestore {
+
+constexpr uint8_t kSlots = 8;  // slots are numbered 1..kSlots
+
+bool load(uint8_t slot, rc::Sequence& out);
+bool save(uint8_t slot, const rc::Sequence& sequence);
+bool remove(uint8_t slot);
+bool used(uint8_t slot);
+bool name(uint8_t slot, char* out, size_t capacity);
+const char* error();
+
+}  // namespace sequencestore

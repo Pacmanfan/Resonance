@@ -372,6 +372,30 @@ stop what is playing; a stage without the flag SHALL leave playback alone. A
 name that could leave the sound library SHALL be refused when the session is
 validated. A missing file SHALL not stop the session (brief §3.E).
 
+### RES-SESS-011 — Breathing pacer
+
+The device SHALL offer a breathing pacer: inhale and exhale times of 1 to
+25 s and optional holds after each of 0 to 25 s, in steps of 0.1 s. It SHALL
+report the current part of the breath, the time left in it and a level
+between 0 (breathed out) and 1 (breathed in) that moves smoothly, for a
+visual indicator. It SHALL run by itself or be set, changed or switched off
+by a session stage; a stage that says nothing about it SHALL leave it alone.
+As an option the pacer SHALL modulate the level of tone and noise - not of a
+recording - by a depth of 0 to 80 %, without steps; with the option off or
+the pacer stopped the audio SHALL be exactly as without the pacer. A pacer
+that is given no time for a long while SHALL not jump or hang (brief §3.D).
+
+### RES-SESS-012 — Frequency sequences
+
+A frequency sequence SHALL be a named list of up to ten primary frequencies,
+each with its own duration, with an optional glide between steps and an
+optional beat frequency. The Solfeggio set SHALL be offered as a default that
+the user can change, not as a fixed program. Sequences SHALL be stored as
+validated text files under `/RESONANCE/SEQUENCE` on the card (at most eight),
+under the rules of RES-SESS-009, and SHALL be turned into a session that the
+session builder can run, change and store like any other (brief §3.G). No
+effect SHALL be claimed for any frequency (RES-PROC-006).
+
 ### RES-CFG-001 — Presets
 
 A preset SHALL hold name, frequencies, waveform, layer volumes, background

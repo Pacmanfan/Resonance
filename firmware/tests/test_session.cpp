@@ -661,4 +661,44 @@ TEST(a_recording_name_that_could_leave_the_library_is_refused) {
     CHECK(isValidSession(s));
 }
 
+// A stage that sets the breathing pacer (RES-SESS-011).
+TEST(a_stage_can_set_change_and_stop_the_breathing_pacer) {
+    Session s = {};
+    strcpy(s.name, "breath");
+    s.stageCount = 3;
+    s.stages[0] = {10, 0, 10.0f, Sweep::Hold};
+    s.stages[0].flags = kStageSetsBreath;
+    s.stages[0].breath = {40, 0, 60, 0};
+    s.stages[0].breathDepth = 30;
+    s.stages[1] = {10, 0, 8.0f, Sweep::Linear};   // says nothing
+    s.stages[2] = {10, 0, 6.0f, Sweep::Linear};
+    s.stages[2].flags = kStageSetsBreath;         // all zero: off
+    CHECK(isValidSession(s));
+    SessionRunner r;
+    CHECK(r.start(s, 200.0f, 10.0f, 0));
+    CHECK(r.takeBreathChange());
+    CHECK(r.stageBreath().inhaleDs == 40 && r.stageBreath().exhaleDs == 60 && r.stageBreathDepth() == 30);
+    CHECK(!r.takeBreathChange());
+    r.advance(10000);
+    CHECK(!r.takeBreathChange());
+    r.advance(10000);
+    CHECK(r.takeBreathChange());
+    CHECK(r.stageBreath().inhaleDs == 0);
+
+    // What is refused.
+    s.stages[0].breath = {5, 0, 60, 0};
+    CHECK(!isValidSession(s));
+    s.stages[0].breath = {40, 0, 60, 0};
+    s.stages[0].breathDepth = kBreathDepthMax + 1;
+    CHECK(!isValidSession(s));
+    s.stages[0].breathDepth = 30;
+    s.stages[2].breathDepth = 10;                 // a depth with the pacer off
+    CHECK(!isValidSession(s));
+    s.stages[2].breathDepth = 0;
+    s.stages[1].breath = {40, 0, 60, 0};          // a pattern without the flag
+    CHECK(!isValidSession(s));
+    s.stages[1].breath = {0, 0, 0, 0};
+    CHECK(isValidSession(s));
+}
+
 int main() { return host_test::runAll(); }

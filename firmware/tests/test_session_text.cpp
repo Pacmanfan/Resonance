@@ -105,7 +105,7 @@ TEST(every_factory_program_and_the_longest_session_fit_their_lines) {
 TEST(a_file_made_by_hand_is_read_leniently) {
     Session s = {};
     CHECK(parse({"# my session", "", "RESONANCE SESSION 1", "  name=Hand made  ", "stage d=60 b=10",
-                 "stage   d=300\tsweep=lin  b=6", "colour=blue", "stage d=30 sweep=hold b=6 breath=2 colour=green"},
+                 "stage   d=300\tsweep=lin  b=6", "colour=blue", "stage d=30 sweep=hold b=6 tint=2 colour=green"},
                 s));
     CHECK(strcmp(s.name, "Hand made") == 0);
     CHECK(s.endFadeS == kFadeDeviceChoice);          // not given
@@ -218,6 +218,54 @@ TEST(a_bad_stage_recording_is_refused) {
     // An empty name stops playback and is valid.
     CHECK(parse({"RESONANCE SESSION 1", "stage d=60 sweep=hold vv=0 voice="}, out));
     CHECK((out.stages[0].flags & kStageSetsVoice) != 0 && out.stages[0].voice[0] == '\0');
+}
+
+TEST(a_stage_breathing_pattern_survives_the_text_form) {
+    Session s = everything();
+    s.stages[0].flags = kStageSetsBreath;
+    s.stages[0].breath = {40, 70, 80, 0};
+    s.stages[0].breathDepth = 25;
+    s.stages[2].flags |= kStageSetsBreath;   // off
+    // Together with everything else a stage can carry, the line still fits.
+    s.stages[1].flags |= kStageSetsBreath | kStageSetsVoice;
+    s.stages[1].breath = {250, 250, 250, 250};
+    s.stages[1].breathDepth = 80;
+    s.stages[1].voiceVolume = 100;
+    s.stages[1].durationS = 65535;
+    s.stages[1].transitionS = 65535;
+    s.stages[1].primaryHz = 1000.0f;
+    s.stages[1].fromPrimaryHz = 999.99f;
+    strcpy(s.stages[1].voice, "VOICE/");
+    memset(s.stages[1].voice + 6, 'a', kStageVoiceLength - 11);
+    strcpy(s.stages[1].voice + kStageVoiceLength - 5, ".mp3");
+    CHECK(isValidSession(s));
+    const auto lines = linesOf(s);
+    CHECK(lines.size() == 6);
+    CHECK(lines[3].find(" breath=40/70/80/0 bd=25") != std::string::npos);
+    CHECK(lines[5].find(" breath=off") != std::string::npos);
+    CHECK(lines[4].size() < kSessionLineMax - 1);
+    SessionParser parser;
+    parser.begin();
+    for (const auto& line : lines) parser.line(line.c_str());
+    Session back = {};
+    CHECK(parser.finish(back));
+    for (uint8_t i = 0; i < 3; ++i) {
+        CHECK(sameStage(s.stages[i], back.stages[i]));
+        CHECK(memcmp(&back.stages[i].breath, &s.stages[i].breath, sizeof(BreathPattern)) == 0);
+        CHECK(back.stages[i].breathDepth == s.stages[i].breathDepth);
+    }
+    Session out = {};
+    std::string error;
+    CHECK(!parse({"RESONANCE SESSION 1", "stage d=60 breath=40/0/60"}, out, &error));
+    CHECK(error == "bad breathing pattern");
+    CHECK(!parse({"RESONANCE SESSION 1", "stage d=60 breath=40/0/60/0/5"}, out));
+    CHECK(!parse({"RESONANCE SESSION 1", "stage d=60 breath=4/0/60/0"}, out));
+    CHECK(!parse({"RESONANCE SESSION 1", "stage d=60 breath=40/0/600/0"}, out));
+    CHECK(!parse({"RESONANCE SESSION 1", "stage d=60 breath=40/0/60/0 bd=81"}, out, &error));
+    CHECK(error == "bad breathing depth");
+    CHECK(!parse({"RESONANCE SESSION 1", "stage d=60 bd=20"}, out));   // a depth without a pattern
+    CHECK(parse({"RESONANCE SESSION 1", "stage d=60 breath=40/0/60/0"}, out));
+    CHECK(out.stages[0].breath.exhaleDs == 60 && out.stages[0].breathDepth == 0);
 }
 
 int main() { return host_test::runAll(); }

@@ -38,6 +38,7 @@ AudioEngine::AudioEngine(FrameRing& background)
     _tone.setVolume(kVolumeMax);
     _masterRamp.jump(0.0f);
     _sessionRamp.jump(1.0f);
+    _breathRamp.jump(1.0f);
     _bgRamp.jump(0.0f);
     _bgGate.jump(0.0f);
     _noiseRamp.jump(0.0f);
@@ -49,6 +50,12 @@ void AudioEngine::setSessionGain(float gain) {
     if (!(gain >= 0.0f)) gain = 0.0f;  // also catches NaN
     if (gain > 1.0f) gain = 1.0f;
     _sessionGain.store(gain, std::memory_order_relaxed);
+}
+
+void AudioEngine::setBreathGain(float gain) {
+    if (!(gain >= 0.2f)) gain = 0.2f;  // also catches NaN
+    if (gain > 1.0f) gain = 1.0f;
+    _breathGain.store(gain, std::memory_order_relaxed);
 }
 
 void AudioEngine::setLayerEnabled(Layer layer, bool on) {
@@ -116,6 +123,7 @@ void AudioEngine::render(int16_t* out, size_t frames) {
     // The session level is updated about ten times a second; a ramp of twice
     // that interval joins the updates into a smooth line.
     _sessionRamp.moveTo(_sessionGain.load(std::memory_order_relaxed), samplesFor(0.2f));
+    _breathRamp.moveTo(_breathGain.load(std::memory_order_relaxed), samplesFor(0.2f));
     uint32_t version = _bgVersion.load(std::memory_order_acquire);
     if (version != _bgSeen) {
         _bgSeen = version;
@@ -164,12 +172,17 @@ void AudioEngine::render(int16_t* out, size_t frames) {
             const float bg = _bgRamp.next() * _bgGate.next() * (1.0f / 32768.0f);
             const float noise = noiseOn ? _noise.next() * _noiseRamp.next() : (_noiseRamp.next(), 0.0f);
             const float master = _masterRamp.next() * _sessionRamp.next();
+            // The breathing modulation: exactly 1 unless it is in use, and a
+            // multiplication by 1 changes no sample.
+            const float breath = _breathRamp.next();
             // Noise is the same in both ears; tone and background keep their
             // own channels.
-            const float l = (static_cast<float>(out[2 * i]) * (1.0f / 32768.0f) +
-                             static_cast<float>(background[2 * i]) * bg + noise) * master;
-            const float r = (static_cast<float>(out[2 * i + 1]) * (1.0f / 32768.0f) +
-                             static_cast<float>(background[2 * i + 1]) * bg + noise) * master;
+            // The order of the sum is the one it always had.
+            const float hush = noise * breath;
+            const float l = (static_cast<float>(out[2 * i]) * (1.0f / 32768.0f) * breath +
+                             static_cast<float>(background[2 * i]) * bg + hush) * master;
+            const float r = (static_cast<float>(out[2 * i + 1]) * (1.0f / 32768.0f) * breath +
+                             static_cast<float>(background[2 * i + 1]) * bg + hush) * master;
             out[2 * i] = static_cast<int16_t>(lrintf(limit(l) * 32767.0f));
             out[2 * i + 1] = static_cast<int16_t>(lrintf(limit(r) * 32767.0f));
         }

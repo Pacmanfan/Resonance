@@ -432,7 +432,8 @@
       "WORK-000037",
       "WORK-000038",
       "WORK-000039",
-      "WORK-000040"
+      "WORK-000040",
+      "WORK-000041"
     ]
   },
   "follow_ups": [
@@ -649,6 +650,11 @@
     {
       "timestamp": "2026-11-22T23:12:10.383581+00:00",
       "text": "Mindforge feature integration, phase 3: layer mixer (tone, golden partials, noise, guided audio: enable, level, fade), guided voice layered with tone and noise with fades and fade-through between recordings, a session stage that names a voice file, heap and stream measurements on the board.",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-23T02:36:50.873516+00:00",
+      "text": "Mindforge feature integration, phase 4: breathing pacer (inhale, exhale, optional holds, optional audio modulation with depth, standalone or set by a session stage) and editable frequency sequences (Solfeggio set as an editable default, stored on the card, turned into a session).",
       "attachments": []
     }
   ]

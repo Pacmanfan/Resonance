@@ -528,4 +528,46 @@ TEST(every_layer_at_once_stays_under_the_ceiling_while_layers_switch) {
     CHECK(rig.engine.underruns() == 0);
 }
 
+// The breathing modulation (RES-SESS-011).
+TEST(the_breathing_modulation_moves_tone_and_noise_but_not_the_recording) {
+    Rig plain, breathing;
+    for (Rig* rig : {&plain, &breathing}) {
+        startTone(*rig);
+        rig->engine.setBackgroundVolume(100);
+        rig->engine.setBackgroundPlaying(true);
+        renderWithBackground(*rig, 8820, 6000, 6000);
+    }
+    // At rest, and set to one, nothing changes: sample for sample.
+    breathing.engine.setBreathGain(1.0f);
+    auto a = renderWithBackground(plain, 22050, 6000, 6000);
+    auto b = renderWithBackground(breathing, 22050, 6000, 6000);
+    bool same = true;
+    for (size_t i = 0; i < a.size(); ++i) same = same && a[i] == b[i];
+    CHECK(same);
+
+    const double tone = componentAt(renderWithBackground(plain, 44100, 6000, 6000), 0, 200.0);
+    breathing.engine.setBreathGain(0.5f);
+    const auto moving = renderWithBackground(breathing, 22050, 6000, 6000);
+    CHECK(largestStep(moving, 0) < 1300);  // no more than the tone's own slope
+    b = renderWithBackground(breathing, 44100, 6000, 6000);
+    CHECK_NEAR(componentAt(b, 0, 200.0), tone * 0.5, tone * 0.005);
+    double dc = 0;
+    for (size_t i = 0; i < b.size(); i += 2) dc += b[i];
+    CHECK_NEAR(dc / static_cast<double>(b.size() / 2), 6000.0 * kBackgroundCeiling, 4.0);  // the recording is untouched
+
+    // Noise follows; bad values are brought into range.
+    Rig noisy;
+    noisy.engine.setMasterVolume(100);
+    noisy.engine.setNoise(NoiseType::White, 100);
+    render(noisy.engine, 22050);
+    const int loud = peak(render(noisy.engine, 44100));
+    noisy.engine.setBreathGain(NAN);   // the floor
+    render(noisy.engine, 22050);
+    const int quiet = peak(render(noisy.engine, 44100));
+    CHECK(quiet > loud / 6 && quiet < loud / 4);  // 0.2
+    noisy.engine.setBreathGain(9.0f);
+    render(noisy.engine, 22050);
+    CHECK(abs(peak(render(noisy.engine, 44100)) - loud) < loud / 20);
+}
+
 int main() { return host_test::runAll(); }

@@ -136,6 +136,15 @@ static bool stageVoiceOk(const Stage& stage) {
     return isSoundFileName(slash != nullptr ? slash + 1 : stage.voice);
 }
 
+// A stage's breathing: nothing without the flag; with it, off (all zero) or
+// a valid pattern with a depth in range.
+static bool stageBreathOk(const Stage& stage) {
+    const BreathPattern& b = stage.breath;
+    const bool none = b.inhaleDs == 0 && b.holdInDs == 0 && b.exhaleDs == 0 && b.holdOutDs == 0;
+    if ((stage.flags & kStageSetsBreath) == 0 || none) return none && stage.breathDepth == 0;
+    return isValidBreath(b) && stage.breathDepth <= kBreathDepthMax;
+}
+
 bool isValidSession(const Session& session) {
     if (session.stageCount < 1 || session.stageCount > kMaxStages) return false;
     if (session.endFadeS != kFadeDeviceChoice && session.endFadeS > kEndFadeMaxS) return false;
@@ -153,7 +162,7 @@ bool isValidSession(const Session& session) {
         if (stage.partial[0] > 100 || stage.partial[1] > 100 || stage.noiseVolume > 100 || stage.noiseType > 3) {
             return false;
         }
-        if (!stageVoiceOk(stage)) return false;
+        if (!stageVoiceOk(stage) || !stageBreathOk(stage)) return false;
         // A start makes sense only where the stage names an end.
         if (stage.fromPrimaryHz != 0.0f && stage.primaryHz == 0.0f) return false;
         if (stage.fromBeatHz != 0.0f && stage.beatHz == 0.0f) return false;
@@ -179,6 +188,7 @@ bool SessionRunner::start(const Session& session, float currentPrimaryHz, float 
     _flags = 0;
     _noiseType = 0;
     _voicePending = false;
+    _breathPending = false;
     _elapsedMs = 0;
     _fadeElapsedMs = 0;
     _gain = 1.0f;
@@ -200,6 +210,7 @@ void SessionRunner::enterStage(uint8_t index) {
     _flags = stage.flags;
     if ((stage.flags & kStageSetsNoise) != 0) _noiseType = stage.noiseType;
     if ((stage.flags & kStageSetsVoice) != 0) _voicePending = true;
+    if ((stage.flags & kStageSetsBreath) != 0) _breathPending = true;
     if (stage.sweep == Sweep::Hold) {
         if ((stage.flags & kStageSetsPartials) != 0) {
             _layerNow[0] = stage.partial[0];

@@ -71,6 +71,11 @@ uint32_t sessionTickMs = 0;
 // descent, or a user session read from the card. It is the one the serial
 // commands (and later the editor) work on.
 rc::Session customSession = {};
+rc::Sequence sequence = rc::defaultSequence();  // the sequence being worked on
+rc::BreathPacer breath;
+uint8_t breathDepth = 0;                 // percent of audio modulation; 0 = the pacer is seen only
+uint32_t breathTickMs = 0;
+bool breathFromSession = false;          // a session stage started the pacer: it stops with the session
 char runningName[20] = "";    // name of the session that is running
 // Golden partials, percent; not stored: they are off at start.
 uint8_t partialPercent[2] = {0, 0};
@@ -384,6 +389,29 @@ void runAudioBenchmark() {
                   static_cast<unsigned long>((total / 1000) % 10), static_cast<unsigned long>(worst));
 }
 
+// Starts the breathing pacer, or stops it when the pattern is all zero.
+void setBreath(const rc::BreathPattern& pattern, uint8_t depth) {
+    breathDepth = depth > rc::kBreathDepthMax ? rc::kBreathDepthMax : depth;
+    if (pattern.inhaleDs == 0 || !breath.start(pattern)) {
+        breath.stop();
+        breathDepth = 0;
+    }
+    breathTickMs = millis();
+    audio.setBreathGain(rc::breathGain(breath.level(), breathDepth));
+}
+
+// Advances the pacer and, when the modulation is on, hands its level to the
+// audio engine. Called from loop() whatever screen is shown.
+void tickBreath() {
+    if (!breath.running()) return;
+    const uint32_t now = millis();
+    breath.advance(now - breathTickMs);
+    breathTickMs = now;
+    // The engine ramps the gain, so the pacer starting or stopping in the
+    // middle of a sound is a short glide, not a step.
+    if (breathDepth != 0) audio.setBreathGain(rc::breathGain(breath.level(), breathDepth));
+}
+
 // Advances the running session and applies its values. Called from loop()
 // whatever screen is shown (RES-SESS-005).
 void tickSession() {
@@ -412,6 +440,10 @@ void tickSession() {
             audio.setNoise(noiseType, noiseVolume);
         }
     }
+    if (session.takeBreathChange()) {
+        setBreath(session.stageBreath(), session.stageBreathDepth());
+        breathFromSession = breath.running();
+    }
     // A stage that names a recording starts it; one that names none stops
     // what plays. The player fades the old one out before the new comes in.
     if (session.takeVoiceChange()) {
@@ -437,6 +469,8 @@ void tickSession() {
         // Everything stops, then the level is restored for the next start.
         setAudio(false);
         if (player::state() == player::State::Playing) player::pause();
+        if (breathFromSession) setBreath({0, 0, 0, 0}, 0);
+        breathFromSession = false;
         session.reset();
         delay(250);  // let the engine reach silence before the level returns
         audio.setSessionGain(1.0f);
@@ -716,6 +750,101 @@ void runCommand(char* line) {
             sessionstore::name(slot, name, sizeof(name));
             Serial.printf("USESSION slot %u: %s\n", static_cast<unsigned>(slot), name);
         }
+    } else if (strcmp(line, "breath") == 0) {
+        static const char* const names[] = {"off", "inhale", "hold in", "exhale", "hold out"};
+        const rc::BreathPattern& p = breath.pattern();
+        Serial.printf("BREATH %s, %u.%u s left, level %.2f, %lu breath(s), pattern %u/%u/%u/%u ds, depth %u %%\n",
+                      names[static_cast<uint8_t>(breath.phase())], breath.phaseLeftDs() / 10u, breath.phaseLeftDs() % 10u,
+                      static_cast<double>(breath.level()), static_cast<unsigned long>(breath.breaths()), p.inhaleDs,
+                      p.holdInDs, p.exhaleDs, p.holdOutDs, static_cast<unsigned>(breathDepth));
+    } else if (strcmp(line, "breath off") == 0) {
+        setBreath({0, 0, 0, 0}, 0);
+    } else if (strncmp(line, "breath ", 7) == 0) {
+        // breath <inhale s> <hold s> <exhale s> <hold s> [depth percent]
+        float in = 0, holdIn = 0, out = 0, holdOut = 0;
+        int depth = 0;
+        if (sscanf(line + 7, "%f %f %f %f %d", &in, &holdIn, &out, &holdOut, &depth) >= 4 && in >= 0 && in <= 25 &&
+            holdIn >= 0 && holdIn <= 25 && out >= 0 && out <= 25 && holdOut >= 0 && holdOut <= 25) {
+            const rc::BreathPattern pattern = {static_cast<uint8_t>(in * 10 + 0.5f), static_cast<uint8_t>(holdIn * 10 + 0.5f),
+                                               static_cast<uint8_t>(out * 10 + 0.5f), static_cast<uint8_t>(holdOut * 10 + 0.5f)};
+            if (rc::isValidBreath(pattern)) setBreath(pattern, static_cast<uint8_t>(clampPercent(depth)));
+            breathFromSession = false;
+            Serial.printf("BREATH %s\n", rc::isValidBreath(pattern) ? "started" : "REFUSED");
+        }
+    } else if (strncmp(line, "usession breath ", 16) == 0) {
+        // usession breath <stage> <inhale ds> <hold ds> <exhale ds> <hold ds> <depth>: all zero = the stage stops the pacer
+        int stage = 0, v[5] = {0, 0, 0, 0, 0};
+        if (sscanf(line + 16, "%d %d %d %d %d %d", &stage, &v[0], &v[1], &v[2], &v[3], &v[4]) == 6 && stage >= 1 &&
+            stage <= customSession.stageCount) {
+            rc::Session edited = customSession;
+            rc::Stage& target = edited.stages[stage - 1];
+            bool ok = true;
+            for (int value : v) ok = ok && value >= 0 && value <= 255;
+            target.flags |= rc::kStageSetsBreath;
+            target.breath = {static_cast<uint8_t>(v[0]), static_cast<uint8_t>(v[1]), static_cast<uint8_t>(v[2]),
+                             static_cast<uint8_t>(v[3])};
+            target.breathDepth = static_cast<uint8_t>(v[4]);
+            ok = ok && rc::isValidSession(edited);
+            if (ok) customSession = edited;
+            Serial.printf("USESSION breath %s\n", ok ? "set" : "REFUSED");
+        }
+    } else if (strcmp(line, "seq") == 0) {
+        // The sequence being worked on as it would be stored, then the slots on the card.
+        char text[rc::kSequenceLineMax];
+        for (uint8_t i = 0; rc::sequenceLine(sequence, i, text, sizeof(text)); ++i) Serial.printf("SEQ | %s\n", text);
+        for (uint8_t slot = 1; slot <= sequencestore::kSlots; ++slot) {
+            if (!sequencestore::used(slot)) continue;
+            char name[20] = "?";
+            sequencestore::name(slot, name, sizeof(name));
+            Serial.printf("SEQ slot %u: %s\n", static_cast<unsigned>(slot), name);
+        }
+    } else if (strcmp(line, "seq default") == 0) {
+        sequence = rc::defaultSequence();
+    } else if (strncmp(line, "seq step ", 9) == 0) {
+        // seq step <n> <Hz> <seconds>: changes step n, or adds it when n is one past the last
+        int n = 0, seconds = 0;
+        float hz = 0;
+        rc::Sequence edited = sequence;
+        bool ok = sscanf(line + 9, "%d %f %d", &n, &hz, &seconds) == 3 && n >= 1 && n <= edited.stepCount + 1 &&
+                  n <= rc::kMaxSequenceSteps && seconds >= 1 && seconds <= 65535;
+        if (ok) {
+            edited.steps[n - 1] = {hz, static_cast<uint16_t>(seconds)};
+            if (n > edited.stepCount) edited.stepCount = static_cast<uint8_t>(n);
+            ok = rc::isValidSequence(edited);
+        }
+        if (ok) sequence = edited;
+        Serial.printf("SEQ step %s\n", ok ? "set" : "REFUSED");
+    } else if (strncmp(line, "seq remove ", 11) == 0) {
+        const int n = atoi(line + 11);
+        const bool ok = n >= 1 && n <= sequence.stepCount && sequence.stepCount > 1;
+        if (ok) {
+            for (int i = n; i < sequence.stepCount; ++i) sequence.steps[i - 1] = sequence.steps[i];
+            --sequence.stepCount;
+        }
+        Serial.printf("SEQ remove %s\n", ok ? "done" : "REFUSED");
+    } else if (strncmp(line, "seq glide ", 10) == 0) {
+        const int seconds = atoi(line + 10);
+        if (seconds >= 0 && seconds <= rc::kSequenceGlideMaxS) sequence.glideS = static_cast<uint16_t>(seconds);
+    } else if (strncmp(line, "seq beat ", 9) == 0) {
+        rc::Sequence edited = sequence;
+        edited.beatHz = static_cast<float>(atof(line + 9));
+        const bool ok = rc::isValidSequence(edited);
+        if (ok) sequence = edited;
+        Serial.printf("SEQ beat %s\n", ok ? "set" : "REFUSED");
+    } else if (strncmp(line, "seq save ", 9) == 0) {
+        const bool ok = sequencestore::save(static_cast<uint8_t>(atoi(line + 9)), sequence);
+        Serial.printf("SEQ save %s %s\n", ok ? "ok" : "FAILED:", sequencestore::error());
+    } else if (strncmp(line, "seq load ", 9) == 0) {
+        const bool ok = sequencestore::load(static_cast<uint8_t>(atoi(line + 9)), sequence);
+        Serial.printf("SEQ load %s %s\n", ok ? "ok" : "FAILED:", sequencestore::error());
+    } else if (strncmp(line, "seq delete ", 11) == 0) {
+        Serial.printf("SEQ delete %s\n", sequencestore::remove(static_cast<uint8_t>(atoi(line + 11))) ? "ok" : "FAILED");
+    } else if (strcmp(line, "seq use") == 0) {
+        // The sequence becomes the custom session, to run, change or store.
+        customSession = rc::sequenceSession(sequence);
+        Serial.printf("SEQ %s: %u stage(s), %lu s\n", rc::isValidSession(customSession) ? "ready as the custom session" : "REFUSED",
+                      static_cast<unsigned>(customSession.stageCount),
+                      static_cast<unsigned long>(rc::sessionSeconds(customSession)));
     } else if (strncmp(line, "usession voice ", 15) == 0) {
         // usession voice <stage> <percent> [<path below the sound library>]: no path = the stage stops playback
         int stage = 0, percent = 0, used = 0;
@@ -840,7 +969,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | usession | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | breath | breath <in s> <hold s> <out s> <hold s> [depth] | breath off | seq | seq default | seq step <n> <Hz> <s> | seq remove <n> | seq glide <s> | seq beat <Hz> | seq save|load|delete <slot> | seq use | usession | usession breath <stage> <in ds> <hold ds> <out ds> <hold ds> <depth> | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 
@@ -1058,6 +1187,7 @@ void loop() {
         storeUserValues();
     }
     tickSession();
+    tickBreath();
     // The next track of the folder follows when one has played to its end.
     if (player::takeEnded()) {
         char next[sdcard::kNameLength];

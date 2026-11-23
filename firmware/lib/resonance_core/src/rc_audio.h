@@ -67,6 +67,11 @@ public:
     // updated a few times a second without steps.
     void setSessionGain(float gain);
 
+    // Level of tone, partials and noise - not of the recording - as set by
+    // the breathing pacer's modulation (RES-SESS-011): 1 normally. Ramped
+    // like the session level; brought into 0.2..1.
+    void setBreathGain(float gain);
+
     // The recording: volume in percent (the Voice layer's level), and
     // whether it is being played. While not playing the ring is not read, so
     // a paused track keeps its place. Both changes are faded; playback comes
@@ -111,6 +116,7 @@ private:
 
     std::atomic<float> _master;
     std::atomic<float> _sessionGain;
+    std::atomic<float> _breathGain{1.0f};
     // A gain crosses as value, time and a version bumped after both.
     std::atomic<float> _bgGain;
     std::atomic<float> _bgSeconds;
@@ -129,6 +135,7 @@ private:
     // Owned by render().
     Ramp _masterRamp;
     Ramp _sessionRamp;
+    Ramp _breathRamp;
     Ramp _bgRamp;
     Ramp _bgGate;
     Ramp _noiseRamp;

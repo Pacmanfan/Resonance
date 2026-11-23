@@ -31,6 +31,7 @@ const char* const kTree[] = {
     "/RESONANCE/PLAYLISTS",
     "/RESONANCE/PRESETS",
     "/RESONANCE/SESSIONS",
+    "/RESONANCE/SEQUENCE",
     "/RESONANCE/CONFIG",
 };
 
