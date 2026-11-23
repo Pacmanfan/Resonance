@@ -630,6 +630,7 @@ void Ui::press(int16_t x, int16_t y) {
 void Ui::describe(Print& out) {
     out.printf("UI tab %u sub %u, %u button(s)\n", static_cast<unsigned>(_tab), static_cast<unsigned>(_sub),
                static_cast<unsigned>(_buttonCount));
+    describeTitle(out);
     for (uint8_t i = 0; i < _buttonCount; ++i) {
         const Button& b = _buttons[i];
         _lcd.setFont(kFontText);

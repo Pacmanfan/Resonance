@@ -433,7 +433,8 @@ bar that does not move or cover anything else (brief §3.C, §3.D, §4).
 
 ### RES-GUI-007 — Help, and text that stays on the screen
 
-Every screen SHALL show a "?" at the top right that opens a help topic for
+Every screen SHALL show a "?" at the top right, drawn as a button and clear
+of the title, that opens a help topic for
 that screen, in pages, from which a list of all topics can be reached; the
 first topic SHALL say what can sound, on which screen each sound is
 controlled, and how each is stopped. Help texts SHALL be wrapped to the

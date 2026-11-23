@@ -18,7 +18,7 @@ and — as a direction of research that is **not built yet** — a platform for
 experiments with physical randomness ("Mindfield"). No effect on health or
 mind is claimed for any frequency, preset or setting.
 
-Firmware 0.13.0 · [GPL-3.0-or-later](LICENSE) · [Changelog](CHANGELOG.md)
+Firmware 0.13.1 · [GPL-3.0-or-later](LICENSE) · [Changelog](CHANGELOG.md)
 
 ## What it does today
 

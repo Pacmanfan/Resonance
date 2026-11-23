@@ -255,7 +255,7 @@ built. State by phase:
 | 6 | Phase, inversion, golden partials, sweeps | **Built earlier** (0.9.0, WORK-000038); not heard by anyone |
 | 7 | Sessions, mixer, guided audio, breathing, sequences | **Built earlier** (0.9.1–0.9.4, 0.9.6) |
 | 8 | Resonance Lab | **Built earlier** (0.9.5) |
-| 9 | Integration: Mindfield with audio, SD and display together; memory profile; long runs | **Partly.** Collection with pictures at 1000 samples/s: no lost sample, heap 80 kB at the lowest. A ten-minute run is recorded below. **Not done: anything with a Bluetooth headset connected** - the memory table of the directive's section 42 for MP3 with Mindfield, and stream statistics while collecting |
+| 9 | Integration: Mindfield with audio, SD and display together; memory profile; long runs | **Partly.** Collection with pictures at 1000 samples/s: no lost sample, heap 80 kB at the lowest. A ten-minute run is recorded below. With a headset and an MP3: measured without a picture, see below; long runs with audio not done |
 | 10 | Public release | **Done** for 0.10.0; 0.11.0 and 0.12.0 pushed. GitHub Release page and social preview are manual steps for the owner |
 
 Deviations from the directive, and why:
@@ -298,9 +298,23 @@ that state):
 The limit of 16 kB during MP3 playback is kept in every state measured. Two
 recording-layer underruns were counted in the last state while tracks were
 being changed and experiments started and stopped by hand at the same time;
-whether collecting contributed is **not established**. **Still not measured:
+whether collecting contributed is **not established**.
+
 Mindfield at 1000 samples a second together with an MP3, in a controlled
-run.**
+run (2026-11-23, firmware 0.13.0, headset connected, hands off, started over
+the serial port, so no picture was drawn; the tone on, a 320 kbit/s and a
+128 kbit/s test clip following each other every few seconds): two runs of
+three minutes, experiments 24 and 25, each 180 000 of 180 000 samples with
+no gap. Free data memory 27.8 to 36.1 kB, lowest 27.2 kB. Stream at
+44.1 kHz, longest gap between requests 20 ms, no long gap. In the first run
+ten recording-layer underruns (ten requests of 128 frames, about 29 ms of
+the recording missing) were counted between the 40th and the 88th second;
+none in the second run and none in four minutes of the same playback
+without an experiment. Whether collecting caused them is **not
+established**; both write to and read from the card. Experiment 24:
+proportion of ones 0.5000530, z 0.25, largest window 2.64 against a
+corrected threshold of 3.63. **Not measured: the same with a picture on the
+screen.**
 
 A first longer baseline (experiment 16, 2026-11-23, hardware generator,
 1000 samples a second for ten minutes, a session started, no headset):

@@ -278,6 +278,23 @@ void Ui::drawFrame() {
     drawContent();
 }
 
+const char* Ui::headerTitle() {
+    return _btScreen ? "BLUETOOTH" : (_sub != Sub::None ? subTitle() : kTabTitles[static_cast<uint8_t>(_tab)]);
+}
+
+// The header title in the three fonts, for the layout listing: to check it
+// against the room between "<" and the help button.
+void Ui::describeTitle(Print& out) {
+    if (_helpOpen) return;
+    const char* title = headerTitle();
+    _lcd.setFont(kFontTitle);
+    const int big = _lcd.textWidth(title);
+    _lcd.setFont(kFontText);
+    const int mid = _lcd.textWidth(title);
+    _lcd.setFont(kFontSmall);
+    out.printf("UI title '%s' width %d/%d/%d\n", title, big, mid, static_cast<int>(_lcd.textWidth(title)));
+}
+
 void Ui::drawHeader() {
     _lcd.fillRect(0, 0, kScreenW, kHeaderH, kBackground);
     // Every screen's title is centred, in the same font.
@@ -286,18 +303,38 @@ void Ui::drawHeader() {
         const char* helpTitle = _helpList ? "HELP" : rc::helpTitle(_helpTopic);
         _lcd.setFont(kFontTitle);
         centered(helpTitle, kScreenW / 2, kHeaderH / 2 - 1, kTeal, kBackground,
-                 _lcd.textWidth(helpTitle) > kScreenW - 64 ? kFontText : kFontTitle);
+                 _lcd.textWidth(helpTitle) > kScreenW - 64 ? kFontSmall : kFontTitle);
         label("<", 8, 6, kText, kFontTitle);
         _lcd.fillRect(0, kHeaderH - 2, kScreenW, 2, kOutline);
         return;
     }
-    const char* title = _btScreen ? "BLUETOOTH" : (_sub != Sub::None ? subTitle() : kTabTitles[static_cast<uint8_t>(_tab)]);
-    // A title too wide for the space between "<" and "?" is drawn smaller.
+    const char* title = headerTitle();
+    // The help button takes the right end of the header, so a centred title
+    // has kHelpX - kScreenW / 2 pixels to each side; a wider one is drawn
+    // in the small font (the title and text fonts are the same width).
+    constexpr int16_t kHelpW = 22, kHelpH = 26, kHelpX = kScreenW - kHelpW - 3, kHelpY = 3;
+    constexpr int16_t kTitleRoom = 2 * (kHelpX - 4 - kScreenW / 2);
     _lcd.setFont(kFontTitle);
-    centered(title, kScreenW / 2, kHeaderH / 2 - 1, kCyan, kBackground, _lcd.textWidth(title) > kScreenW - 64 ? kFontText : kFontTitle);
+    if (!_btScreen && _sub == Sub::None && _tab == Tab::Frequency) {
+        // The longest tab title: there is no "<" on a tab, so it starts at
+        // the left edge and stays clear of the help button at full size.
+        const bool fits = 6 + _lcd.textWidth(title) <= kHelpX - 3;
+        label(title, 6, fits ? 6 : 10, kCyan, fits ? kFontTitle : kFontSmall);
+    } else {
+        const bool fits = _lcd.textWidth(title) <= kTitleRoom;
+        centered(title, kScreenW / 2, kHeaderH / 2 - 1, kCyan, kBackground, fits ? kFontTitle : kFontSmall);
+        // Still too wide in the smaller font: the layout listing says so.
+        _lcd.setFont(fits ? kFontTitle : kFontSmall);
+        const int16_t half = static_cast<int16_t>(_lcd.textWidth(title) / 2);
+        if (kScreenW / 2 + half > kHelpX - 2) noteOverflow(title, kScreenW / 2 - half, kScreenW / 2 + half);
+    }
     // An advanced screen: the header leads back one level.
     if (_sub != Sub::None) label("<", 8, 6, kText, kFontTitle);
-    label("?", kScreenW - 22, 6, kTeal, kFontTitle);
+    // Help is drawn as a button so that it reads as something to press. The
+    // whole right end of the header answers, not only the outline.
+    _lcd.fillRoundRect(kHelpX, kHelpY, kHelpW, kHelpH, 6, kPanel);
+    _lcd.drawRoundRect(kHelpX, kHelpY, kHelpW, kHelpH, 6, kOutline);
+    centered("?", kHelpX + kHelpW / 2, kHelpY + kHelpH / 2, kTeal, kPanel, kFontTitle);
     _lcd.fillRect(0, kHeaderH - 2, kScreenW, 2, kOutline);
 }
 
@@ -459,9 +496,8 @@ void Ui::drawHomeStatus() {
         label(text, 12, y, kTeal, kFontSmall);
         return;
     }
-    if (_status.sdMounted) snprintf(text, sizeof(text), "SD: %lu MB free", static_cast<unsigned long>(_status.sdFreeMb));
-    else snprintf(text, sizeof(text), "SD: no card");
-    label(text, 12, y, kTextDim, kFontSmall);
+    // A card that is there needs no line; a missing one does.
+    if (!_status.sdMounted) label("SD: no card", 12, y, kTextDim, kFontSmall);
 }
 
 void Ui::drawBluetooth() {

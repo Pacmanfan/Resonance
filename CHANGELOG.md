@@ -8,6 +8,12 @@ Versions before 0.10.0 were never published as releases.
 "Not verified by a person" means: built, host-tested and exercised on the
 board through serial commands, but not yet judged by ear or eye.
 
+## 0.13.1 — 2026-11-23
+
+- The "?" in the header is drawn as a button.
+- FREQUENCY STUDIO is written from the left, clear of the help button.
+- Home no longer shows the free space on the card; "SD: no card" stays.
+
 ## 0.13.0 — 2026-11-23
 
 - Help on the device: "?" at the top right of every screen opens the topic

@@ -1854,5 +1854,5 @@ Intent: implement requested capability per classification; derive requirement, i
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000046, WORK-000047, WORK-000048
+- Work: WORK-000046, WORK-000047, WORK-000048, WORK-000049
 - Evidence: pending

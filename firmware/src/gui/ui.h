@@ -298,6 +298,8 @@ private:
     uint16_t wrapped(const char* text, uint16_t first, uint8_t count, int16_t x, int16_t y, int16_t width, int16_t lineH,
                      uint16_t colour = 0xFFFF);
     void noteOverflow(const char* text, int16_t left, int16_t right);
+    const char* headerTitle();  // of the screen that is open, help aside
+    void describeTitle(Print& out);
     void openSub(Sub sub);
     void backSub();
     const char* subTitle() const;
