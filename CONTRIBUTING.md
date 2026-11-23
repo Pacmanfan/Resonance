@@ -68,7 +68,7 @@ the file you are in.
 
 ## Issues
 
-For a bug, give the firmware version (SET tab, or `report`), what you did,
+For a bug, give the firmware version (ADV tab, or `report`), what you did,
 what happened, what you expected, and the serial output if you can. For
 audio problems say which headset and whether a file was playing.
 

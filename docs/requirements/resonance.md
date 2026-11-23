@@ -419,7 +419,8 @@ effect SHALL be claimed for any frequency (RES-PROC-006).
 
 The layer mixer, the breathing pacer, the session builder and the frequency
 sequences SHALL each have a touchscreen screen, reached from one ADVANCED
-entry on the SET tab (the session builder also from the SESS tab). The five
+entry on the ADV tab (named SET before 0.13.0; the session builder also from
+the SESS tab). The five
 tabs SHALL stay as they are and Home SHALL gain no button. The header of an
 advanced screen SHALL lead back one level, and a tab SHALL leave them
 altogether. The session builder SHALL create a session, add, remove, select,
@@ -429,6 +430,21 @@ its layers, breathing pattern and recording from what is set on the device at
 that moment. An edit SHALL never produce a session or sequence that
 validation refuses. While the pacer runs, Home SHALL show its level as a thin
 bar that does not move or cover anything else (brief §3.C, §3.D, §4).
+
+### RES-GUI-007 — Help, and text that stays on the screen
+
+Every screen SHALL show a "?" at the top right that opens a help topic for
+that screen, in pages, from which a list of all topics can be reached; the
+first topic SHALL say what can sound, on which screen each sound is
+controlled, and how each is stopped. Help texts SHALL be wrapped to the
+width of the screen, SHALL be plain in wording and SHALL state no effect on
+a listener (RES-PROC-006). Home SHALL name on one line what is sounding now
+(tone, gold, noise, file, breath) or say that nothing is. No text SHALL be
+drawn beyond the left or right edge of the screen: a text too wide is cut,
+and the layout listing of the development aids reports it. A result too long
+for one screen SHALL be shown in pages. Closing the result of a Mindfield
+experiment with DONE SHALL stop everything that is sounding: a session, the
+tone, the noise and a sound file.
 
 ### RES-CFG-001 — Presets
 
@@ -629,7 +645,7 @@ SHALL NOT affect the sampling schedule.
 
 ### RES-MIND-006 — Mindfield screens
 
-Mindfield SHALL be reached from one MINDFIELD entry on the SET tab and SHALL
+Mindfield SHALL be reached from one MINDFIELD entry on the ADV tab and SHALL
 have: a home screen; a source screen that shows each source's class, entropy
 state, rate and limitation and lets only an available source be chosen; a
 set-up screen for mode, target, condition, rate, length and picture, closed

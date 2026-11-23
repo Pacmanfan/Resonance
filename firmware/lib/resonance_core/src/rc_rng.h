@@ -89,7 +89,7 @@ public:
     bool suitable() const override { return true; }  // as a control, which is what it is
     uint16_t maxRate() const override { return 1000; }
     bool collect(uint32_t* out, size_t count) override;
-    const char* status() const override { return "Deterministic control, not random"; }
+    const char* status() const override { return "Control source, not random"; }
 
 private:
     uint32_t _seed = 1;
@@ -110,7 +110,7 @@ public:
     bool suitable() const override { return false; }
     uint16_t maxRate() const override { return 0; }
     bool collect(uint32_t*, size_t) override { return false; }
-    const char* status() const override { return "No external generator fitted"; }
+    const char* status() const override { return "not fitted"; }
 };
 
 }  // namespace rc

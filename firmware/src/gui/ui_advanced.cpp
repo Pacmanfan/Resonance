@@ -47,6 +47,8 @@ uint8_t stepped(uint8_t value, int delta, uint8_t lo, uint8_t hi) {
 // ---- navigation ------------------------------------------------------------
 
 void Ui::openSub(Sub sub) {
+    _helpOpen = false;
+    if (sub == Sub::MindResult && _sub != Sub::MindResult) _resultPage = 0;
     _sub = sub;
     _slotArmed = 0xFF;
     if (_adv.stageIndex >= _adv.session.stageCount) _adv.stageIndex = 0;
@@ -92,7 +94,7 @@ const char* Ui::subTitle() const {
 }
 
 void Ui::refreshAdvanced() {
-    if (_sub != Sub::None && !_dimmed) drawContent();
+    if (_sub != Sub::None && !_dimmed && !_helpOpen) drawContent();
 }
 
 void Ui::drawAdvanced() {
@@ -644,6 +646,12 @@ void Ui::describe(Print& out) {
                    wide, narrow, narrow > b.w - 4 ? " TOO WIDE" : (wide > b.w - 4 ? " small" : ""), overlap ? " OVERLAP" : "",
                    inside ? "" : " OUTSIDE");
     }
+    // Text drawn past the left or right edge since the last call.
+    for (uint8_t i = 0; i < _overflowCount && i < 4; ++i) {
+        out.printf("UI text OFF SCREEN (to x=%d): '%s'\n", _overflowEdge[i], _overflow[i]);
+    }
+    if (_overflowCount > 4) out.printf("UI text OFF SCREEN: %u more\n", static_cast<unsigned>(_overflowCount - 4));
+    _overflowCount = 0;
 }
 
 // ---- the breathing bar -----------------------------------------------------
@@ -663,7 +671,7 @@ void Ui::drawBreathBar(int16_t x, int16_t y, int16_t w, int16_t h, int16_t& show
 // A thin bar on Home while the pacer runs (it covers nothing and moves
 // nothing), and a larger one on the breathing screen.
 void Ui::animateBreath() {
-    if (_dimmed) return;
+    if (_dimmed || _helpOpen) return;
     if (_sub == Sub::Breath) drawBreathBar(20, kTop + 222, 200, 8, _breathBar);
     else if (_sub == Sub::None && _tab == Tab::Home && !_btScreen) drawBreathBar(40, kTop + 136, 160, 3, _homeBar);
 }

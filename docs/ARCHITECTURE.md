@@ -30,6 +30,7 @@ compiled and tested on a PC:
 | `rc_presets` | Frequency presets |
 | `rc_settings`, `rc_state` | The settings record and its validation; the advanced settings kept on the card |
 | `rc_paths` | Rules for file names and paths on the card |
+| `rc_help` | The help texts shown on the device |
 | `rc_rng`, `rc_mindstats`, `rc_mindfile`, `rc_mindviz` | Mindfield: the random-source interface and software control source; the statistics engine; the raw-file format and summaries; what each picture shows |
 | `rc_pulse`, `rc_repeat` | Home-screen ring animation timing; tap-and-hold repeat |
 
@@ -112,7 +113,7 @@ none.
 
 ## Interface
 
-Five tabs — HOME, FREQ, SND, SESS, SET — and, behind ADVANCED on SET (and
+Five tabs — HOME, FREQ, SND, SESS, ADV — and, behind ADVANCED on ADV (and
 BUILD on SESS), the layer mixer, breathing, session builder, sequence and
 Resonance Lab screens. Tapping the header of an advanced screen goes back
 one level. Widgets are a few hundred lines of our own on LovyanGFX.
@@ -121,7 +122,7 @@ one level. Widgets are a few hundred lines of our own on LovyanGFX.
 
 `firmware/tests/test_*.cpp`, one program per core module, built by
 `firmware/tools/host_tests.py` with the PC's compiler, `-Werror` and the
-address and undefined-behaviour sanitizers: 19 programs. They check, among
+address and undefined-behaviour sanitizers: 20 programs. They check, among
 other things, that frequency changes are phase-continuous, that every
 optional stage is sample-for-sample neutral when off, and that no malformed
 file or stored record is accepted.

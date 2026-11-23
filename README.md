@@ -18,7 +18,7 @@ and — as a direction of research that is **not built yet** — a platform for
 experiments with physical randomness ("Mindfield"). No effect on health or
 mind is claimed for any frequency, preset or setting.
 
-Firmware 0.12.0 · [GPL-3.0-or-later](LICENSE) · [Changelog](CHANGELOG.md)
+Firmware 0.13.0 · [GPL-3.0-or-later](LICENSE) · [Changelog](CHANGELOG.md)
 
 ## What it does today
 
@@ -38,7 +38,7 @@ has yet judged it by ear or eye.
 | WAV and MP3 playback from microSD, streamed, never loaded whole | Two MP3 files heard by the owner |
 | Bluetooth A2DP output: scan, choose, connect, reconnect | Used by the owner |
 | Seven factory sessions (linear frequency sweeps, holds, end fade), a plain timer, pause / resume / stop | Started by the owner on the device |
-| Touchscreen interface: HOME, FREQ, SND, SESS, SET | Used by the owner |
+| Touchscreen interface: HOME, FREQ, SND, SESS, ADV, with help on every screen ("?" at the top right) | Tabs used by the owner; help not yet seen by a person |
 | Settings kept across restarts; audio never starts by itself | Measured over restarts |
 
 ### Implemented, awaiting verification by a person
@@ -119,7 +119,7 @@ or later, a C++17 compiler on the PC for the host tests (g++ or clang++),
 and the board on a USB-C cable.
 
 ```bash
-# host tests of the portable core (no board needed): 19 programs
+# host tests of the portable core (no board needed): 20 programs
 python3 firmware/tools/host_tests.py
 
 # build the firmware (the first build compiles the ESP-IDF libraries and

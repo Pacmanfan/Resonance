@@ -1829,9 +1829,20 @@ Intent: implement requested capability per classification; derive requirement, i
 - Unknown: exact scope — agent to derive
 - Follow-ups will be appended under ## Follow-up Context
 
+
+### Follow-up 2026-11-23T19:08:54.329159+00:00
+
+> Owner 2026-11-23: the results screen is crowded and text runs beyond the right edge there and on a few other screens - audit and fix, a scroll would help. Add a help page or set of pages so that the user understands how to use all the features.
+
+
+
+### Follow-up 2026-11-23T19:06:39.372926+00:00
+
+> Owner after first use of Mindfield (2026-11-23): it seems confused when a test is stopped early and another chosen; Stop then Done should stop the tones as well; rename the SET tab to ADV; it is unclear which sounds are being generated and from which screens they are controlled.
+
+
 ## Follow-up Context
 
-_No follow-up yet._
 
 ## Processing Notes
 
@@ -1843,5 +1854,5 @@ _No follow-up yet._
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000046, WORK-000047
+- Work: WORK-000046, WORK-000047, WORK-000048
 - Evidence: pending

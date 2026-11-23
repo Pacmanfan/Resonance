@@ -6,13 +6,13 @@ Firmware for the ESP32-2432S032C-I. Architecture:
 
 Current state (0.10.0): the binaural tone, sound files from the card (WAV,
 MP3), noise and timed sessions, mixed, played over Bluetooth to a headset or
-speaker. An advanced menu (SET tab, `ADVANCED`) adds a layer mixer, a
+speaker. An advanced menu (ADV tab, `ADVANCED`) adds a layer mixer, a
 breathing pacer, a session builder, frequency sequences and the Resonance
 Lab; their settings are kept in `/RESONANCE/ADVANCED.TXT` on the card.
 
 There is one operating mode. The device always starts Bluetooth audio,
 playback and sessions; everything is set on the touchscreen (tabs HOME,
-FREQ, SND, SESS, SET) and nothing needs a restart. There is no Wi-Fi and no
+FREQ, SND, SESS, ADV) and nothing needs a restart. There is no Wi-Fi and no
 web interface: both, and the separate Setup mode, were removed in 0.10.0
 (ADR-000205).
 
@@ -176,7 +176,7 @@ the fade.
 
 ## Settings and the advanced menu
 
-The SET tab has the brightness and `ADVANCED`, and shows the firmware
+The ADV tab (called SET before 0.13.0) has the brightness and `ADVANCED`, and shows the firmware
 version and the free memory. `ADVANCED` opens a menu: LAYER MIXER,
 BREATHING, SESSION BUILDER (also reached with `BUILD` on the SESS tab),
 SEQUENCE and RESONANCE LAB. A `<` in the header leads back one level.

@@ -1488,6 +1488,22 @@ void mindEvent(gui::Event event) {
         case gui::Event::MindStop:
             mindfield::stop();  // syncMind() shows the result on the next pass
             break;
+        case gui::Event::MindDone:
+            // The experiment is over and its result has been read: everything
+            // that was sounding stops with it - a session, the tone, the
+            // noise and a sound file.
+            if (session.state() != rc::SessionState::Idle) {
+                session.reset();
+                audio.setSessionGain(1.0f);
+            }
+            if (breathFromSession) setBreath({0, 0, 0, 0}, 0);
+            breathFromSession = false;
+            setAudio(false);
+            noiseType = rc::NoiseType::Off;
+            applyNoise();
+            if (player::state() == player::State::Playing) player::pause();
+            refreshStatus();
+            break;
         case gui::Event::MindHistory:
             mind.historyCount = mindfield::list(mind.historySkip, mind.history, gui::kMindPage, &mind.historyTotal);
             mind.message = "";
@@ -1502,7 +1518,7 @@ void mindEvent(gui::Event event) {
                                            : (mind.history[index].complete ? mind.history[index].reason : rc::MindEnd::Completed);
                 showMindResult(openedHeader, openedSummary, reason, 0, true, intact ? "" : "Raw file interrupted or changed");
             } else {
-                mind.message = "No raw file for this experiment";
+                mind.message = "No raw file for this run";
                 screen().refreshAdvanced();
             }
             break;
@@ -1519,7 +1535,7 @@ void mindEvent(gui::Event event) {
             break;
         case gui::Event::MindRecover: {
             static char text[40];
-            snprintf(text, sizeof(text), "%u interrupted run(s) summarised", static_cast<unsigned>(mindfield::recover()));
+            snprintf(text, sizeof(text), "Recovered %u cut-off run(s)", static_cast<unsigned>(mindfield::recover()));
             mind.historyCount = mindfield::list(mind.historySkip, mind.history, gui::kMindPage, &mind.historyTotal);
             mind.message = text;
             screen().refreshAdvanced();
@@ -1528,7 +1544,7 @@ void mindEvent(gui::Event event) {
         case gui::Event::MindExport: {
             static char text[40];
             uint8_t rows = 0;
-            if (mindfield::exportCsv(&rows)) snprintf(text, sizeof(text), "%u row(s) in EXPORTS/SUMMARY.CSV", static_cast<unsigned>(rows));
+            if (mindfield::exportCsv(&rows)) snprintf(text, sizeof(text), "Wrote %u rows: SUMMARY.CSV", static_cast<unsigned>(rows));
             else snprintf(text, sizeof(text), "Could not write the table");
             mind.message = text;
             screen().refreshAdvanced();

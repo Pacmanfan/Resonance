@@ -221,7 +221,7 @@ since the device started, not the date.
 
 ### Screens and pictures (0.12.0)
 
-SET → MINDFIELD opens the home screen; from there the source, the set-up
+ADV → MINDFIELD opens the home screen; from there the source, the set-up
 (mode, target, condition, rate, length, picture), START, the last result and
 the history. Tapping the title goes back; leaving the active screen does not
 stop the experiment.

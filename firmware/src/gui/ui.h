@@ -8,6 +8,7 @@
 
 #include "display.h"
 #include "rc_edit.h"
+#include "rc_help.h"
 #include "rc_lab.h"
 #include "rc_mindfile.h"
 #include "rc_mindstats.h"
@@ -284,6 +285,19 @@ private:
     void mindStatusLine();
     void vizBegin();
     void vizFrame(bool stepped);
+
+    // Help (RES-GUI-007): a "?" in the header of every screen opens the
+    // topic of that screen; from there every topic can be reached.
+    uint8_t helpTopicHere() const;
+    void openHelp(uint8_t topic);
+    void closeHelp();
+    void drawHelp();
+    void onHelpButton(uint8_t id);
+    // Lays `text` out in lines no wider than `width` and draws lines
+    // `first`.. (at most `count`); returns the number of lines in all.
+    uint16_t wrapped(const char* text, uint16_t first, uint8_t count, int16_t x, int16_t y, int16_t width, int16_t lineH,
+                     uint16_t colour = 0xFFFF);
+    void noteOverflow(const char* text, int16_t left, int16_t right);
     void openSub(Sub sub);
     void backSub();
     const char* subTitle() const;
@@ -368,6 +382,18 @@ private:
     rc::FlowCounts _flow;
     rc::Labyrinth _maze;
     char _mindLabel[kMindPage + 2][30] = {};
+    uint8_t _resultPage = 0;       // page of the Mindfield result
+    bool _helpOpen = false;
+    bool _helpList = false;        // the list of topics, not a topic
+    uint8_t _helpTopic = 0;
+    uint8_t _helpPage = 0;
+    uint8_t _helpPages = 1;
+    char _helpLabel[2][12] = {};
+    // Text that ran past an edge since describe() was last called (a
+    // development aid: the panel cannot be read back).
+    char _overflow[4][32] = {};
+    int16_t _overflowEdge[4] = {};
+    uint8_t _overflowCount = 0;
     char _slotLabel[kSlotListMax][24] = {};
     uint8_t _eventArg = 0;
     char _audioLabel[12] = "";

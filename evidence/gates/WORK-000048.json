@@ -1,0 +1,42 @@
+{
+ "work": "WORK-000048",
+ "runs": [
+  {
+   "at": "2026-11-23T19:21:15.986042+00:00",
+   "verdict": "PASS",
+   "gate_version": 3,
+   "work": "WORK-000048",
+   "request": "2026-11-23-resonance-master-development-d-req-chat-20261123-001.md",
+   "request_id": "REQ-CHAT-20261123-001",
+   "request_fingerprint": "ade9a83ddde325fc828e8d1e5f070e225aeb770fe4f13f25b290f30b43f250e2",
+   "request_code_paths": [
+    "firmware/lib/resonance_core/src/rc_help.cpp",
+    "firmware/lib/resonance_core/src/rc_help.h",
+    "firmware/lib/resonance_core/src/rc_rng.h",
+    "firmware/src/gui/ui.cpp",
+    "firmware/src/gui/ui.h",
+    "firmware/src/gui/ui_advanced.cpp",
+    "firmware/src/gui/ui_help.cpp",
+    "firmware/src/gui/ui_mind.cpp",
+    "firmware/src/main.cpp",
+    "firmware/src/mind/rng_sources.cpp",
+    "firmware/src/version.h",
+    "firmware/tests/test_help.cpp",
+    "firmware/tests/test_rng.cpp"
+   ],
+   "test_runs": [
+    "20261123T141928-1216184"
+   ],
+   "evidence": [
+    "VER-000049"
+   ],
+   "head": "57ab60eeb34e10881faa084fddd70df023e0f9f9",
+   "agent_id": "agent-dev-20261117205050-9ef7a9",
+   "fails": [],
+   "warns": [
+    "4 unowned change(s) in the tree (not this request's; never committed by it)"
+   ],
+   "passes": 13
+  }
+ ]
+}

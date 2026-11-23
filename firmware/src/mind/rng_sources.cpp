@@ -34,7 +34,7 @@ public:
         return true;
     }
     const char* status() const override {
-        return available() ? "Radio on: physical entropy per Espressif" : "Bluetooth is off: no entropy source";
+        return available() ? "Radio on: physical entropy" : "Bluetooth off: no entropy";
     }
 };
 
@@ -54,7 +54,7 @@ class AdcRng final : public rc::RngSource {
 public:
     rc::RngId id() const override { return rc::RngId::InternalAdc; }
     rc::RngClass rngClass() const override { return rc::RngClass::ExperimentalNoise; }
-    const char* name() const override { return "Internal ADC (IO34)"; }
+    const char* name() const override { return "Internal ADC"; }
     bool begin() override {
         probe();
         return _usable;
@@ -94,8 +94,9 @@ private:
         }
         _probed = true;
         _usable = high != low;
-        if (_usable) snprintf(_status, sizeof(_status), "Raw low bit, %u..%u: entropy not established", low, high);
-        else snprintf(_status, sizeof(_status), "Reading fixed at %u: no noise to collect", low);
+        if (_usable) snprintf(_status, sizeof(_status), "Raw low bit: entropy unproven");
+        else snprintf(_status, sizeof(_status), "no signal");
+        (void)low;
     }
     bool _probed = false;
     bool _usable = false;
@@ -112,14 +113,14 @@ class AdcNoiseRng final : public rc::RngSource {
 public:
     rc::RngId id() const override { return rc::RngId::AdcNoise; }
     rc::RngClass rngClass() const override { return rc::RngClass::ExperimentalNoise; }
-    const char* name() const override { return "ADC noise input (IO35)"; }
+    const char* name() const override { return "ADC noise input"; }
     bool begin() override { return false; }
     bool available() const override { return false; }
     bool physicalEntropy() const override { return false; }
     bool suitable() const override { return false; }
     uint16_t maxRate() const override { return 0; }
     bool collect(uint32_t*, size_t) override { return false; }
-    const char* status() const override { return "Needs a noise circuit on P3; none fitted"; }
+    const char* status() const override { return "not fitted"; }
 };
 
 // ---- D: timing jitter --------------------------------------------------------
@@ -135,7 +136,7 @@ class JitterRng final : public rc::RngSource {
 public:
     rc::RngId id() const override { return rc::RngId::TimingJitter; }
     rc::RngClass rngClass() const override { return rc::RngClass::ExperimentalTiming; }
-    const char* name() const override { return "Timing jitter (RC/crystal)"; }
+    const char* name() const override { return "Timing jitter"; }
     bool begin() override { return true; }
     bool available() const override { return true; }
     bool physicalEntropy() const override { return false; }
@@ -154,7 +155,7 @@ public:
         }
         return true;
     }
-    const char* status() const override { return "Experimental: bits correlated, study only"; }
+    const char* status() const override { return "Bits correlated: study only"; }
 };
 
 HardwareRng hardware;

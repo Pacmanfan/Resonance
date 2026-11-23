@@ -8,6 +8,19 @@ Versions before 0.10.0 were never published as releases.
 "Not verified by a person" means: built, host-tested and exercised on the
 board through serial commands, but not yet judged by ear or eye.
 
+## 0.13.0 — 2026-11-23
+
+- Help on the device: "?" at the top right of every screen opens the topic
+  of that screen; 17 topics, the first on what can sound and where each
+  sound is controlled.
+- The SET tab is named ADV.
+- Home names what is sounding now (tone, gold, noise, file, breath).
+- No text can run off the screen any more: anything too wide is cut, and the
+  `ui` development command reports it. Reworded the Mindfield lines that
+  did; the result is on two pages (MORE); the source screen is compact and
+  no longer mentions a noise circuit.
+- DONE on a Mindfield result stops all sound.
+
 ## 0.12.0 — 2026-11-23
 
 - Mindfield screens behind MINDFIELD on the SET tab: source, set-up, active

@@ -167,7 +167,7 @@ planned (ADR-000204).
   (RES-GUI-001), labelled HOME, FREQ, SND, SESS and SET. The tab bar is a
   row of five buttons, each outlined
   and filled; the open one is filled with the highlight colour. Controls that are not built yet say so on the screen.
-- The SET tab has the brightness, an ADVANCED entry (layer mixer,
+- The ADV tab (SET before 0.13.0) has the brightness, an ADVANCED entry (layer mixer,
   breathing, session builder, sequence, Resonance Lab), the firmware
   version and the free memory. Nothing on it needs a restart.
 - The SND tab browses `RESONANCE/AUDIO` on the card: folders and `.wav` /

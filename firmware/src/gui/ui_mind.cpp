@@ -72,43 +72,51 @@ void Ui::drawMindHome() {
     snprintf(_mindLabel[0], sizeof(_mindLabel[0]), "%s", source.name);
     label("Source", 8, kTop + 4, kTextDim, kFontSmall);
     addButton(8, kTop + 20, 224, 30, _mindLabel[0], kAction);
-    label(source.physical ? "Physical entropy: yes" : (source.available ? "Physical entropy: not established" : "Not available"),
+    label(source.physical ? "Physical entropy: yes" : (source.available ? "Entropy: not established" : "Not available"),
           8, kTop + 53, source.physical ? kTeal : kWarning, kFontSmall);
     addButton(8, kTop + 72, 224, 32, "SET UP EXPERIMENT", kAction + 1);
     addButton(8, kTop + 108, 224, 36, busy ? "SHOW EXPERIMENT" : "START", kAction + 2);
-    addButton(8, kTop + 150, 110, 30, "RESULT", kAction + 3);
-    addButton(122, kTop + 150, 110, 30, "HISTORY", kAction + 4);
+    addButton(8, kTop + 148, 110, 28, "RESULT", kAction + 3);
+    addButton(122, kTop + 148, 110, 28, "HISTORY", kAction + 4);
+    // What START will run, on two short lines.
     char text[40], length[16];
-    snprintf(text, sizeof(text), "%s, %s, %u/s, %s", m.directed ? rc::mindTargetName(m.target) : "Open",
-             rc::mindConditionName(m.condition), static_cast<unsigned>(kMindRates[m.rateIndex % kMindRateCount]),
+    snprintf(text, sizeof(text), "%s, %s", m.directed ? rc::mindTargetName(m.target) : "Open", rc::mindConditionName(m.condition));
+    label(text, 8, kTop + 180, kTextDim, kFontSmall);
+    snprintf(text, sizeof(text), "%u a second, %s", static_cast<unsigned>(kMindRates[m.rateIndex % kMindRateCount]),
              lengthName(kMindSeconds[m.secondsIndex % kMindSecondsCount], length, sizeof(length)));
-    label(text, 8, kTop + 186, kTextDim, kFontSmall);
-    if (m.message[0] != '\0') label(m.message, 8, kTop + 202, kWarning, kFontSmall);
-    label("An instrument, not a proof of anything.", 8, kTop + 220, kTextDim, kFontSmall);
+    label(text, 8, kTop + 194, kTextDim, kFontSmall);
+    if (m.message[0] != '\0') {
+        // A message may be longer than a line: it is wrapped over two.
+        wrapped(m.message, 0, 2, 8, kTop + 209, kScreenW - 16, 14, kWarning);
+    }
 }
 
-// One row a source. An unavailable source is text, not a button: it cannot
-// be chosen.
+// One row a source. A source that cannot be used is a line of text, not a
+// button: it cannot be chosen.
 void Ui::drawMindSource() {
     Mind& m = _adv.mind;
+    char text[40];
+    int16_t y = kTop + 4;
     for (uint8_t i = 0; i < kMindSources; ++i) {
         const MindSourceInfo& source = m.sources[i];
-        const int16_t y = static_cast<int16_t>(kTop + 2 + i * 31);
         if (source.available) {
             snprintf(_advLabel[i], sizeof(_advLabel[i]), "%s%s", i == m.source ? "> " : "", source.name);
-            addButton(4, y, 232, 28, _advLabel[i], static_cast<uint8_t>(kAction + i));
+            addButton(8, y, 224, 28, _advLabel[i], static_cast<uint8_t>(kAction + i));
+            y += 33;
         } else {
-            label(source.name, 8, y, kTextDim, kFontSmall);
-            label(source.status, 8, y + 14, kWarning, kFontSmall);
+            snprintf(text, sizeof(text), "%s: %s", source.name, source.status);
+            label(text, 8, y + 2, kTextDim, kFontSmall);
+            y += 19;
         }
     }
     const MindSourceInfo& chosen = m.sources[m.source < kMindSources ? m.source : 0];
-    char text[44];
-    const int16_t y = kTop + 190;
-    snprintf(text, sizeof(text), "%s, up to %u/s", chosen.className, static_cast<unsigned>(chosen.maxRate));
-    label(text, 8, y, kText, kFontSmall);
-    label(chosen.status, 8, y + 15, chosen.physical ? kTeal : kWarning, kFontSmall);
-    label(chosen.suitable ? "Suitable for experiments" : "For studying the source only", 8, y + 30,
+    y = kTop + 176;
+    _lcd.drawFastHLine(8, y - 5, 224, kFaint);
+    label(chosen.name, 8, y, kCyan, kFontSmall);
+    snprintf(text, sizeof(text), "%s, to %u/s", chosen.className, static_cast<unsigned>(chosen.maxRate));
+    label(text, 8, y + 16, kText, kFontSmall);
+    label(chosen.status, 8, y + 32, chosen.physical ? kTeal : kWarning, kFontSmall);
+    label(chosen.suitable ? "Suitable for experiments" : "For studying the source only", 8, y + 48,
           chosen.suitable ? kTextDim : kWarning, kFontSmall);
 }
 
@@ -130,9 +138,9 @@ void Ui::drawMindSetup() {
         if (i == 1 && !m.directed) label("none (open)", 92, y + 8, kTextDim, kFontSmall);
         else addButton(88, y, 146, 28, _advLabel[i], static_cast<uint8_t>(kAction + i));
     }
-    label(scorePicture(m.viz) ? "Picture of the measured score." : "Pattern from samples, not a score.", 8, kTop + 204,
+    label(scorePicture(m.viz) ? "Shows the measured score." : "A pattern, not a score.", 8, kTop + 204,
           kTextDim, kFontSmall);
-    label("Fixed once the experiment starts.", 8, kTop + 220, kTextDim, kFontSmall);
+    label("Fixed when the run starts.", 8, kTop + 220, kTextDim, kFontSmall);
 }
 
 void Ui::drawMindRun() {
@@ -162,65 +170,83 @@ void Ui::mindStatusLine() {
     centered(text, kCx, kTop + kVizH + 8, m.recorded || m.replaying ? kTextDim : kWarning, kBackground, kFontSmall);
 }
 
+// The result, on two pages of short lines: what was found, then the checks
+// and the comparison with the baseline. MORE turns the page.
 void Ui::drawMindResult() {
     const Mind& m = _adv.mind;
     if (m.summary == nullptr || m.header == nullptr) {
         label("No result yet.", 8, kTop + 12, kTextDim, kFontText);
-        addButton(8, kTop + 206, 224, 30, "BACK", kAction);
+        addButton(8, kTop + 208, 224, 30, "BACK", kAction);
         return;
     }
     const rc::MindHeader& h = *m.header;
     const rc::MindSummary& s = *m.summary;
-    char text[48];
-    int16_t y = kTop + 2;
+    char text[40];
+    int16_t y = kTop + 4;
     auto line = [&](uint16_t colour) {
-        label(text, 6, y, colour, kFontSmall);
-        y += 14;
+        label(text, 8, y, colour, kFontSmall);
+        y += 17;
     };
-    snprintf(text, sizeof(text), "#%lu %s", static_cast<unsigned long>(h.experimentId), rc::rngIdName(h.source));
-    line(kCyan);
-    snprintf(text, sizeof(text), "%s", h.physicalEntropy ? "Physical entropy at the start: yes"
-                                          : (h.sourceClass == rc::RngClass::SoftwareControl ? "Software control: not random"
-                                                                                            : "Entropy not established"));
-    line(h.physicalEntropy ? kTeal : kWarning);
-    snprintf(text, sizeof(text), "%s, %s%s%s", rc::mindConditionName(h.condition), rc::mindModeName(h.mode),
-             h.mode == rc::MindMode::Directed ? ": " : "", h.mode == rc::MindMode::Directed ? rc::mindTargetName(h.target) : "");
-    line(kText);
-    snprintf(text, sizeof(text), "%lu samples at %u/s, %lu gap(s)", static_cast<unsigned long>(s.samples),
-             static_cast<unsigned>(h.rate), static_cast<unsigned long>(m.gaps));
-    line(kTextDim);
-    snprintf(text, sizeof(text), "Ones %.5f  expected 0.50000", s.proportion);
-    line(kText);
-    snprintf(text, sizeof(text), "95%%: %.5f .. %.5f", s.ciLow, s.ciHigh);
-    line(kTextDim);
-    snprintf(text, sizeof(text), "Score z %+.2f   p %.3f", s.z, s.pTwoSided);
-    line(kText);
-    if (h.mode == rc::MindMode::Directed) {
-        snprintf(text, sizeof(text), "To target %+.2f   p %.3f", s.directedZ, s.pDirected);
+    if (_resultPage == 0) {
+        snprintf(text, sizeof(text), "#%lu %s", static_cast<unsigned long>(h.experimentId), rc::rngIdName(h.source));
+        line(kCyan);
+        snprintf(text, sizeof(text), "%s", h.physicalEntropy ? "Physical entropy: yes"
+                                              : (h.sourceClass == rc::RngClass::SoftwareControl ? "Software control, not random"
+                                                                                                : "Entropy not established"));
+        line(h.physicalEntropy ? kTeal : kWarning);
+        if (h.mode == rc::MindMode::Directed) snprintf(text, sizeof(text), "%s, %s", rc::mindConditionName(h.condition),
+                                                       h.target == rc::MindTarget::MoreOnes ? "more ones" : "more zeros");
+        else snprintf(text, sizeof(text), "%s, open", rc::mindConditionName(h.condition));
         line(kText);
-    }
-    snprintf(text, sizeof(text), "Runs %+.1f  bytes %+.1f  lag1 %+.1f", s.runsZ, s.chi2Z, s.autocorrZ[0]);
-    line(kTextDim);
-    snprintf(text, sizeof(text), "%lu windows: max %.2f, limit %.2f", static_cast<unsigned long>(s.windows), s.windowMaxAbsZ,
-             s.windowCritZ);
-    line(kTextDim);
-    snprintf(text, sizeof(text), "Beyond 1.96: %lu (%.0f by chance)", static_cast<unsigned long>(s.windowsBeyond95),
-             0.05 * static_cast<double>(s.windows));
-    line(kTextDim);
-    if (m.baseline.valid) {
-        snprintf(text, sizeof(text), "vs baseline #%lu: z %+.2f p %.3f", static_cast<unsigned long>(m.baselineId),
-                 m.baseline.z, m.baseline.pTwoSided);
+        snprintf(text, sizeof(text), "%lu samples, %u a second", static_cast<unsigned long>(s.samples), static_cast<unsigned>(h.rate));
+        line(kTextDim);
+        snprintf(text, sizeof(text), "Ones %.5f", s.proportion);
         line(kText);
+        snprintf(text, sizeof(text), "Chance expects 0.50000");
+        line(kTextDim);
+        snprintf(text, sizeof(text), "95%%: %.5f to %.5f", s.ciLow, s.ciHigh);
+        line(kTextDim);
+        snprintf(text, sizeof(text), "z %+.2f   p %.3f", s.z, s.pTwoSided);
+        line(kText);
+        if (h.mode == rc::MindMode::Directed) {
+            snprintf(text, sizeof(text), "To target %+.2f   p %.3f", s.directedZ, s.pDirected);
+            line(kText);
+        }
+        snprintf(text, sizeof(text), "%s, %s", rc::mindEndName(m.reason), m.recorded ? "on the card" : "NOT recorded");
+        line(m.recorded ? kTextDim : kWarning);
+        if (m.message[0] != '\0') wrapped(m.message, 0, 2, 8, y, kScreenW - 16, 14, kWarning);
     } else {
-        snprintf(text, sizeof(text), "No baseline from this source yet");
-        line(kWarning);
+        snprintf(text, sizeof(text), "Checks on the numbers (z)");
+        line(kCyan);
+        snprintf(text, sizeof(text), "Runs %+.1f   Bytes %+.1f", s.runsZ, s.chi2Z);
+        line(kText);
+        snprintf(text, sizeof(text), "Lag 1 %+.1f   Lag 2 %+.1f", s.autocorrZ[0], s.autocorrZ[1]);
+        line(kText);
+        snprintf(text, sizeof(text), "%lu windows, %lu gap(s)", static_cast<unsigned long>(s.windows), static_cast<unsigned long>(m.gaps));
+        line(kCyan);
+        snprintf(text, sizeof(text), "Largest %.2f, limit %.2f", s.windowMaxAbsZ, s.windowCritZ);
+        line(kText);
+        snprintf(text, sizeof(text), "Past 1.96: %lu, chance %.0f", static_cast<unsigned long>(s.windowsBeyond95),
+                 0.05 * static_cast<double>(s.windows));
+        line(kText);
+        if (m.baseline.valid) {
+            snprintf(text, sizeof(text), "Against baseline #%lu", static_cast<unsigned long>(m.baselineId));
+            line(kCyan);
+            snprintf(text, sizeof(text), "z %+.2f   p %.3f", m.baseline.z, m.baseline.pTwoSided);
+            line(kText);
+        } else {
+            snprintf(text, sizeof(text), "No baseline from this");
+            line(kWarning);
+            snprintf(text, sizeof(text), "source on the card yet");
+            line(kWarning);
+        }
+        snprintf(text, sizeof(text), "Chance gives such scores.");
+        line(kTextDim);
     }
-    snprintf(text, sizeof(text), "%s%s%s", rc::mindEndName(m.reason), m.recorded ? ", on the card" : ", NOT recorded",
-             m.message[0] ? "" : "");
-    line(m.recorded ? kTextDim : kWarning);
-    label("Chance alone gives scores like these.", 6, y, kTextDim, kFontSmall);
-    addButton(8, kTop + 208, 108, 30, "DONE", kAction);
-    if (m.recorded) addButton(124, kTop + 208, 108, 30, "REPLAY", kAction + 1);
+    addButton(8, kTop + 208, 70, 30, "DONE", kAction);
+    snprintf(_advLabel[0], sizeof(_advLabel[0]), "MORE %u/2", static_cast<unsigned>(_resultPage + 1));
+    addButton(82, kTop + 208, 84, 30, _advLabel[0], kAction + 2);
+    if (m.recorded) addButton(170, kTop + 208, 62, 30, "REPLAY", kAction + 1);
 }
 
 void Ui::drawMindHistory() {
@@ -241,7 +267,7 @@ void Ui::drawMindHistory() {
     else snprintf(text, sizeof(text), "%u to %u of %u, newest first", static_cast<unsigned>(m.historySkip + 1),
                   static_cast<unsigned>(m.historySkip + m.historyCount), static_cast<unsigned>(m.historyTotal));
     label(text, 8, kTop + 142, kTextDim, kFontSmall);
-    if (m.message[0] != '\0') label(m.message, 8, kTop + 157, kWarning, kFontSmall);
+    if (m.message[0] != '\0') label(m.message, 8, kTop + 157, kWarning, kFontSmall);  // short by rule: one line
     addButton(8, kTop + 174, 108, 28, "NEWER", kAction + 4);
     addButton(124, kTop + 174, 108, 28, "OLDER", kAction + 5);
     addButton(8, kTop + 208, 108, 28, "EXPORT", kAction + 6);
@@ -306,6 +332,9 @@ void Ui::onMindButton(uint8_t id) {
                 openSub(Sub::Mind);
             } else if (n == 1 && m.recorded) {
                 _pending = Event::MindReplay;
+            } else if (n == 2) {
+                _resultPage = static_cast<uint8_t>((_resultPage + 1) % 2);
+                drawContent();
             }
             return;
         case Sub::MindHistory:
@@ -388,7 +417,7 @@ void Ui::vizBegin() {
         case rc::MindViz::Tree:
         case rc::MindViz::Mandala:
         case rc::MindViz::Lotus:
-            label("Pattern from samples - not a score", 8, kTop + 2, kTextDim, kFontSmall);
+            label("A pattern, not a score", 8, kTop + 2, kTextDim, kFontSmall);
             break;
         default:
             break;
@@ -654,7 +683,7 @@ void Ui::vizFrame(bool stepped) {
 void Ui::animateMind() {
     // Also while the backlight is dimmed: a pattern picture must take every
     // window, or it would not be the picture a replay gives.
-    if (_sub != Sub::MindRun) return;
+    if (_sub != Sub::MindRun || _helpOpen) return;
     const uint32_t now = millis();
     const bool newWindow = _adv.mind.input.windows != _vizWindows;
     if (now - _vizFrameMs < 80 && !newWindow) return;

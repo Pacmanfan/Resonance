@@ -12,7 +12,7 @@ namespace {
 
 using namespace theme;
 
-const char* const kTabNames[] = {"HOME", "FREQ", "SND", "SESS", "SET"};
+const char* const kTabNames[] = {"HOME", "FREQ", "SND", "SESS", "ADV"};
 const char* const kTabTitles[] = {"RESONANCE", "FREQUENCY STUDIO", "SOUND LIBRARY", "SESSIONS", "SETTINGS"};
 constexpr int16_t kTabW = kScreenW / 5;
 
@@ -113,14 +113,14 @@ void Ui::setStatus(const Status& status) {
                               status.radioBlocked != _status.radioBlocked;
     const bool mixerChanged = noiseChanged || status.backgroundVolume != _status.backgroundVolume;
     _status = status;
-    if (_dimmed) return;
+    if (_dimmed || _helpOpen) return;
     if (_sub != Sub::None) {
         // Of the advanced screens only the mixer shows something of the status.
         if (_sub == Sub::Mixer && mixerChanged) redrawValues();
         return;
     }
     if (_tab == Tab::Home && audioChanged) drawContent();
-    else if (_tab == Tab::Home && !_btScreen && (sdChanged || radioChanged)) drawHomeStatus();
+    else if (_tab == Tab::Home && !_btScreen && (sdChanged || radioChanged || noiseChanged || soundChanged)) drawHomeStatus();
     else if (_tab == Tab::Sound && (sdChanged || soundChanged)) drawContent();
     else if (_tab == Tab::Sound && positionChanged) drawSoundStatus();
     else if (_tab == Tab::Frequency && noiseChanged) drawContent();
@@ -202,14 +202,53 @@ void Ui::label(const char* text, int16_t x, int16_t y, uint16_t color, const lgf
     _lcd.setFont(font);
     _lcd.setTextDatum(textdatum_t::top_left);
     _lcd.setTextColor(color, kBackground);
-    _lcd.drawString(text, x, y);
+    const int16_t width = static_cast<int16_t>(_lcd.textWidth(text));
+    if (x + width <= kScreenW) {
+        _lcd.drawString(text, x, y);
+        return;
+    }
+    // Too wide: it is noted for the layout audit, and what is drawn is cut to
+    // what fits, so that nothing ever runs off the screen.
+    noteOverflow(text, x, static_cast<int16_t>(x + width));
+    char cut[64];
+    strlcpy(cut, text, sizeof(cut));
+    for (size_t n = strlen(cut); n > 2 && x + _lcd.textWidth(cut) > kScreenW; --n) {
+        cut[n - 1] = '\0';
+        cut[n - 2] = '.';
+        if (n > 3) cut[n - 3] = '.';
+    }
+    _lcd.drawString(cut, x, y);
+}
+
+void Ui::noteOverflow(const char* text, int16_t left, int16_t right) {
+    if (_overflowCount < 4) {
+        strlcpy(_overflow[_overflowCount], text, sizeof(_overflow[0]));
+        _overflowEdge[_overflowCount] = left < 0 ? left : right;
+    }
+    if (_overflowCount < 255) ++_overflowCount;
 }
 
 void Ui::centered(const char* text, int16_t cx, int16_t cy, uint16_t color, uint16_t bg, const lgfx::IFont* font) {
     _lcd.setFont(font);
     _lcd.setTextDatum(textdatum_t::middle_center);
     _lcd.setTextColor(color, bg);
-    _lcd.drawString(text, cx, cy);
+    const int16_t half = static_cast<int16_t>((_lcd.textWidth(text) + 1) / 2);
+    if (cx - half >= 0 && cx + half <= kScreenW) {
+        _lcd.drawString(text, cx, cy);
+        return;
+    }
+    // Too wide: noted for the audit; drawn in the small font, cut if need be.
+    noteOverflow(text, static_cast<int16_t>(cx - half), static_cast<int16_t>(cx + half));
+    _lcd.setFont(kFontSmall);
+    char cut[64];
+    strlcpy(cut, text, sizeof(cut));
+    const int16_t room = static_cast<int16_t>(2 * (cx < kScreenW - cx ? cx : kScreenW - cx));
+    for (size_t n = strlen(cut); n > 2 && _lcd.textWidth(cut) > room; --n) {
+        cut[n - 1] = '\0';
+        cut[n - 2] = '.';
+        if (n > 3) cut[n - 3] = '.';
+    }
+    _lcd.drawString(cut, cx, cy);
 }
 
 void Ui::addButton(int16_t x, int16_t y, int16_t w, int16_t h, const char* text, uint8_t id) {
@@ -242,10 +281,23 @@ void Ui::drawFrame() {
 void Ui::drawHeader() {
     _lcd.fillRect(0, 0, kScreenW, kHeaderH, kBackground);
     // Every screen's title is centred, in the same font.
+    if (_helpOpen) {
+        // Help: the header leads back to the screen it was opened from.
+        const char* helpTitle = _helpList ? "HELP" : rc::helpTitle(_helpTopic);
+        _lcd.setFont(kFontTitle);
+        centered(helpTitle, kScreenW / 2, kHeaderH / 2 - 1, kTeal, kBackground,
+                 _lcd.textWidth(helpTitle) > kScreenW - 64 ? kFontText : kFontTitle);
+        label("<", 8, 6, kText, kFontTitle);
+        _lcd.fillRect(0, kHeaderH - 2, kScreenW, 2, kOutline);
+        return;
+    }
     const char* title = _btScreen ? "BLUETOOTH" : (_sub != Sub::None ? subTitle() : kTabTitles[static_cast<uint8_t>(_tab)]);
-    centered(title, kScreenW / 2, kHeaderH / 2 - 1, kCyan, kBackground, kFontTitle);
+    // A title too wide for the space between "<" and "?" is drawn smaller.
+    _lcd.setFont(kFontTitle);
+    centered(title, kScreenW / 2, kHeaderH / 2 - 1, kCyan, kBackground, _lcd.textWidth(title) > kScreenW - 64 ? kFontText : kFontTitle);
     // An advanced screen: the header leads back one level.
     if (_sub != Sub::None) label("<", 8, 6, kText, kFontTitle);
+    label("?", kScreenW - 22, 6, kTeal, kFontTitle);
     _lcd.fillRect(0, kHeaderH - 2, kScreenW, 2, kOutline);
 }
 
@@ -271,6 +323,10 @@ void Ui::drawTabBar() {
 void Ui::drawContent() {
     _buttonCount = 0;
     _lcd.fillRect(0, kContentTop, kScreenW, kContentBottom - kContentTop, kBackground);
+    if (_helpOpen) {
+        drawHelp();
+        return;
+    }
     if (_sub != Sub::None) {
         drawAdvanced();
         return;
@@ -326,7 +382,7 @@ void Ui::drawHome() {
     } else {
         snprintf(_btLabel, sizeof(_btLabel), "BT: off");
     }
-    addButton(8, kContentTop + 184, 224, 32, _btLabel, kIdBluetooth);
+    addButton(8, kContentTop + 182, 224, 27, _btLabel, kIdBluetooth);
     drawHomeStatus();
 }
 
@@ -347,7 +403,7 @@ void Ui::drawRing(uint8_t ring, uint8_t offset, bool erase) {
 // ring that moved is erased where it was and drawn where it is, and a ring
 // that did not move is left alone, so most passes draw nothing at all.
 void Ui::animateHome() {
-    if (_dimmed || _tab != Tab::Home || _btScreen || _sub != Sub::None || !_status.audioOn) return;
+    if (_dimmed || _helpOpen || _tab != Tab::Home || _btScreen || _sub != Sub::None || !_status.audioOn) return;
     if (!_pulse.advance(millis(), _settings.beatHz)) return;
     bool open = false;
     for (uint8_t i = 0; i < rc::kPulseRings; ++i) {
@@ -365,9 +421,26 @@ void Ui::animateHome() {
 }
 
 void Ui::drawHomeStatus() {
-    char text[40];
-    const int16_t y = kContentTop + 220;
+    char text[48];
+    const int16_t y = kContentTop + 211;
     _lcd.fillRect(0, y, kScreenW, kContentBottom - y, kBackground);
+    // Second line: every layer that is sounding now, wherever it was switched
+    // on - the tone here, the golden partials and breathing under ADV, the
+    // noise on FREQ, a sound file on SND.
+    {
+        const bool tone = _status.audioOn && _adv.layerOn[0];
+        const bool gold = _status.audioOn && _adv.layerOn[1] && (_adv.partial[0] != 0 || _adv.partial[1] != 0);
+        const bool noise = _status.noiseType != 0 && _adv.layerOn[2];
+        const bool file = _status.playerState == kPlayerPlaying && _adv.layerOn[3];
+        const bool breath = _adv.breathOn && _adv.breathDepth != 0 && (tone || noise);
+        if (tone || gold || noise || file) {
+            snprintf(text, sizeof(text), "On:%s%s%s%s%s", tone ? " tone" : "", gold ? " gold" : "", noise ? " noise" : "",
+                     file ? " file" : "", breath ? " breath" : "");
+            label(text, 12, y + 15, kCyan, kFontSmall);
+        } else {
+            label("Silent", 12, y + 15, kTextDim, kFontSmall);
+        }
+    }
     if (_status.radioBlocked) {
         label("Radio off: power dropped", 12, y, kWarning, kFontSmall);
         return;
@@ -618,8 +691,10 @@ void Ui::drawSettingsValues() {
 // ---- input -----------------------------------------------------------------
 
 void Ui::onPress(int16_t x, int16_t y) {
-    if (y < kHeaderH && _sub != Sub::None) {
-        backSub();
+    if (y < kHeaderH) {
+        if (_helpOpen) closeHelp();
+        else if (x >= kScreenW - 56) openHelp(helpTopicHere());
+        else if (_sub != Sub::None) backSub();
         return;
     }
     if (y >= kContentBottom) {
@@ -659,7 +734,9 @@ bool Ui::repeats(uint8_t id) {
 }
 
 void Ui::onButton(uint8_t id) {
-    if (_sub != Sub::None) {
+    if (_helpOpen) {
+        onHelpButton(id);
+    } else if (_sub != Sub::None) {
         onAdvancedButton(id);
     } else if (id == kIdAdvanced) {
         openSub(Sub::Menu);
@@ -757,7 +834,8 @@ void Ui::onButton(uint8_t id) {
 }
 
 void Ui::selectTab(Tab tab) {
-    if (tab == _tab && !_btScreen && _sub == Sub::None) return;
+    if (tab == _tab && !_btScreen && _sub == Sub::None && !_helpOpen) return;
+    _helpOpen = false;
     _btScreen = false;
     _sub = Sub::None;
     _tab = tab;
