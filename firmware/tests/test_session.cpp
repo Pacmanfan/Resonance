@@ -583,4 +583,82 @@ TEST(ten_stages_fit_and_eleven_do_not) {
     CHECK(!isValidSession(s));
 }
 
+// A stage that names a recording (RES-SESS-010).
+TEST(a_stage_can_name_a_recording_and_reports_it_once) {
+    Session s = {};
+    strcpy(s.name, "guided");
+    s.stageCount = 4;
+    s.stages[0] = {10, 0, 10.0f, Sweep::Hold};
+    s.stages[1] = {10, 0, 8.0f, Sweep::Linear};
+    s.stages[1].flags = kStageSetsVoice;
+    s.stages[1].voiceVolume = 60;
+    strcpy(s.stages[1].voice, "VOICE/Body scan.mp3");
+    s.stages[2] = {10, 0, 6.0f, Sweep::Linear};   // says nothing: playback is left alone
+    s.stages[3] = {10, 0, 6.0f, Sweep::Hold};
+    s.stages[3].flags = kStageSetsVoice;          // names none: stop
+    CHECK(isValidSession(s));
+    SessionRunner r;
+    CHECK(r.start(s, 200.0f, 10.0f, 0));
+    CHECK(!r.takeVoiceChange());
+    r.advance(10000);
+    CHECK(r.stageIndex() == 1);
+    CHECK(r.takeVoiceChange());
+    CHECK(strcmp(r.stageVoice(), "VOICE/Body scan.mp3") == 0);
+    CHECK(r.stageVoiceVolume() == 60);
+    CHECK(!r.takeVoiceChange());   // once
+    r.advance(5000);
+    CHECK(!r.takeVoiceChange());
+    r.advance(5000);
+    CHECK(r.stageIndex() == 2);
+    CHECK(!r.takeVoiceChange());
+    r.advance(10000);
+    CHECK(r.stageIndex() == 3);
+    CHECK(r.takeVoiceChange());
+    CHECK(r.stageVoice()[0] == '\0');
+    // A first stage that names one is reported straight after the start.
+    s.stages[0].flags = kStageSetsVoice;
+    strcpy(s.stages[0].voice, "rain.wav");
+    CHECK(r.start(s, 200.0f, 10.0f, 0));
+    CHECK(r.takeVoiceChange());
+    // And a new start forgets a change nobody took.
+    r.advance(10000);
+    s.stages[0].flags = 0;
+    s.stages[0].voice[0] = '\0';
+    CHECK(r.start(s, 200.0f, 10.0f, 0));
+    CHECK(!r.takeVoiceChange());
+}
+
+TEST(a_recording_name_that_could_leave_the_library_is_refused) {
+    Session s = {};
+    strcpy(s.name, "guided");
+    s.stageCount = 1;
+    s.stages[0] = {60, 0, 0, Sweep::Hold};
+    s.stages[0].flags = kStageSetsVoice;
+    const char* good[] = {"a.mp3", "VOICE/Body scan.MP3", "NATURE/RAIN/soft rain.wav", ""};
+    for (const char* name : good) {
+        strcpy(s.stages[0].voice, name);
+        CHECK(isValidSession(s));
+    }
+    const char* bad[] = {"../secret.mp3", "/RESONANCE/AUDIO/a.mp3", "VOICE//a.mp3", "VOICE/", "VOICE/notes.txt",
+                         "a\\b.mp3", "VOICE/.hidden.mp3", "VOICE/a.mp3/", "VOICE"};
+    for (const char* name : bad) {
+        strcpy(s.stages[0].voice, name);
+        CHECK(!isValidSession(s));
+    }
+    strcpy(s.stages[0].voice, "a.mp3");
+    s.stages[0].voiceVolume = 101;
+    CHECK(!isValidSession(s));
+    s.stages[0].voiceVolume = 50;
+    memset(s.stages[0].voice, 'x', sizeof(s.stages[0].voice));   // no end
+    CHECK(!isValidSession(s));
+    // A name or a level without the flag is a damaged record.
+    strcpy(s.stages[0].voice, "a.mp3");
+    s.stages[0].flags = 0;
+    CHECK(!isValidSession(s));
+    s.stages[0].voice[0] = '\0';
+    CHECK(!isValidSession(s));   // the level of 50 is still there
+    s.stages[0].voiceVolume = 0;
+    CHECK(isValidSession(s));
+}
+
 int main() { return host_test::runAll(); }

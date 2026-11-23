@@ -42,6 +42,10 @@ uint8_t readBuffer[kReadBytes];
 int16_t pieceBuffer[kPieceFrames * 2];
 int16_t outputBuffer[kOutputFrames * 2];
 bool abortTrack = false;  // a new command arrived while a track was being fed
+bool leaving = false;     // the track is fading out to make way for a command
+uint32_t leavingSinceMs = 0;
+volatile float fadeIn = rc::kPlayFadeS;
+volatile float fadeOut = rc::kPlayFadeS;
 int mp3Rate = 0;          // sample rate of the MP3 being decoded
 
 class FileSource : public rc::ByteSource {
@@ -53,6 +57,20 @@ public:
 // A command is waiting: the current track must give way.
 bool commandWaiting() { return uxQueueMessagesWaiting(commands) > 0; }
 
+// A command is waiting: the track goes out over the fade-out time, still
+// being decoded, and gives way once it is no longer heard (RES-PLAY-007).
+// Without an output nothing renders and nothing reports the fade as over, so
+// the wait is bounded by the fade's own length.
+bool mustLeave() {
+    if (!commandWaiting()) return false;
+    if (!leaving) {
+        leaving = true;
+        leavingSinceMs = millis();
+        engine->setBackgroundPlaying(false, fadeOut);
+    }
+    return engine->backgroundIdle() || millis() - leavingSinceMs > static_cast<uint32_t>(fadeOut * 1000.0f) + 300;
+}
+
 // Pushes frames into the ring, waiting while it is full. Returns false when
 // a command arrived instead.
 bool pushFrames(const int16_t* frames, size_t count) {
@@ -61,7 +79,7 @@ bool pushFrames(const int16_t* frames, size_t count) {
         frames += wrote * 2;
         count -= wrote;
         if (count > 0) {
-            if (commandWaiting()) return false;
+            if (mustLeave()) return false;
             vTaskDelay(pdMS_TO_TICKS(5));
         }
     }
@@ -92,17 +110,17 @@ void quietAndFlush() {
 
 // Starts the layer once enough is buffered to ride out a slow card read.
 void startWhenBuffered(bool& started) {
-    if (!started && ring->available() >= ring->capacity() / 2) {
-        engine->setBackgroundPlaying(true);
+    if (!started && !leaving && ring->available() >= ring->capacity() / 2) {
+        engine->setBackgroundPlaying(true, fadeIn);
         started = true;
     }
 }
 
 // Waits until the buffered rest of the track has been heard.
 void drain() {
-    engine->setBackgroundPlaying(true);
+    if (!leaving) engine->setBackgroundPlaying(true);
     engine->setBackgroundEnding();
-    while (ring->available() > 0 && !commandWaiting()) vTaskDelay(pdMS_TO_TICKS(20));
+    while (ring->available() > 0 && !mustLeave()) vTaskDelay(pdMS_TO_TICKS(20));
 }
 
 bool playWav() {
@@ -124,7 +142,7 @@ bool playWav() {
         if (got == 0) break;  // the file is shorter than its header says, or the card is gone
         left -= got;
         const size_t frames = rc::wavToStereo16(readBuffer, got, info, pieceBuffer);
-        if (!pushPiece(pieceBuffer, frames)) return false;
+        if (!pushPiece(pieceBuffer, frames) || mustLeave()) return false;
         startWhenBuffered(started);
     }
     return true;
@@ -169,7 +187,7 @@ bool playMp3() {
         const size_t got = file.read(readBuffer, sizeof(readBuffer));
         if (got == 0) break;
         decoder->write(readBuffer, got);
-        if (abortTrack || commandWaiting()) {
+        if (abortTrack || mustLeave()) {
             complete = false;
             break;
         }
@@ -182,6 +200,7 @@ bool playMp3() {
 
 void playFile(const char* path) {
     quietAndFlush();
+    leaving = false;
     if (file) file.close();
     lastError = "";
     ended = false;
@@ -216,6 +235,7 @@ void taskMain(void*) {
                 break;
             case CommandType::Stop:
                 quietAndFlush();
+                leaving = false;
                 current = State::Stopped;
                 break;
             default:
@@ -228,7 +248,9 @@ void send(CommandType type, const char* path) {
     static Command command;  // built by the interface task only
     command.type = type;
     strlcpy(command.path, path, sizeof(command.path));
-    xQueueSend(commands, &command, pdMS_TO_TICKS(50));
+    // One place in the queue: a newer command replaces one not yet taken,
+    // so that the last thing asked for is what happens after a long fade.
+    xQueueOverwrite(commands, &command);
 }
 
 }  // namespace
@@ -259,6 +281,14 @@ void resume() {
     engine->setBackgroundPlaying(true);
     current = State::Playing;
 }
+
+void setFades(float inS, float outS) {
+    if (inS >= 0.0f) fadeIn = inS > rc::kLayerFadeMaxS ? rc::kLayerFadeMaxS : inS;
+    if (outS >= 0.0f) fadeOut = outS > rc::kLayerFadeMaxS ? rc::kLayerFadeMaxS : outS;
+}
+
+float fadeInS() { return fadeIn; }
+float fadeOutS() { return fadeOut; }
 
 State state() { return current; }
 

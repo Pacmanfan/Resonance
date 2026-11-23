@@ -25,6 +25,9 @@ enum class Sweep : uint8_t {
 // zero for an exponential sweep; otherwise it falls back to a straight line.
 float sweepValue(Sweep sweep, float from, float to, float fraction);
 
+// Room for a stage's recording, with its closing NUL.
+constexpr size_t kStageVoiceLength = 64;
+
 struct Stage {
     uint16_t durationS;  // 0 only in a one-stage session: runs until stopped
     float primaryHz;     // 0 = leave the primary frequency as it is
@@ -48,11 +51,17 @@ struct Stage {
     uint8_t partial[2] = {0, 0};  // golden partials phi and phi squared, percent
     uint8_t noiseType = 0;        // rc::NoiseType
     uint8_t noiseVolume = 0;      // percent
+    // The recording the stage plays (RES-SESS-010): a path below the sound
+    // library, such as "VOICE/Body scan.mp3". Empty with the flag set stops
+    // what is playing.
+    uint8_t voiceVolume = 0;      // percent
+    char voice[kStageVoiceLength] = "";
 };
 
 constexpr uint8_t kStageSetsPartials = 0x01;
 constexpr uint8_t kStageSetsNoise = 0x02;
-constexpr uint8_t kStageKnownFlags = kStageSetsPartials | kStageSetsNoise;
+constexpr uint8_t kStageSetsVoice = 0x04;
+constexpr uint8_t kStageKnownFlags = kStageSetsPartials | kStageSetsNoise | kStageSetsVoice;
 
 // Session::endFadeS when the fade is left to whoever starts the session.
 constexpr uint16_t kFadeDeviceChoice = 0xFFFF;
@@ -171,6 +180,15 @@ public:
     uint8_t partialPercent(uint8_t index) const { return toPercent(_layerNow[index < 2 ? index : 0]); }
     uint8_t noiseVolume() const { return toPercent(_layerNow[2]); }
     uint8_t noiseType() const { return _noiseType; }
+    // True once after a stage that sets the recording has been entered; its
+    // file (empty = stop) and level are then those of stageVoice().
+    bool takeVoiceChange() {
+        const bool pending = _voicePending;
+        _voicePending = false;
+        return pending;
+    }
+    const char* stageVoice() const { return _session.stages[_stage].voice; }
+    uint8_t stageVoiceVolume() const { return _session.stages[_stage].voiceVolume; }
 
     uint8_t stageIndex() const { return _stage; }
     uint8_t stageCount() const { return _session.stageCount; }
@@ -182,6 +200,7 @@ private:
     float _layerNow[3] = {0, 0, 0};
     uint8_t _flags = 0;
     uint8_t _noiseType = 0;
+    bool _voicePending = false;
     void beginFade();
 
     Session _session = {};

@@ -3,6 +3,7 @@
 #include <math.h>
 #include <string.h>
 
+#include "rc_paths.h"
 #include "rc_settings.h"
 
 namespace rc {
@@ -124,6 +125,17 @@ uint32_t sessionSeconds(const Session& session) {
     return total;
 }
 
+// A stage's recording: nothing without the flag; with it, empty or a sound
+// file at a path that cannot leave the sound library.
+static bool stageVoiceOk(const Stage& stage) {
+    if (memchr(stage.voice, '\0', sizeof(stage.voice)) == nullptr || stage.voiceVolume > 100) return false;
+    if ((stage.flags & kStageSetsVoice) == 0) return stage.voice[0] == '\0' && stage.voiceVolume == 0;
+    if (stage.voice[0] == '\0') return true;
+    if (!isSafeRelativePath(stage.voice)) return false;
+    const char* slash = strrchr(stage.voice, '/');
+    return isSoundFileName(slash != nullptr ? slash + 1 : stage.voice);
+}
+
 bool isValidSession(const Session& session) {
     if (session.stageCount < 1 || session.stageCount > kMaxStages) return false;
     if (session.endFadeS != kFadeDeviceChoice && session.endFadeS > kEndFadeMaxS) return false;
@@ -141,6 +153,7 @@ bool isValidSession(const Session& session) {
         if (stage.partial[0] > 100 || stage.partial[1] > 100 || stage.noiseVolume > 100 || stage.noiseType > 3) {
             return false;
         }
+        if (!stageVoiceOk(stage)) return false;
         // A start makes sense only where the stage names an end.
         if (stage.fromPrimaryHz != 0.0f && stage.primaryHz == 0.0f) return false;
         if (stage.fromBeatHz != 0.0f && stage.beatHz == 0.0f) return false;
@@ -165,6 +178,7 @@ bool SessionRunner::start(const Session& session, float currentPrimaryHz, float 
     for (float& v : _layerNow) v = 0.0f;
     _flags = 0;
     _noiseType = 0;
+    _voicePending = false;
     _elapsedMs = 0;
     _fadeElapsedMs = 0;
     _gain = 1.0f;
@@ -185,6 +199,7 @@ void SessionRunner::enterStage(uint8_t index) {
     for (uint8_t i = 0; i < 3; ++i) _layerFrom[i] = _layerNow[i];
     _flags = stage.flags;
     if ((stage.flags & kStageSetsNoise) != 0) _noiseType = stage.noiseType;
+    if ((stage.flags & kStageSetsVoice) != 0) _voicePending = true;
     if (stage.sweep == Sweep::Hold) {
         if ((stage.flags & kStageSetsPartials) != 0) {
             _layerNow[0] = stage.partial[0];

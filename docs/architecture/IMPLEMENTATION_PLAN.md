@@ -149,7 +149,7 @@ as it is; everything here is off until asked for.
 |---|---|---|
 | 1 | DSP foundation: channel phase offset and inversion, golden partials, phase sweep, exponential and custom frequency sweeps (RES-AUDIO-013..015, RES-SESS-006) | **Built (0.9.0, WORK-000038).** Host tests pass; with the new controls at rest the output is bit-identical to 0.8.2. Reached over the serial port only (`tone ...`, `sweep ...`); screens come in phase 5. Not yet heard |
 | 2 | Session engine: transition-then-hold stages, stage layers (partials, noise), session end fade, ten stages, progressive descent, user sessions as text files on the card (RES-SESS-007..009) | **Built (0.9.1, WORK-000039).** Host tests pass. On the board a descent built over the serial port ran through its stages and stopped with its fade; data memory unchanged (95.7 kB free without a connection). **Storing and loading on a card is not verified: the board had no card.** Reached over the serial port only (`descent ...`, `usession ...`) |
-| 3 | Audio layers: layer mixer, guided voice, crossfades | Not started |
+| 3 | Audio layers: four mixer layers (tone, partials, noise, recording) with enable, level and fade; fade-in, fade-out and fade-through of the recording; a session stage that names a recording (RES-AUDIO-016, RES-PLAY-007, RES-SESS-010) | **Built (0.9.2, WORK-000040).** Host tests pass. On the board with a headset connected: recordings heard by the operator, no underrun or long gap in any state, lowest free data memory 22.2 kB (limit 16 kB), table below. One decoder: a recording gives way to the next through a fade-out and a fade-in, not an overlap. Layer settings are not stored across a restart yet (phase 5). User sessions stored and loaded on a card (open from phase 2: now verified). Fades not yet judged by ear. Reached over the serial port only (`layer ...`, `voice fade ...`, `noise ...`, `usession voice ...`) |
 | 4 | Breathing pacer, Solfeggio sequences | Not started |
 | 5 | Screens: session editor, layer mixer, breathing, access to the Lab | Not started |
 | 6 | Resonance Lab: bilateral timing, stereo width, interaural delay, A/B | Not started |
@@ -166,6 +166,23 @@ blocks of 128 frames, no Bluetooth device connected, 2026-11-22):
 
 A block of 128 frames is 2.9 ms of audio. Phase 1 allocates nothing: data
 memory free in Play mode without a connection is 96 kB, as before.
+
+Phase 3 on the board (0.9.2, headset connected over Bluetooth, 2026-11-22;
+`heap` and `bt` over the serial port, each state held for several seconds):
+
+| State | Free data memory | Stream |
+|---|---|---|
+| Idle | 68.5 kB | 44.1 kHz, no underrun |
+| Tone | 64.2 - 68.5 kB | no underrun, no long gap |
+| Noise | 59.8 kB | no underrun, no long gap |
+| MP3 | 26.8 kB (lowest 22.4 kB) | no underrun, no long gap |
+| MP3 + tone | 31.2 kB | no underrun, no long gap |
+| MP3 + tone + both partials + noise | 22.4 - 31.1 kB (lowest 22.2 kB) | no underrun, no long gap, worst render 2.1 ms per request |
+| Three-stage session, two recordings with a 2 s fade-through, then stop | 26.8 - 31.2 kB while a recording plays, 68.5 kB after | no underrun, no long gap |
+
+Render cost without a connection (`bench audio`): tone alone 16.9 %, tone +
+both partials + pink noise 29.0 % of one core (worst block 0.85 ms). The
+mixer allocates nothing.
 
 ## Reported limitations
 

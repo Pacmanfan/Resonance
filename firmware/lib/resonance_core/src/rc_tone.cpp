@@ -66,10 +66,17 @@ void Ramp::moveTo(float target, uint32_t samples) {
     }
     _left = samples;
     _step = (target - _value) / static_cast<float>(samples);
+    _long = samples > kLongRampSamples;
 }
 
 float Ramp::next() {
     if (_left == 0) return _value;
+    if (_long) {
+        // A fade of many seconds: worked out from the samples left, so that
+        // rounding does not add up into a jump on the last sample.
+        _value = _target - _step * static_cast<float>(--_left);
+        return _value;
+    }
     _value += _step;
     if (--_left == 0) _value = _target;  // land exactly, without rounding drift
     return _value;
@@ -113,14 +120,26 @@ float PhaseRamp::inDegrees() const { return static_cast<float>(static_cast<doubl
 ToneEngine::ToneEngine()
     : _primaryHz(kPrimaryDefaultHz), _beatHz(kBeatDefaultHz), _amplitude(0.0f), _enabled(false),
       _phaseTarget{{0.0f}, {0.0f}}, _phaseSeconds(kPhaseGlideS), _phaseVersion(0), _phaseNow{{0.0f}, {0.0f}},
-      _phaseMoving(false), _inverted{{false}, {false}}, _partialGain{{0.0f}, {0.0f}} {
+      _phaseMoving(false), _inverted{{false}, {false}}, _partialGain{{0.0f}, {0.0f}},
+      _mixGain{{1.0f}, {1.0f}}, _mixSeconds{{kVolumeRampS}, {kVolumeRampS}}, _mixVersion{{0}, {0}} {
     sineTable();  // built here, not inside the first render()
     for (uint8_t c = 0; c < 2; ++c) _sign[c].jump(1.0f);
     for (uint8_t p = 0; p < kPartialCount; ++p) _partialLevel[p].jump(0.0f);
+    for (uint8_t m = 0; m < 2; ++m) _mix[m].jump(1.0f);
     _leftHz.jump(kPrimaryDefaultHz);
     _rightHz.jump(kPrimaryDefaultHz + kBeatDefaultHz);
     _level.jump(0.0f);
     _gate.jump(0.0f);
+}
+
+void ToneEngine::setMix(uint8_t index, float gain, float seconds) {
+    if (!(gain >= 0.0f)) gain = 0.0f;  // also catches NaN
+    if (gain > 1.0f) gain = 1.0f;
+    if (!(seconds >= 0.0f)) seconds = 0.0f;
+    if (seconds > 3600.0f) seconds = 3600.0f;
+    _mixGain[index].store(gain, std::memory_order_relaxed);
+    _mixSeconds[index].store(seconds, std::memory_order_relaxed);
+    _mixVersion[index].fetch_add(1, std::memory_order_release);
 }
 
 void ToneEngine::setFrequencies(float primaryHz, float beatHz) {
@@ -182,12 +201,22 @@ bool ToneEngine::render(int16_t* out, size_t frames) {
     for (uint8_t c = 0; c < 2; ++c) {
         _sign[c].moveTo(_inverted[c].load(std::memory_order_relaxed) ? -1.0f : 1.0f, samplesFor(kInvertFadeS));
     }
+    for (uint8_t m = 0; m < 2; ++m) {
+        const uint32_t seen = _mixVersion[m].load(std::memory_order_acquire);
+        if (seen == _mixSeen[m]) continue;
+        _mixSeen[m] = seen;
+        _mix[m].moveTo(_mixGain[m].load(std::memory_order_relaxed),
+                       samplesFor(_mixSeconds[m].load(std::memory_order_relaxed)));
+    }
+    // The partials as a layer: nothing of them is computed while it is shut.
+    const bool partialsOpen = _mix[1].value() > 0.0f || !_mix[1].settled();
     bool partialOn[kPartialCount];
     bool anyPartial = false;
     for (uint8_t p = 0; p < kPartialCount; ++p) {
         const float target = _partialGain[p].load(std::memory_order_relaxed);
         _partialLevel[p].moveTo(target, samplesFor(kVolumeRampS));
-        partialOn[p] = target > 0.0f || _partialLevel[p].value() > 0.0f;
+        if (!partialsOpen) _partialLevel[p].jump(target);  // unheard: no ramp to run
+        partialOn[p] = partialsOpen && (target > 0.0f || _partialLevel[p].value() > 0.0f);
         anyPartial = anyPartial || partialOn[p];
     }
 
@@ -209,6 +238,7 @@ bool ToneEngine::render(int16_t* out, size_t frames) {
             _partialRight[p].reset();
             _partialLevel[p].jump(_partialGain[p].load(std::memory_order_relaxed));
         }
+        for (uint8_t m = 0; m < 2; ++m) _mix[m].jump(_mixGain[m].load(std::memory_order_relaxed));
         _phaseMoving.store(false, std::memory_order_relaxed);
         return true;
     }
@@ -227,7 +257,7 @@ bool ToneEngine::render(int16_t* out, size_t frames) {
         }
     }
     const bool plain = !anyPartial && _phase[0].settled() && _phase[1].settled() && _sign[0].settled() &&
-                       _sign[1].settled();
+                       _sign[1].settled() && _mix[0].settled() && _mix[0].value() == 1.0f && _mix[1].settled();
     const uint32_t restLeft = plain ? _phase[0].next() : 0;
     const uint32_t restRight = plain ? _phase[1].next() : 0;
     const float signLeft = _sign[0].value();
@@ -260,11 +290,13 @@ bool ToneEngine::render(int16_t* out, size_t frames) {
             l = _left.next(restLeft) * signLeft * gain + dither;
             r = _right.next(restRight) * signRight * gain + dither;
         } else {
-            l = _left.next(_phase[0].next());
-            r = _right.next(_phase[1].next());
+            const float fundamental = _mix[0].next();
+            const float partials = _mix[1].next();
+            l = _left.next(_phase[0].next()) * fundamental;
+            r = _right.next(_phase[1].next()) * fundamental;
             for (uint8_t p = 0; p < kPartialCount; ++p) {
                 if (!partialOn[p]) continue;
-                const float level = _partialLevel[p].next();
+                const float level = _partialLevel[p].next() * partials;
                 l += _partialLeft[p].next() * level;
                 r += _partialRight[p].next() * level;
             }

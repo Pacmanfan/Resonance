@@ -23,6 +23,13 @@ void pause();
 void resume();
 void stop();
 
+// How long a track takes to come in when it starts and to go out when it is
+// stopped or replaced, in seconds (RES-PLAY-007). A track being replaced
+// keeps playing while it goes out. Pause and resume are always quick.
+void setFades(float inS, float outS);
+float fadeInS();
+float fadeOutS();
+
 State state();
 
 // True once after a track has played to its end.

@@ -105,7 +105,7 @@ TEST(every_factory_program_and_the_longest_session_fit_their_lines) {
 TEST(a_file_made_by_hand_is_read_leniently) {
     Session s = {};
     CHECK(parse({"# my session", "", "RESONANCE SESSION 1", "  name=Hand made  ", "stage d=60 b=10",
-                 "stage   d=300\tsweep=lin  b=6", "colour=blue", "stage d=30 sweep=hold b=6 breath=2 voice=intro.mp3"},
+                 "stage   d=300\tsweep=lin  b=6", "colour=blue", "stage d=30 sweep=hold b=6 breath=2 colour=green"},
                 s));
     CHECK(strcmp(s.name, "Hand made") == 0);
     CHECK(s.endFadeS == kFadeDeviceChoice);          // not given
@@ -168,6 +168,56 @@ TEST(damaged_and_hostile_files_are_refused) {
     CHECK(parser.line("stage d=10 b=5"));
     CHECK(parser.finish(s));
     CHECK(s.stageCount == 1);
+}
+
+TEST(a_stage_recording_survives_the_text_form_spaces_included) {
+    Session s = everything();
+    s.stages[0].flags = kStageSetsVoice;
+    s.stages[0].voiceVolume = 55;
+    strcpy(s.stages[0].voice, "VOICE/Body scan part 1.mp3");
+    s.stages[2].flags |= kStageSetsVoice;   // names none: stop
+    // The longest line a stage can make still fits.
+    s.stages[1].flags |= kStageSetsVoice;
+    s.stages[1].voiceVolume = 100;
+    s.stages[1].durationS = 65535;
+    s.stages[1].transitionS = 65535;
+    s.stages[1].primaryHz = 1000.0f;
+    s.stages[1].fromPrimaryHz = 999.99f;
+    strcpy(s.stages[1].voice, "VOICE/");
+    memset(s.stages[1].voice + 6, 'a', kStageVoiceLength - 11);
+    strcpy(s.stages[1].voice + kStageVoiceLength - 5, ".mp3");
+    CHECK(isValidSession(s));
+    const auto lines = linesOf(s);
+    CHECK(lines.size() == 6);
+    CHECK(lines[3].find(" vv=55 voice=VOICE/Body scan part 1.mp3") != std::string::npos);
+    CHECK(lines[4].size() < kSessionLineMax - 1);
+    SessionParser parser;
+    parser.begin();
+    for (const auto& line : lines) parser.line(line.c_str());
+    Session back = {};
+    CHECK(parser.finish(back));
+    for (uint8_t i = 0; i < 3; ++i) {
+        CHECK(sameStage(s.stages[i], back.stages[i]));
+        CHECK(back.stages[i].voiceVolume == s.stages[i].voiceVolume);
+        CHECK(strcmp(back.stages[i].voice, s.stages[i].voice) == 0);
+    }
+}
+
+TEST(a_bad_stage_recording_is_refused) {
+    Session out = {};
+    std::string error;
+    CHECK(parse({"RESONANCE SESSION 1", "stage d=60 sweep=hold vv=40 voice=rain.wav"}, out));
+    CHECK(strcmp(out.stages[0].voice, "rain.wav") == 0 && out.stages[0].voiceVolume == 40);
+    CHECK(!parse({"RESONANCE SESSION 1", "stage d=60 sweep=hold vv=40 voice=../../etc/passwd.mp3"}, out));
+    CHECK(!parse({"RESONANCE SESSION 1", "stage d=60 sweep=hold vv=400 voice=rain.wav"}, out, &error));
+    CHECK(error == "bad recording volume");
+    CHECK(!parse({"RESONANCE SESSION 1", "stage d=60 sweep=hold voice=notes.txt"}, out));
+    const std::string longName = "stage d=60 sweep=hold voice=" + std::string(kStageVoiceLength, 'a') + ".mp3";
+    CHECK(!parse({"RESONANCE SESSION 1", longName.c_str()}, out, &error));
+    CHECK(error == "recording name too long");
+    // An empty name stops playback and is valid.
+    CHECK(parse({"RESONANCE SESSION 1", "stage d=60 sweep=hold vv=0 voice="}, out));
+    CHECK((out.stages[0].flags & kStageSetsVoice) != 0 && out.stages[0].voice[0] == '\0');
 }
 
 int main() { return host_test::runAll(); }

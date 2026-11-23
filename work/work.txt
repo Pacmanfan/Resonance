@@ -41,3 +41,4 @@ WORK-000036 | completed | Sound list entries in one font | completed/WORK-000036
 WORK-000037 | completed | Case v4 slim variant for the 5.75 mm cell | completed/WORK-000037-case-v4-slim-variant-for-the-5-75-mm-cel.md | RES-HW-007 | VER-000038
 WORK-000038 | completed | Mindforge phase 1: DSP foundation | completed/WORK-000038-mindforge-phase-1-dsp-foundation.md | RES-AUDIO-013, RES-AUDIO-014, RES-AUDIO-015, RES-SESS-006 | VER-000039
 WORK-000039 | completed | Mindforge phase 2: session engine | completed/WORK-000039-mindforge-phase-2-session-engine.md | RES-SESS-007, RES-SESS-008, RES-SESS-009 | VER-000040
+WORK-000040 | completed | Mindforge phase 3: layer mixer, guided voice, stage recordings | completed/WORK-000040-mindforge-phase-3-layer-mixer-guided-voi.md | RES-AUDIO-016, RES-PLAY-007, RES-SESS-010 | VER-000041

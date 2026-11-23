@@ -441,4 +441,78 @@ TEST(partials_respect_their_limits) {
     CHECK_NEAR(componentAt(audio, 0, 1618.0339887) / componentAt(audio, 0, 1000.0), 0.5, 0.01);
 }
 
+// The two halves of the tone as mixer layers (RES-AUDIO-016).
+TEST(fundamental_and_partials_have_gains_of_their_own) {
+    ToneEngine engine;
+    startAndSettle(engine, 200.0f, 10.0f, 80);
+    engine.setPartial(0, 100);
+    renderSeconds(engine, 0.3);
+    auto audio = renderSeconds(engine, 1.0);
+    const double fundamental = componentAt(audio, 0, 200.0);
+    const double partial = componentAt(audio, 0, 200.0 * kPartialRatio[0]);
+    CHECK(fundamental > 1000.0);
+    CHECK_NEAR(partial / fundamental, kPartialCeiling, 0.01);
+
+    // The fundamental goes; the partial stays exactly as it was.
+    engine.setFundamentalGain(0.0f, 0.2f);
+    renderSeconds(engine, 0.3);
+    audio = renderSeconds(engine, 1.0);
+    // (What is left at 200 Hz is the partial's skirt in a one-second window.)
+    CHECK(componentAt(audio, 0, 200.0) < fundamental * 0.005);
+    CHECK_NEAR(componentAt(audio, 0, 200.0 * kPartialRatio[0]), partial, partial * 0.005);
+    // And the pair still beats at the beat: the right ear's partial is 10 Hz above.
+    CHECK_NEAR(componentAt(audio, 1, 200.0 * kPartialRatio[0] + 10.0), partial, partial * 0.005);
+
+    // The other way round.
+    engine.setFundamentalGain(1.0f, 0.2f);
+    engine.setPartialsGain(0.0f, 0.2f);
+    renderSeconds(engine, 0.3);
+    audio = renderSeconds(engine, 1.0);
+    CHECK_NEAR(componentAt(audio, 0, 200.0), fundamental, fundamental * 0.005);
+    CHECK(componentAt(audio, 0, 200.0 * kPartialRatio[0]) < partial * 0.01);
+
+    // Half a gain is half the amplitude.
+    engine.setPartialsGain(0.5f, 0.1f);
+    renderSeconds(engine, 0.3);
+    audio = renderSeconds(engine, 1.0);
+    CHECK_NEAR(componentAt(audio, 0, 200.0 * kPartialRatio[0]), partial * 0.5, partial * 0.005);
+}
+
+TEST(a_layer_gain_moves_over_its_time_without_a_step) {
+    ToneEngine reference, faded;
+    startAndSettle(reference, 200.0f, 10.0f, 100);
+    startAndSettle(faded, 200.0f, 10.0f, 100);
+    const int usual = largestStep(renderSeconds(reference, 0.5), 0);
+    faded.setFundamentalGain(0.0f, 1.0f);
+    const auto first = renderSeconds(faded, 0.5);
+    const auto second = renderSeconds(faded, 0.5);
+    CHECK(largestStep(first, 0) <= usual + 2);
+    CHECK(largestStep(second, 0) <= usual + 2);
+    // Half way through the fade the level is about half.
+    int peakFirst = 0, peakSecond = 0;
+    for (size_t i = first.size() - 2 * 441; i < first.size(); i += 2) peakFirst = abs(first[i]) > peakFirst ? abs(first[i]) : peakFirst;
+    for (size_t i = 0; i < 2 * 441; i += 2) peakSecond = abs(second[i]) > peakSecond ? abs(second[i]) : peakSecond;
+    CHECK_NEAR(peakFirst, 0.5 * kToneCeiling * 32767.0, 0.02 * 32767.0);
+    CHECK_NEAR(peakSecond, 0.5 * kToneCeiling * 32767.0, 0.02 * 32767.0);
+    int tail = 0;
+    const auto after = renderSeconds(faded, 0.2);
+    for (size_t i = 0; i < after.size(); i += 2) tail = abs(after[i]) > tail ? abs(after[i]) : tail;
+    CHECK(tail <= 1);  // dither only
+
+    // Bad values: not finite is silence, above one is one.
+    faded.setFundamentalGain(NAN, 0.0f);
+    faded.setPartialsGain(7.0f, -3.0f);
+    renderSeconds(faded, 0.1);
+    faded.setFundamentalGain(5.0f, 0.0f);
+    renderSeconds(faded, 0.1);
+    const auto back = renderSeconds(faded, 0.5);
+    const auto plain = renderSeconds(reference, 0.5);
+    int peakBack = 0, peakPlain = 0;
+    for (size_t i = 0; i < back.size(); i += 2) {
+        peakBack = abs(back[i]) > peakBack ? abs(back[i]) : peakBack;
+        peakPlain = abs(plain[i]) > peakPlain ? abs(plain[i]) : peakPlain;
+    }
+    CHECK(abs(peakBack - peakPlain) <= 2);
+}
+
 int main() { return host_test::runAll(); }

@@ -70,6 +70,10 @@ private:
 // samples.
 class Ramp {
 public:
+    // Ramps up to this length add their step sample by sample, as they
+    // always did; longer ones (layer and recording fades) are computed from
+    // the samples left.
+    static constexpr uint32_t kLongRampSamples = 22050;
     void jump(float value) { _value = _target = value; _step = 0.0f; _left = 0; }
     void moveTo(float target, uint32_t samples);
     float next();
@@ -81,6 +85,7 @@ private:
     float _target = 0.0f;
     float _step = 0.0f;
     uint32_t _left = 0;
+    bool _long = false;
 };
 
 // A phase offset that moves to its target in a straight line. Kept as an
@@ -138,11 +143,20 @@ public:
     // kPartialCeiling; 0 switches it off and costs nothing in render().
     void setPartial(uint8_t index, uint8_t percent);
 
+    // Gains of the two halves of the tone as mixer layers (RES-AUDIO-016):
+    // the fundamental, and the partials as a group. 0..1, both 1 after
+    // construction; a change is reached in `seconds`. They multiply the
+    // volume and the partials' own levels and do not touch each other.
+    void setFundamentalGain(float gain, float seconds = kVolumeRampS) { setMix(0, gain, seconds); }
+    void setPartialsGain(float gain, float seconds = kVolumeRampS) { setMix(1, gain, seconds); }
+
     // Writes `frames` stereo frames of signed 16-bit samples, left first.
     // Never blocks. Returns true when the block contains only silence.
     bool render(int16_t* interleaved, size_t frames);
 
 private:
+    void setMix(uint8_t index, float gain, float seconds);
+
     std::atomic<float> _primaryHz;
     std::atomic<float> _beatHz;
     std::atomic<float> _amplitude;  // target, 0..kToneCeiling
@@ -154,6 +168,9 @@ private:
     std::atomic<bool> _phaseMoving;
     std::atomic<bool> _inverted[2];
     std::atomic<float> _partialGain[kPartialCount];  // target, 0..kPartialCeiling
+    std::atomic<float> _mixGain[2];      // fundamental, partials
+    std::atomic<float> _mixSeconds[2];
+    std::atomic<uint32_t> _mixVersion[2];  // bumped after the two values above are written
 
     // Owned by render().
     Oscillator _left;
@@ -169,6 +186,8 @@ private:
     Oscillator _partialLeft[kPartialCount];
     Oscillator _partialRight[kPartialCount];
     Ramp _partialLevel[kPartialCount];
+    Ramp _mix[2];
+    uint32_t _mixSeen[2] = {0, 0};
     uint32_t _noise = 0x1234567u;  // dither generator state
 };
 

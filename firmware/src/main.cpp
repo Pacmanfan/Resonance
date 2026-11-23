@@ -86,6 +86,7 @@ bool soundMore = false;
 uint32_t listVersion = 1;
 char trackDir[128] = "";                 // folder of the track being played
 char trackName[sdcard::kNameLength] = "";
+bool trackOnce = false;                  // started by a session stage: the folder's next file does not follow
 // Display and interface are built on first use, inside setup(): objects that
 // configure drivers must not be constructed before the scheduler runs.
 gui::Display& lcd() {
@@ -297,6 +298,7 @@ void playTrack(const char* directory, const char* name) {
     snprintf(path, sizeof(path), "%s/%s", directory, name);
     strlcpy(trackDir, directory, sizeof(trackDir));
     strlcpy(trackName, name, sizeof(trackName));
+    trackOnce = false;
     player::play(path);
 }
 
@@ -408,6 +410,26 @@ void tickSession() {
             noiseType = type;
             noiseVolume = session.noiseVolume();
             audio.setNoise(noiseType, noiseVolume);
+        }
+    }
+    // A stage that names a recording starts it; one that names none stops
+    // what plays. The player fades the old one out before the new comes in.
+    if (session.takeVoiceChange()) {
+        const char* voice = session.stageVoice();
+        if (voice[0] == '\0') {
+            player::stop();
+        } else {
+            char directory[sizeof(trackDir)];
+            const char* slash = strrchr(voice, '/');
+            if (slash != nullptr) {
+                snprintf(directory, sizeof(directory), "%s/%.*s", sdcard::kAudioRoot, static_cast<int>(slash - voice), voice);
+            } else {
+                strlcpy(directory, sdcard::kAudioRoot, sizeof(directory));
+            }
+            backgroundVolume = session.stageVoiceVolume();
+            audio.setBackgroundVolume(backgroundVolume);
+            playTrack(directory, slash != nullptr ? slash + 1 : voice);
+            trackOnce = true;
         }
     }
     audio.setSessionGain(session.gain());
@@ -593,6 +615,56 @@ void runCommand(char* line) {
         runDisplayBenchmark();
     } else if (strcmp(line, "bench audio") == 0) {
         runAudioBenchmark();
+    } else if (strcmp(line, "layer") == 0) {
+        static const char* const names[rc::kLayerCount] = {"tone", "partials", "noise", "voice"};
+        for (uint8_t i = 0; i < rc::kLayerCount; ++i) {
+            const rc::Layer layer = static_cast<rc::Layer>(i);
+            Serial.printf("LAYER %-8s %s level %3u fade %.1f s\n", names[i], audio.layerEnabled(layer) ? "on " : "off",
+                          static_cast<unsigned>(audio.layerLevel(layer)), static_cast<double>(audio.layerFade(layer)));
+        }
+        Serial.printf("LAYER recording fades: in %.1f s, out %.1f s\n", static_cast<double>(player::fadeInS()),
+                      static_cast<double>(player::fadeOutS()));
+    } else if (strncmp(line, "layer ", 6) == 0) {
+        // layer <tone|partials|noise|voice> on|off | level <percent> | fade <seconds>
+        char name[10] = "", what[8] = "";
+        float value = 0;
+        const int got = sscanf(line + 6, "%9s %7s %f", name, what, &value);
+        int index = -1;
+        if (strcmp(name, "tone") == 0) index = 0;
+        else if (strcmp(name, "partials") == 0) index = 1;
+        else if (strcmp(name, "noise") == 0) index = 2;
+        else if (strcmp(name, "voice") == 0) index = 3;
+        const rc::Layer layer = static_cast<rc::Layer>(index < 0 ? 0 : index);
+        if (index < 0 || got < 2) {
+            Serial.println("LAYER ?");
+        } else if (strcmp(what, "on") == 0 || strcmp(what, "off") == 0) {
+            audio.setLayerEnabled(layer, what[1] == 'n');
+        } else if (strcmp(what, "level") == 0 && got == 3) {
+            const uint8_t percent = static_cast<uint8_t>(clampPercent(static_cast<int>(value)));
+            // Noise and recording levels are the ones the screens show.
+            if (layer == rc::Layer::Noise) noiseVolume = percent;
+            if (layer == rc::Layer::Voice) backgroundVolume = percent;
+            if (layer == rc::Layer::Noise) applyNoise();
+            else audio.setLayerLevel(layer, percent);
+        } else if (strcmp(what, "fade") == 0 && got == 3) {
+            audio.setLayerFade(layer, value);
+        }
+    } else if (strncmp(line, "voice fade ", 11) == 0) {
+        // voice fade <in seconds> <out seconds>: how a recording starts, stops and gives way to the next
+        float in = 0, out = 0;
+        if (sscanf(line + 11, "%f %f", &in, &out) == 2) player::setFades(in, out);
+    } else if (strncmp(line, "noise ", 6) == 0) {
+        // noise off|white|pink|brown [percent]
+        char type[8] = "";
+        int percent = noiseVolume;
+        if (sscanf(line + 6, "%7s %d", type, &percent) >= 1) {
+            noiseType = strcmp(type, "white") == 0   ? rc::NoiseType::White
+                        : strcmp(type, "pink") == 0  ? rc::NoiseType::Pink
+                        : strcmp(type, "brown") == 0 ? rc::NoiseType::Brown
+                                                     : rc::NoiseType::Off;
+            noiseVolume = static_cast<uint8_t>(clampPercent(percent));
+            applyNoise();
+        }
     } else if (strcmp(line, "tone") == 0) {
         Serial.printf("TONE %s, %.1f Hz + %.1f Hz, phase L %.1f R %.1f deg%s\n", audio.tone().enabled() ? "on" : "off",
                       settings.primaryHz, settings.beatHz, audio.tone().phaseDegrees(rc::Channel::Left),
@@ -643,6 +715,21 @@ void runCommand(char* line) {
             char name[20] = "?";
             sessionstore::name(slot, name, sizeof(name));
             Serial.printf("USESSION slot %u: %s\n", static_cast<unsigned>(slot), name);
+        }
+    } else if (strncmp(line, "usession voice ", 15) == 0) {
+        // usession voice <stage> <percent> [<path below the sound library>]: no path = the stage stops playback
+        int stage = 0, percent = 0, used = 0;
+        if (sscanf(line + 15, "%d %d%n", &stage, &percent, &used) == 2 && stage >= 1 && stage <= customSession.stageCount) {
+            rc::Session edited = customSession;
+            rc::Stage& target = edited.stages[stage - 1];
+            const char* name = line + 15 + used;
+            while (*name == ' ') ++name;
+            target.flags |= rc::kStageSetsVoice;
+            target.voiceVolume = static_cast<uint8_t>(clampPercent(percent));
+            strlcpy(target.voice, name, sizeof(target.voice));
+            const bool ok = strlen(name) < sizeof(target.voice) && rc::isValidSession(edited);
+            if (ok) customSession = edited;
+            Serial.printf("USESSION voice %s\n", ok ? "set" : "REFUSED");
         }
     } else if (strcmp(line, "usession run") == 0) {
         startCustomSession(customSession);
@@ -753,7 +840,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | usession | usession run | usession save|load|delete <slot> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | usession | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 
@@ -974,7 +1061,7 @@ void loop() {
     // The next track of the folder follows when one has played to its end.
     if (player::takeEnded()) {
         char next[sdcard::kNameLength];
-        if (sdcard::nextFile(trackDir, trackName, next, sizeof(next))) playTrack(trackDir, next);
+        if (!trackOnce && sdcard::nextFile(trackDir, trackName, next, sizeof(next))) playTrack(trackDir, next);
     }
     ++loopsThisSecond;
     if (now - lastStatusMs >= 1000) {

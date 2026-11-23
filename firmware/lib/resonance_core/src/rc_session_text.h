@@ -29,7 +29,7 @@
 namespace rc {
 
 // Room for the longest line sessionLine() writes, with its terminator.
-constexpr size_t kSessionLineMax = 128;
+constexpr size_t kSessionLineMax = 208;
 
 // Writes line number `index` of the text form of `session` into `out`,
 // without a line end. Returns false when `index` is past the last line or

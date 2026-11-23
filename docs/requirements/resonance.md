@@ -247,6 +247,26 @@ time, from a fraction of a second to an hour, without loss of precision over
 that time. This is separate from the frequency sweeps of RES-SESS-001
 (brief §3.A.4).
 
+### RES-AUDIO-016 — Layer mixer
+
+The mixer SHALL treat the tone (fundamental), the golden partials, the noise
+and the played recording as four layers. Each layer SHALL have an enable
+switch, a level and a fade time; switching a layer on or off SHALL take the
+layer's fade time and SHALL not produce a step, and a layer switched on again
+SHALL return to the level it had. A level SHALL be independent of the other
+layers' levels. The master volume, the session level and the limiter SHALL
+apply to the sum as before. With every layer enabled at its default level the
+output SHALL be the same as without the mixer (brief §3.F).
+
+### RES-PLAY-007 — Fades of the recording layer
+
+A recording SHALL start with a fade-in and stop with a fade-out of
+configurable lengths (0 to 30 s). Starting a recording while another plays
+SHALL fade the first out, while it keeps playing, before the second fades in
+(one decoder: a fade-through, not an overlap). Pause and resume SHALL stay
+quick. A recording SHALL play together with tone, partials and noise, each at
+its own level (brief §3.E).
+
 ### RES-PLAY-001 — Formats
 
 MP3 (common bitrates and sample rates) and standard PCM WAV files SHALL play
@@ -342,6 +362,15 @@ SHALL be validated when it is read: a damaged, out-of-range or oversized
 file SHALL be refused with a reason and SHALL never start. A file with
 entries of a later version SHALL still load. Writing SHALL not leave a
 half-written file under the session's name (brief §3.C, RES-CFG-002).
+
+### RES-SESS-010 — A stage that names a recording
+
+A stage MAY name a recording under the sound library and a level for it. On
+entering such a stage the recording SHALL start (through the fades of
+RES-PLAY-007); a stage that names none and carries the recording flag SHALL
+stop what is playing; a stage without the flag SHALL leave playback alone. A
+name that could leave the sound library SHALL be refused when the session is
+validated. A missing file SHALL not stop the session (brief §3.E).
 
 ### RES-CFG-001 — Presets
 

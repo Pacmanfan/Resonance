@@ -90,6 +90,14 @@ bool sessionLine(const Session& session, uint8_t index, char* out, size_t capaci
         ok = ok && appendText(out, capacity, used, " noise=", stage.noiseType < 4 ? kNoiseNames[stage.noiseType] : "off");
         ok = ok && append(out, capacity, used, " nv=%.0f", stage.noiseVolume);
     }
+    if ((stage.flags & kStageSetsVoice) != 0) {
+        // Last on the line: a file name may hold spaces.
+        char voice[kStageVoiceLength];
+        memcpy(voice, stage.voice, sizeof(voice));
+        voice[sizeof(voice) - 1] = '\0';
+        ok = ok && append(out, capacity, used, " vv=%.0f", stage.voiceVolume);
+        ok = ok && appendText(out, capacity, used, " voice=", voice);
+    }
     return ok;
 }
 
@@ -154,6 +162,15 @@ bool SessionParser::stageLine(char* text) {
     if (_session.stageCount >= kMaxStages) return fail("too many stages");
     Stage stage = {};
     bool haveDuration = false;
+    // "voice=" takes the rest of the line, spaces included.
+    char* voice = strstr(text, " voice=");
+    if (voice != nullptr) {
+        *voice = '\0';
+        voice += 7;
+        if (strlen(voice) >= sizeof(stage.voice)) return fail("recording name too long");
+        strcpy(stage.voice, voice);
+        stage.flags |= kStageSetsVoice;
+    }
     char* save = nullptr;
     for (char* token = strtok_r(text, " \t", &save); token != nullptr; token = strtok_r(nullptr, " \t", &save)) {
         char* value = strchr(token, '=');
@@ -192,6 +209,10 @@ bool SessionParser::stageLine(char* text) {
             if (!readCount(value, 100, count)) return fail("bad noise volume");
             stage.noiseVolume = static_cast<uint8_t>(count);
             stage.flags |= kStageSetsNoise;
+        } else if (strcmp(token, "vv") == 0) {
+            if (!readCount(value, 100, count)) return fail("bad recording volume");
+            stage.voiceVolume = static_cast<uint8_t>(count);
+            stage.flags |= kStageSetsVoice;
         }
         // Any other key belongs to a later version.
     }
