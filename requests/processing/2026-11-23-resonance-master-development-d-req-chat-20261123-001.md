@@ -1843,5 +1843,5 @@ _No follow-up yet._
 
 - Intent: pending (created from this request)
 - Requirement: pending
-- Work: WORK-000046
+- Work: WORK-000046, WORK-000047
 - Evidence: pending

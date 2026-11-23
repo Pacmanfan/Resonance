@@ -9,6 +9,9 @@
 #include "display.h"
 #include "rc_edit.h"
 #include "rc_lab.h"
+#include "rc_mindfile.h"
+#include "rc_mindstats.h"
+#include "rc_mindviz.h"
 #include "rc_pulse.h"
 #include "rc_repeat.h"
 #include "rc_settings.h"
@@ -57,6 +60,18 @@ enum class Event : uint8_t {
     LabChanged,       // phase, inversion or a Lab control of the side being heard
     LabSwitch,        // hear side eventArg() (0 = A, 1 = B)
     LabSweep,         // sweep the right ear's phase through a full turn
+    // Mindfield (RES-MIND-006). The set-up is in Advanced::mind.
+    MindRefresh,      // fill Mind::sources again
+    MindStart,
+    MindPause,
+    MindResume,
+    MindStop,
+    MindHistory,      // fill Mind::history from Mind::historySkip
+    MindOpen,         // show the experiment at history position eventArg(): compute its result from the raw file
+    MindReplay,       // play the shown experiment's raw file again through its picture
+    MindRecover,      // summarise interrupted experiments
+    MindExport,       // write the table of all experiments
+    MindDone,         // leave the result
     StageCapture,     // stage Advanced::stageIndex takes (or drops) what is set now: eventArg() 0 partials, 1 noise, 2 breathing, 3 recording
 };
 
@@ -68,6 +83,66 @@ constexpr uint8_t kSlotListMax = 12;
 // One of the two settings the Lab compares (kept on the card: rc_state.h).
 using LabSide = rc::LabSide;
 static_assert(kFadeChoiceCount == rc::kMixerFadeChoices, "the stored fade choice indexes kFadeChoices");
+
+// ---- Mindfield ----------------------------------------------------------------
+
+constexpr uint8_t kMindSources = 6;
+constexpr uint8_t kMindPage = 4;  // experiments on one page of the history
+// Lengths of an experiment offered, in seconds; 0 = until stopped.
+constexpr uint16_t kMindSeconds[] = {60, 300, 600, 1200, 1800, 3600, 0};
+constexpr uint8_t kMindSecondsCount = sizeof(kMindSeconds) / sizeof(kMindSeconds[0]);
+constexpr uint16_t kMindRates[] = {100, 250, 500, 1000};
+constexpr uint8_t kMindRateCount = sizeof(kMindRates) / sizeof(kMindRates[0]);
+
+struct MindSourceInfo {
+    const char* name = "";
+    const char* className = "";
+    const char* status = "";
+    bool available = false;
+    bool physical = false;
+    bool suitable = false;
+    uint16_t maxRate = 0;
+};
+
+// What the Mindfield screens edit (the set-up) and show (the rest, which the
+// application fills). The set-up cannot be reached while an experiment runs.
+struct Mind {
+    // Set-up.
+    uint8_t source = 0;
+    uint8_t rateIndex = 0;
+    uint8_t secondsIndex = 1;
+    bool directed = false;
+    rc::MindTarget target = rc::MindTarget::MoreOnes;  // used when directed
+    rc::MindCondition condition = rc::MindCondition::Baseline;
+    rc::MindViz viz = rc::MindViz::Orb;
+    // Sources.
+    MindSourceInfo sources[kMindSources];
+    // The experiment running, replayed or last finished.
+    uint8_t state = 0;        // 0 idle, 1 running, 2 paused, 3 finished
+    bool replaying = false;   // what runs is a recorded file being played again
+    bool recorded = false;
+    uint32_t id = 0;
+    uint32_t samples = 0;
+    uint32_t plannedSamples = 0;
+    uint32_t elapsedS = 0;
+    uint16_t rate = 100;
+    rc::VizInput input;       // what a picture may know
+    rc::MindViz shownViz = rc::MindViz::Orb;
+    // The result shown: null until there is one.
+    const rc::MindHeader* header = nullptr;
+    const rc::MindSummary* summary = nullptr;
+    rc::MindEnd reason = rc::MindEnd::Completed;
+    uint32_t gaps = 0;
+    // The latest baseline from the same source, for comparison.
+    rc::MindComparison baseline;
+    uint32_t baselineId = 0;
+    const char* message = "";
+    // History page.
+    rc::MindRecord history[kMindPage];
+    uint8_t historyCount = 0;
+    uint8_t historyTotal = 0;
+    uint8_t historySkip = 0;
+};
 
 // What the advanced screens edit. Owned by the application; the interface
 // changes it and reports an event, as it does with the settings record.
@@ -96,6 +171,7 @@ struct Advanced {
     bool slotUsed[kSlotListMax] = {};
     char slotName[kSlotListMax][20] = {};
     const char* message = "";  // outcome of the last store or load
+    Mind mind;
 };
 
 // Everything the interface shows that it does not own.
@@ -149,6 +225,13 @@ public:
     // what it shows.
     void refreshAdvanced();
 
+    // Mindfield: opens the active experiment's screen (an experiment or a
+    // replay has started), the result (it has ended), and renews the pause
+    // button without touching the picture.
+    void showMindRun();
+    void showMindResult();
+    void mindPauseChanged();
+
     void begin();
 
     // Reads the touchscreen and redraws what changed. Call every 10-20 ms.
@@ -184,7 +267,23 @@ private:
     static constexpr uint8_t kMaxButtons = 22;  // the FREQ tab has seventeen, the mixer screen twenty-one
 
     // Screens opened over a tab; None = the tab itself.
-    enum class Sub : uint8_t { None, Menu, Mixer, Breath, Builder, Stage, Slots, Sequence, Lab };
+    enum class Sub : uint8_t {
+        None, Menu, Mixer, Breath, Builder, Stage, Slots, Sequence, Lab,
+        Mind, MindSource, MindSetup, MindRun, MindResult, MindHistory,
+    };
+    bool mindSub() const { return _sub >= Sub::Mind; }
+    void drawMind();
+    void drawMindHome();
+    void drawMindSource();
+    void drawMindSetup();
+    void drawMindRun();
+    void drawMindResult();
+    void drawMindHistory();
+    void onMindButton(uint8_t id);
+    void animateMind();
+    void mindStatusLine();
+    void vizBegin();
+    void vizFrame(bool stepped);
     void openSub(Sub sub);
     void backSub();
     const char* subTitle() const;
@@ -256,6 +355,19 @@ private:
     int16_t _homeBar = 0;          // breathing bar as drawn on Home, in pixels
     int16_t _breathBar = 0;        // and on the breathing screen
     char _advLabel[6][28] = {};
+    // Mindfield: the picture on the active screen.
+    uint32_t _vizFrameMs = 0;
+    uint32_t _vizWindows = 0;      // windows the pattern pictures have taken
+    float _vizShown = 0.0f;        // the score as drawn, -1..1
+    int16_t _vizA = 0, _vizB = 0;  // what is on the screen now, per picture
+    uint16_t _vizPhase = 0;
+    uint32_t _vizLineMs = 0;
+    rc::Tree _tree;
+    rc::Mandala _mandala;
+    rc::Lotus _lotus;
+    rc::FlowCounts _flow;
+    rc::Labyrinth _maze;
+    char _mindLabel[kMindPage + 2][30] = {};
     char _slotLabel[kSlotListMax][24] = {};
     uint8_t _eventArg = 0;
     char _audioLabel[12] = "";

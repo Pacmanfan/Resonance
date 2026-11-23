@@ -52,6 +52,7 @@ void Ui::openSub(Sub sub) {
     if (_adv.stageIndex >= _adv.session.stageCount) _adv.stageIndex = 0;
     if (_step >= _adv.sequence.stepCount) _step = 0;
     if (sub != Sub::Builder && sub != Sub::Sequence) _adv.message = "";
+    if (sub == Sub::MindSource || sub == Sub::MindSetup) _adv.mind.message = "";
     drawHeader();
     drawTabBar();
     drawContent();
@@ -61,7 +62,11 @@ void Ui::openSub(Sub sub) {
 // the sequence slots to the sequence, the rest to the menu, the menu to the
 // tab it was opened from.
 void Ui::backSub() {
-    if (_sub == Sub::Stage) openSub(Sub::Builder);
+    // Mindfield: every screen back to its home, the home to the tab. Leaving
+    // the active screen does not stop the experiment.
+    if (_sub == Sub::Mind) openSub(Sub::None);
+    else if (mindSub()) openSub(Sub::Mind);
+    else if (_sub == Sub::Stage) openSub(Sub::Builder);
     else if (_sub == Sub::Slots) openSub(_slotKind == 0 ? Sub::Builder : Sub::Sequence);
     else if (_sub == Sub::Menu || (_sub == Sub::Builder && _tab == Tab::Sessions)) openSub(Sub::None);
     else openSub(Sub::Menu);
@@ -76,6 +81,12 @@ const char* Ui::subTitle() const {
         case Sub::Slots: return _slotSave ? "SAVE TO" : "LOAD FROM";
         case Sub::Sequence: return "SEQUENCE";
         case Sub::Lab: return "RESONANCE LAB";
+        case Sub::Mind: return "MINDFIELD";
+        case Sub::MindSource: return "RNG SOURCE";
+        case Sub::MindSetup: return "EXPERIMENT";
+        case Sub::MindRun: return _adv.mind.replaying ? "REPLAY" : rc::mindVizName(_adv.mind.shownViz);
+        case Sub::MindResult: return "RESULT";
+        case Sub::MindHistory: return "HISTORY";
         default: return "ADVANCED";
     }
 }
@@ -85,6 +96,10 @@ void Ui::refreshAdvanced() {
 }
 
 void Ui::drawAdvanced() {
+    if (mindSub()) {
+        drawMind();
+        return;
+    }
     switch (_sub) {
         case Sub::Menu: drawMenu(); break;
         case Sub::Mixer: drawMixer(); break;
@@ -372,6 +387,10 @@ void Ui::drawLab() {
 // ---- input -----------------------------------------------------------------
 
 void Ui::onAdvancedButton(uint8_t id) {
+    if (mindSub()) {
+        onMindButton(id);
+        return;
+    }
     const bool adjust = id >= kAdjust && id < kAction;
     const uint8_t n = static_cast<uint8_t>(adjust ? id - kAdjust : id - kAction);
     const int direction = (n % 2) ? 1 : -1;  // adjusters come in pairs: minus, plus

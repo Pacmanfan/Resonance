@@ -51,6 +51,8 @@ struct Live {
     float z = 0.0f;              // bit balance so far
     float directedZ = 0.0f;      // towards the target; 0 without one
     float windowZ = 0.0f;        // last completed window
+    uint32_t windowSample = 0;   // the sample that completed it
+    bool replaying = false;      // a recorded file is being played again: nothing is collected
 };
 
 constexpr uint16_t kRates[] = {100, 250, 500, 1000};
@@ -74,6 +76,13 @@ const rc::MindHeader& header();
 const rc::MindSummary& summary();
 rc::MindEnd endReason();
 const char* message();
+
+// Plays raw file `id` again, a window at each tick(), as if it were running:
+// live() and the pictures follow it, nothing is collected or written, and it
+// ends in the Finished state with the statistics recomputed from the file.
+// stop() ends it early. False when the file is missing or refused, or an
+// experiment is running.
+bool replayStart(uint32_t id);
 
 // The statistics of the running experiment, for a picture to read. Null
 // when none is running.

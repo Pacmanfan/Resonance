@@ -1,16 +1,12 @@
 # Mindfield — a research concept
 
-**Status (firmware 0.11.0): the measuring part exists — sources, collection,
-raw files, statistics, history and export, driven over the serial line. The
-touchscreen screens and every visualization are not built yet.** See
-[What is implemented](#what-is-implemented) at the end; everything else in
-this document is the concept it follows.
-
-**No causal relationship between consciousness, meditation or intention and
-the output of a random-number generator has been demonstrated by this
-project, and none is claimed.** This document describes a method for
-looking, built so that it cannot flatter the person looking. If the
-instrument finds nothing, that is a result.
+**Status (firmware 0.12.0): implemented — sources, collection, raw files,
+statistics, the screens, twelve pictures, history, replay and export. Built,
+host-tested and run on the board through injected touches. No person has
+yet looked at a Mindfield screen or picture, and no experiment worth the
+name has been run: there are no long baselines yet.** See
+[What is implemented](#what-is-implemented) at the end, including what is
+still missing.
 
 ## The question
 
@@ -170,9 +166,10 @@ generator.
 
 ## What is implemented
 
-Firmware 0.11.0, requirements RES-MIND-001..004. Code: `rc_rng`,
-`rc_mindstats`, `rc_mindfile` in the portable core (33 host test cases with
-synthetic data of known answers) and `firmware/src/mind/` on the device.
+Firmware 0.12.0, requirements RES-MIND-001..006. Code: `rc_rng`,
+`rc_mindstats`, `rc_mindfile`, `rc_mindviz` in the portable core (44 host
+test cases with synthetic data of known answers), `firmware/src/mind/` and
+`firmware/src/gui/ui_mind.cpp` on the device.
 
 ### Sources, as measured on the board (2026-11-23)
 
@@ -211,6 +208,62 @@ documented in `firmware/lib/resonance_core/src/rc_mindfile.h`.
 `RESULTS/Ennnnn.TXT` is the summary in text, and `EXPORTS/SUMMARY.CSV` the
 table of all summaries. The device has no clock, so a file records the time
 since the device started, not the date.
+
+### Screens and pictures (0.12.0)
+
+SET → MINDFIELD opens the home screen; from there the source, the set-up
+(mode, target, condition, rate, length, picture), START, the last result and
+the history. Tapping the title goes back; leaving the active screen does not
+stop the experiment.
+
+- **Score pictures** — Orb, Balance, Star, Flame, Pendulum, Vortex — show
+  the standard score of the bit balance: towards the target when directed,
+  towards "more ones" when open. Zero is a marked neutral state; the limit
+  is a score of 3; motion is smoothed over about 0.6 s without changing the
+  number. A host test runs 400 000 samples of the control source four times
+  and checks that the picture stays near the centre and does not creep out
+  with time.
+- **Pattern pictures** — Tree, Mandala, Lotus, River, Waterfall, Labyrinth —
+  take one recorded sample a window and grow by it. The screen says "Pattern
+  from samples - not a score". River and Waterfall show eight equally likely
+  channels with a line at the equal share.
+- **The active screen shows no score in figures**: time, samples, and
+  REC / NOT REC / PAUSED / REPLAY.
+- **The result screen** gives the proportion of ones beside the expected
+  0.5, its 95 % interval, z and p, the score towards the target, runs, bytes
+  and lag-1 scores, the window figures with the threshold corrected for
+  their number, and the comparison with the newest baseline of the same
+  source ("No baseline from this source yet" otherwise).
+- **Replay** plays the raw file again through the picture, a window a step,
+  and ends with the statistics recomputed from the file.
+
+Measured on the board (2026-11-23): a one-minute directed experiment at
+1000 samples a second with the Orb, paused and resumed: 60 000 samples, no
+gaps, result shown by itself; each of the other eleven pictures run for a
+few seconds without a lost sample; replay, history paging, opening an older
+experiment and export worked. Free heap 94 kB with the screens idle, 80 kB
+at the lowest while collecting and drawing.
+
+### Not built, or not verified
+
+- **Not seen by a person:** every screen and picture. Layout was checked by
+  listing buttons and label widths, not by eye.
+- **Not measured:** collection and drawing while an MP3 streams over
+  Bluetooth (no headset was connected), and runs longer than a minute.
+- Targets other than more ones / more zeros (a favoured category).
+- Randomised or counterbalanced ordering of conditions: the condition is
+  chosen by hand and recorded.
+- Choosing a session from the Mindfield set-up: start the session on SESS
+  first; the experiment records which was running.
+- Deleting an experiment on the device: files are removed with the card in
+  a computer.
+- Export of raw samples as text: the raw file is binary (documented) and the
+  table export holds the summaries.
+- Opening an old experiment recomputes it from the raw file, which takes
+  about four seconds per megabyte and holds the screen meanwhile.
+- A pattern picture starts again from empty if its screen is left and
+  reopened during a run; a replay of the whole file shows it complete.
+- The Mandala's number of folds is fixed at eight.
 
 ### Serial commands
 

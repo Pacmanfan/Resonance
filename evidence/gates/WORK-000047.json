@@ -1,0 +1,55 @@
+{
+ "work": "WORK-000047",
+ "runs": [
+  {
+   "at": "2026-11-23T18:23:48.363472+00:00",
+   "verdict": "PASS",
+   "gate_version": 3,
+   "work": "WORK-000047",
+   "request": "2026-11-23-resonance-master-development-d-req-chat-20261123-001.md",
+   "request_id": "REQ-CHAT-20261123-001",
+   "request_fingerprint": "c08ed110c42204ecb11b1219b9ef20120e5d2b95bc5b7eb912c69c154f3a814e",
+   "request_code_paths": [
+    "firmware/lib/resonance_core/src/rc_mindfile.cpp",
+    "firmware/lib/resonance_core/src/rc_mindfile.h",
+    "firmware/lib/resonance_core/src/rc_mindstats.cpp",
+    "firmware/lib/resonance_core/src/rc_mindstats.h",
+    "firmware/lib/resonance_core/src/rc_mindviz.cpp",
+    "firmware/lib/resonance_core/src/rc_mindviz.h",
+    "firmware/lib/resonance_core/src/rc_rng.cpp",
+    "firmware/lib/resonance_core/src/rc_rng.h",
+    "firmware/src/gui/ui.cpp",
+    "firmware/src/gui/ui.h",
+    "firmware/src/gui/ui_advanced.cpp",
+    "firmware/src/gui/ui_mind.cpp",
+    "firmware/src/main.cpp",
+    "firmware/src/mind/mindfield.cpp",
+    "firmware/src/mind/mindfield.h",
+    "firmware/src/mind/rng_sources.cpp",
+    "firmware/src/mind/rng_sources.h",
+    "firmware/src/storage/sdcard.cpp",
+    "firmware/src/storage/sdcard.h",
+    "firmware/src/storage/settings_store.cpp",
+    "firmware/src/storage/settings_store.h",
+    "firmware/src/version.h",
+    "firmware/tests/test_mindfile.cpp",
+    "firmware/tests/test_mindstats.cpp",
+    "firmware/tests/test_mindviz.cpp",
+    "firmware/tests/test_rng.cpp"
+   ],
+   "test_runs": [
+    "20261123T132204-1090924"
+   ],
+   "evidence": [
+    "VER-000048"
+   ],
+   "head": "e0d5ea0afb54e59f81144612d340056542626be3",
+   "agent_id": "agent-dev-20261117205050-9ef7a9",
+   "fails": [],
+   "warns": [
+    "4 unowned change(s) in the tree (not this request's; never committed by it)"
+   ],
+   "passes": 13
+  }
+ ]
+}

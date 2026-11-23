@@ -74,8 +74,9 @@ A research concept, described in [MINDFIELD.md](MINDFIELD.md). In order:
    Waterfall), Intensity (Star, Flame), Lotus, Vortex, Pendulum.
 6. Results, history and export on the device.
 
-**Items 1 to 3 and the condition and mode settings of item 4 exist since
-firmware 0.11.0, without screens; items 5 and 6 do not. The project does not claim that meditation
+**All six items are implemented since firmware 0.12.0 and none has been
+verified by a person; what is missing is listed in MINDFIELD.md. The project
+does not claim that meditation
 or intention influences a random-number generator; the aim is an instrument
 that would show honestly whether anything is there.**
 

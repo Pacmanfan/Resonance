@@ -28,6 +28,7 @@ constexpr uint8_t kIdBrightnessDown = 10;
 constexpr uint8_t kIdBrightnessUp = 11;
 constexpr uint8_t kIdAdvanced = 14;
 constexpr uint8_t kIdBuilder = 15;
+constexpr uint8_t kIdMindfield = 16;
 constexpr uint8_t kIdAudio = 20;
 constexpr uint8_t kIdVolumeDown = 21;
 constexpr uint8_t kIdVolumeUp = 22;
@@ -175,6 +176,7 @@ Event Ui::poll() {
     _touching = down;
     animateHome();
     animateBreath();
+    animateMind();
 
     const uint32_t timeoutMs = static_cast<uint32_t>(_settings.screenTimeoutS) * 1000u;
     if (!_dimmed && timeoutMs != 0 && millis() - _lastActivityMs > timeoutMs) {
@@ -595,7 +597,8 @@ void Ui::drawSettings() {
     addButton(8, kContentTop + 26, 56, 38, "-", kIdBrightnessDown);
     addButton(176, kContentTop + 26, 56, 38, "+", kIdBrightnessUp);
 
-    addButton(8, kContentTop + 84, 224, 38, "ADVANCED", kIdAdvanced);
+    addButton(8, kContentTop + 76, 224, 36, "ADVANCED", kIdAdvanced);
+    addButton(8, kContentTop + 118, 224, 36, "MINDFIELD", kIdMindfield);
     drawSettingsValues();
 }
 
@@ -604,7 +607,7 @@ void Ui::drawSettingsValues() {
     snprintf(text, sizeof(text), "  %u%%  ", static_cast<unsigned>(_settings.brightness));
     centered(text, kScreenW / 2, kContentTop + 45, kText, kBackground, kFontTitle);
 
-    const int16_t y = kContentTop + 136;
+    const int16_t y = kContentTop + 166;
     _lcd.fillRect(0, y, kScreenW, kContentBottom - y, kBackground);
     snprintf(text, sizeof(text), "Firmware %s", RESONANCE_VERSION);
     label(text, 12, y, kTextDim, kFontSmall);
@@ -660,6 +663,9 @@ void Ui::onButton(uint8_t id) {
         onAdvancedButton(id);
     } else if (id == kIdAdvanced) {
         openSub(Sub::Menu);
+    } else if (id == kIdMindfield) {
+        _pending = Event::MindRefresh;
+        openSub(Sub::Mind);
     } else if (id == kIdBuilder) {
         openSub(Sub::Builder);
     } else if (id < 4) {

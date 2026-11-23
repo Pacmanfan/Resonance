@@ -55,6 +55,22 @@ struct Run {
 };
 
 Run* run = nullptr;
+
+// A recorded file being played again.
+struct Playback final : rc::MindFileVisitor {
+    fs::File file;
+    rc::MindFileReader reader;
+    rc::MindStats stats;
+    uint32_t lastSample = 0;
+    uint32_t gaps = 0;
+    void onSample(uint32_t value) override {
+        stats.add(value);
+        lastSample = value;
+    }
+    void onGap(uint32_t) override { ++gaps; }
+};
+Playback* playback = nullptr;
+
 Live liveNow;
 rc::MindHeader headerNow;
 rc::MindSummary summaryNow;
@@ -133,7 +149,9 @@ void drain() {
     while (tail != head) {
         const uint32_t value = run->ring[tail];
         tail = (tail + 1) % kRing;
+        const uint32_t windows = run->stats.windows();
         run->stats.add(value);
+        if (run->stats.windows() != windows) liveNow.windowSample = value;
         run->block[run->blockFill++] = value;
         if (run->blockFill == kBlock) flushBlock();
     }
@@ -282,6 +300,7 @@ struct StatsVisitor final : rc::MindFileVisitor {
 
 bool start(const Setup& setup, const Context& context) {
     if (run != nullptr) return (messageNow = "An experiment is running"), false;
+    if (playback != nullptr) return (messageNow = "A replay is running"), false;
     if (setup.source >= rngsources::kCount) return (messageNow = "No such source"), false;
     rc::RngSource& source = rngsources::at(setup.source);
     if (!source.available()) return (messageNow = source.status()), false;
@@ -387,11 +406,78 @@ void resume() {
     liveNow.state = State::Running;
 }
 
+namespace {
+void endPlayback() {
+    playback->stats.summary(summaryNow);
+    headerNow = playback->reader.header();
+    reasonNow = playback->reader.ended() ? playback->reader.endReason() : rc::MindEnd::Interrupted;
+    liveNow.gaps = playback->gaps;
+    liveNow.recorded = true;
+    liveNow.state = State::Finished;
+    messageNow = playback->reader.intact() ? "" : "Raw file interrupted or changed";
+    playback->file.close();
+    delete playback;
+    playback = nullptr;
+}
+
+// One window of the recorded file a call.
+void tickPlayback() {
+    const uint32_t windows = playback->stats.windows();
+    uint8_t buffer[64];
+    bool more = true;
+    while (more && playback->stats.windows() == windows) {
+        const int got = playback->file.read(buffer, sizeof(buffer));
+        more = got > 0 && playback->reader.feed(buffer, static_cast<size_t>(got)) && !playback->reader.ended();
+    }
+    const uint64_t samples = playback->stats.samples();
+    liveNow.samples = samples > 0xFFFFFFFFull ? 0xFFFFFFFFu : static_cast<uint32_t>(samples);
+    liveNow.elapsedS = headerNow.rate != 0 ? liveNow.samples / headerNow.rate : 0;
+    liveNow.windows = playback->stats.windows();
+    liveNow.z = static_cast<float>(playback->stats.z());
+    liveNow.directedZ = static_cast<float>(playback->stats.directedZ());
+    liveNow.windowZ = static_cast<float>(playback->stats.lastWindowZ());
+    liveNow.windowSample = playback->lastSample;
+    if (!more) endPlayback();
+}
+}  // namespace
+
+bool replayStart(uint32_t id) {
+    if (run != nullptr || playback != nullptr) return (messageNow = "An experiment is running"), false;
+    char path[56];
+    pathOf(kRawFormat, id, path, sizeof(path));
+    Playback* p = new (std::nothrow) Playback();
+    if (p == nullptr) return (messageNow = "Not enough memory to replay now"), false;
+    p->file = sdcard::openForRead(path);
+    uint8_t head[rc::kMindHeaderBytes];
+    p->reader.begin(p);
+    if (!p->file || p->file.read(head, sizeof(head)) != static_cast<int>(sizeof(head)) || !p->reader.feed(head, sizeof(head))) {
+        if (p->file) p->file.close();
+        delete p;
+        return (messageNow = "No raw file for this experiment"), false;
+    }
+    headerNow = p->reader.header();
+    p->stats.begin(headerNow.windowSamples, headerNow.target);
+    playback = p;
+    liveNow = Live();
+    liveNow.id = id;
+    liveNow.replaying = true;
+    liveNow.recorded = true;
+    liveNow.plannedSamples = headerNow.plannedSeconds * headerNow.rate;
+    liveNow.state = State::Running;
+    messageNow = "";
+    return true;
+}
+
 void stop() {
     if (run != nullptr) finish(rc::MindEnd::Stopped);
+    else if (playback != nullptr) endPlayback();
 }
 
 void tick() {
+    if (playback != nullptr) {
+        tickPlayback();
+        return;
+    }
     if (run == nullptr) return;
     drain();
     const uint32_t now = millis();
@@ -413,7 +499,7 @@ void tick() {
 }
 
 void clear() {
-    if (run == nullptr) liveNow = Live();
+    if (run == nullptr && playback == nullptr) liveNow = Live();
 }
 
 const Live& live() { return liveNow; }
@@ -484,6 +570,7 @@ bool recoverOne(const char* name, uint32_t size, void* context) {
     const uint32_t id = idOfName(name, ".RMF");
     if (id == 0 || size > kRecoverMaxBytes || size < rc::kMindHeaderBytes) return true;
     if (run != nullptr && id == headerNow.experimentId) return true;  // the one being written
+    if (playback != nullptr) return true;
     char result[56];
     pathOf(kResultFormat, id, result, sizeof(result));
     if (sdcard::exists(result)) return true;

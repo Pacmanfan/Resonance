@@ -8,6 +8,14 @@ Versions before 0.10.0 were never published as releases.
 "Not verified by a person" means: built, host-tested and exercised on the
 board through serial commands, but not yet judged by ear or eye.
 
+## 0.12.0 — 2026-11-23
+
+- Mindfield screens behind MINDFIELD on the SET tab: source, set-up, active
+  experiment, result with baseline comparison, history, replay, export.
+- Twelve pictures: Orb, Balance, Star, Flame, Pendulum, Vortex (the measured
+  score) and Tree, Mandala, Lotus, River, Waterfall, Labyrinth (patterns
+  from recorded samples). Not yet seen by a person.
+
 ## 0.11.0 — 2026-11-23
 
 - Mindfield, first part: random-number sources behind one interface

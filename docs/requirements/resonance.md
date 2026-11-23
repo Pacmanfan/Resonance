@@ -611,6 +611,38 @@ fixed when the experiment starts and SHALL NOT be changeable until it has
 ended. Every experiment SHALL be kept and listed, whatever it shows; none
 SHALL be hidden or dropped. Summaries SHALL be exportable as one table.
 
+### RES-MIND-005 — Pictures
+
+A picture SHALL be a reading of the statistics or of recorded samples and
+SHALL NOT be able to change either. Score pictures (Orb, Balance, Star,
+Flame, Pendulum, Vortex) SHALL show one number, the standard score of the
+bit balance - towards the target in a directed experiment, towards "more
+ones" in an open one - linearly, with a score of zero as a marked neutral
+state, no side favoured, and a limit at a score of 3; because the number is a
+score and not a running sum, nothing SHALL drift outwards by itself. Motion
+MAY be smoothed without changing the measured value. Pattern pictures (Tree,
+Mandala, Lotus, River, Waterfall, Labyrinth) SHALL be built from recorded
+samples, one step a window, SHALL say on the screen that they are a pattern
+and not a score, and SHALL be the same whenever the same samples are played
+again. Drawing SHALL be direct and partial, allocate nothing per frame, and
+SHALL NOT affect the sampling schedule.
+
+### RES-MIND-006 — Mindfield screens
+
+Mindfield SHALL be reached from one MINDFIELD entry on the SET tab and SHALL
+have: a home screen; a source screen that shows each source's class, entropy
+state, rate and limitation and lets only an available source be chosen; a
+set-up screen for mode, target, condition, rate, length and picture, closed
+while an experiment runs; an active screen with the picture, the time, the
+number of samples, whether it is being recorded, pause, resume and stop, and
+no score in figures; a result screen with the samples, the observed and the
+expected proportion, its interval, the scores and probabilities, the window
+figures with the corrected threshold, the comparison with the newest
+baseline of the same source, and how the experiment ended; and a history of
+the experiments on the card, newest first, from which any can be opened,
+played again through its picture, summarised if it was interrupted, and
+exported. No screen SHALL need text entry.
+
 ## Deliverables
 
 ### RES-DOC-001 — Project documentation

@@ -30,7 +30,7 @@ compiled and tested on a PC:
 | `rc_presets` | Frequency presets |
 | `rc_settings`, `rc_state` | The settings record and its validation; the advanced settings kept on the card |
 | `rc_paths` | Rules for file names and paths on the card |
-| `rc_rng`, `rc_mindstats`, `rc_mindfile` | Mindfield: the random-source interface and software control source; the statistics engine; the raw-file format and summaries |
+| `rc_rng`, `rc_mindstats`, `rc_mindfile`, `rc_mindviz` | Mindfield: the random-source interface and software control source; the statistics engine; the raw-file format and summaries; what each picture shows |
 | `rc_pulse`, `rc_repeat` | Home-screen ring animation timing; tap-and-hold repeat |
 
 **The device half** connects the core to the hardware:
@@ -40,7 +40,7 @@ compiled and tested on a PC:
 | `main.cpp` | The application: owns the engine, the session runner and the settings; applies interface events; serial diagnostics |
 | `audio/bt_audio` | Bluetooth A2DP source (ESP32-A2DP on Bluedroid): scan, connect, and the callback that pulls audio |
 | `audio/player` | File player task: reads WAV or MP3 from the card, decodes, resamples, fills the ring |
-| `gui/display`, `gui/ui`, `gui/ui_advanced`, `gui/theme.h` | LovyanGFX display and touch set-up; the five tabs; the advanced screens; colours and fonts |
+| `gui/display`, `gui/ui`, `gui/ui_advanced`, `gui/ui_mind`, `gui/theme.h` | LovyanGFX display and touch set-up; the five tabs; the advanced screens; the Mindfield screens and pictures; colours and fonts |
 | `storage/sdcard` | The only module that touches the card |
 | `storage/settings_store` | Settings in the ESP32's non-volatile storage (NVS) |
 | `storage/session_store` | Sessions, sequences and advanced settings as text files on the card |
@@ -121,7 +121,7 @@ one level. Widgets are a few hundred lines of our own on LovyanGFX.
 
 `firmware/tests/test_*.cpp`, one program per core module, built by
 `firmware/tools/host_tests.py` with the PC's compiler, `-Werror` and the
-address and undefined-behaviour sanitizers: 18 programs. They check, among
+address and undefined-behaviour sanitizers: 19 programs. They check, among
 other things, that frequency changes are phase-continuous, that every
 optional stage is sample-for-sample neutral when off, and that no malformed
 file or stored record is accepted.

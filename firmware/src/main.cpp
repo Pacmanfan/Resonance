@@ -1354,6 +1354,191 @@ void mindCommand(const char* arguments) {
     }
 }
 
+// ---- Mindfield and its screens ------------------------------------------------
+
+// The result of an experiment opened from the history; a finished run's own
+// result stays in mindfield.
+rc::MindHeader openedHeader;
+rc::MindSummary openedSummary;
+uint8_t mindStateBefore = 0;
+
+void fillMindSources() {
+    gui::Mind& mind = advanced.mind;
+    for (uint8_t i = 0; i < gui::kMindSources && i < rngsources::kCount; ++i) {
+        const rc::RngSource& source = rngsources::at(i);
+        mind.sources[i] = {source.name(), rc::rngClassName(source.rngClass()), source.status(), source.available(),
+                           source.physicalEntropy(), source.suitable(), source.maxRate()};
+    }
+    // What was chosen may have gone (Bluetooth off): fall to the first that can be used.
+    if (!mind.sources[mind.source].available) {
+        for (uint8_t i = 0; i < gui::kMindSources; ++i) {
+            if (mind.sources[i].available) {
+                mind.source = i;
+                break;
+            }
+        }
+    }
+}
+
+// The newest baseline of the same source on the card, to compare with.
+void findBaseline(const rc::MindHeader& h, const rc::MindSummary& s) {
+    gui::Mind& mind = advanced.mind;
+    mind.baseline = rc::MindComparison();
+    mind.baselineId = 0;
+    static rc::MindRecord page[gui::kMindPage];
+    uint8_t total = 0;
+    for (uint8_t skip = 0; skip < mindfield::kHistoryMax; skip = static_cast<uint8_t>(skip + gui::kMindPage)) {
+        const uint8_t n = mindfield::list(skip, page, gui::kMindPage, &total);
+        for (uint8_t i = 0; i < n; ++i) {
+            const rc::MindRecord& r = page[i];
+            if (!r.complete || r.condition != rc::MindCondition::Baseline || r.source != h.source ||
+                r.experimentId == h.experimentId || r.samples == 0) {
+                continue;
+            }
+            mind.baseline = rc::compareProportions(r.ones, r.samples * 32u, s.ones, s.bits);
+            mind.baselineId = r.experimentId;
+            return;
+        }
+        if (n < gui::kMindPage) return;
+    }
+}
+
+void showMindResult(const rc::MindHeader& h, const rc::MindSummary& s, rc::MindEnd reason, uint32_t gaps, bool recorded,
+                    const char* message) {
+    gui::Mind& mind = advanced.mind;
+    mind.header = &h;
+    mind.summary = &s;
+    mind.reason = reason;
+    mind.gaps = gaps;
+    mind.recorded = recorded;
+    mind.message = message;
+    if (recorded) findBaseline(h, s);
+    else mind.baseline = rc::MindComparison();
+    screen().showMindResult();
+}
+
+// Every pass of the main loop: what the screens show of the experiment.
+void syncMind() {
+    gui::Mind& mind = advanced.mind;
+    const mindfield::Live& live = mindfield::live();
+    mind.state = static_cast<uint8_t>(live.state);
+    mind.replaying = live.replaying;
+    mind.id = live.id;
+    mind.samples = live.samples;
+    mind.plannedSamples = live.plannedSamples;
+    mind.elapsedS = live.elapsedS;
+    mind.rate = mindfield::header().rate;
+    mind.input.z = live.z;
+    mind.input.directedZ = live.directedZ;
+    mind.input.directed = mindfield::header().mode == rc::MindMode::Directed;
+    mind.input.windows = live.windows;
+    mind.input.windowSample = live.windowSample;
+    if (mind.state == 1 || mind.state == 2) mind.recorded = live.recorded;
+    if (mind.state == 3 && (mindStateBefore == 1 || mindStateBefore == 2)) {
+        Serial.printf("MIND experiment %lu ended: %s\n", static_cast<unsigned long>(live.id), rc::mindEndName(mindfield::endReason()));
+        showMindResult(mindfield::header(), mindfield::summary(), mindfield::endReason(), live.gaps, live.recorded,
+                       mindfield::message());
+    }
+    mindStateBefore = mind.state;
+}
+
+void startMindFromScreen() {
+    gui::Mind& mind = advanced.mind;
+    mindfield::Setup setup;
+    setup.source = mind.source;
+    setup.condition = mind.condition;
+    setup.mode = mind.directed ? rc::MindMode::Directed : rc::MindMode::Open;
+    setup.target = mind.directed ? mind.target : rc::MindTarget::None;
+    setup.viz = mind.viz;
+    setup.rate = gui::kMindRates[mind.rateIndex % gui::kMindRateCount];
+    setup.seconds = gui::kMindSeconds[mind.secondsIndex % gui::kMindSecondsCount];
+    setup.seed = millis() | 1u;  // software source: a different run each time, and recorded
+    if (mindfield::start(setup, mindContext())) {
+        mind.shownViz = mind.viz;
+        mind.message = mindfield::message();
+        syncMind();
+        screen().showMindRun();
+    } else {
+        mind.message = mindfield::message();
+        screen().refreshAdvanced();
+    }
+}
+
+void mindEvent(gui::Event event) {
+    gui::Mind& mind = advanced.mind;
+    switch (event) {
+        case gui::Event::MindRefresh:
+            fillMindSources();
+            screen().refreshAdvanced();
+            break;
+        case gui::Event::MindStart:
+            fillMindSources();
+            startMindFromScreen();
+            break;
+        case gui::Event::MindPause:
+            mindfield::pause();
+            syncMind();
+            screen().mindPauseChanged();
+            break;
+        case gui::Event::MindResume:
+            mindfield::resume();
+            syncMind();
+            screen().mindPauseChanged();
+            break;
+        case gui::Event::MindStop:
+            mindfield::stop();  // syncMind() shows the result on the next pass
+            break;
+        case gui::Event::MindHistory:
+            mind.historyCount = mindfield::list(mind.historySkip, mind.history, gui::kMindPage, &mind.historyTotal);
+            mind.message = "";
+            screen().refreshAdvanced();
+            break;
+        case gui::Event::MindOpen: {
+            const uint8_t index = screen().eventArg();
+            if (index >= mind.historyCount) break;
+            bool intact = false;
+            if (mindfield::replay(mind.history[index].experimentId, nullptr, openedHeader, openedSummary, &intact)) {
+                const rc::MindEnd reason = !intact ? rc::MindEnd::Interrupted
+                                           : (mind.history[index].complete ? mind.history[index].reason : rc::MindEnd::Completed);
+                showMindResult(openedHeader, openedSummary, reason, 0, true, intact ? "" : "Raw file interrupted or changed");
+            } else {
+                mind.message = "No raw file for this experiment";
+                screen().refreshAdvanced();
+            }
+            break;
+        }
+        case gui::Event::MindReplay:
+            if (mind.header != nullptr && mindfield::replayStart(mind.header->experimentId)) {
+                mind.shownViz = mindfield::header().viz != rc::MindViz::None ? mindfield::header().viz : mind.viz;
+                syncMind();
+                screen().showMindRun();
+            } else {
+                mind.message = mindfield::message();
+                screen().refreshAdvanced();
+            }
+            break;
+        case gui::Event::MindRecover: {
+            static char text[40];
+            snprintf(text, sizeof(text), "%u interrupted run(s) summarised", static_cast<unsigned>(mindfield::recover()));
+            mind.historyCount = mindfield::list(mind.historySkip, mind.history, gui::kMindPage, &mind.historyTotal);
+            mind.message = text;
+            screen().refreshAdvanced();
+            break;
+        }
+        case gui::Event::MindExport: {
+            static char text[40];
+            uint8_t rows = 0;
+            if (mindfield::exportCsv(&rows)) snprintf(text, sizeof(text), "%u row(s) in EXPORTS/SUMMARY.CSV", static_cast<unsigned>(rows));
+            else snprintf(text, sizeof(text), "Could not write the table");
+            mind.message = text;
+            screen().refreshAdvanced();
+            break;
+        }
+        default:
+            break;
+    }
+}
+
 }  // namespace
 
 void setup() {
@@ -1586,6 +1771,7 @@ void loop() {
         default:
             break;
     }
+    mindEvent(event);
     pollSerial();
 
     const uint32_t now = millis();
@@ -1600,6 +1786,7 @@ void loop() {
     tickSession();
     tickBreath();
     mindfield::tick();
+    syncMind();
     // The next track of the folder follows when one has played to its end.
     if (player::takeEnded()) {
         char next[sdcard::kNameLength];
