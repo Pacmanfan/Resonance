@@ -11,6 +11,7 @@
 
 #include "rc_sequence.h"
 #include "rc_session.h"
+#include "rc_state.h"
 
 namespace sessionstore {
 
@@ -53,3 +54,16 @@ bool name(uint8_t slot, char* out, size_t capacity);
 const char* error();
 
 }  // namespace sequencestore
+
+// The advanced settings (RES-CFG-004): one file, /RESONANCE/ADVANCED.TXT, in
+// the form of rc_state.h, written under the same rules.
+namespace statestore {
+
+// False when there is no file or it is not a valid one; `out` is untouched.
+bool load(rc::AdvancedState& out);
+bool save(const rc::AdvancedState& state);
+bool remove();
+bool used();
+const char* error();
+
+}  // namespace statestore

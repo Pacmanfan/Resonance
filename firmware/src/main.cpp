@@ -81,7 +81,7 @@ uint8_t breathDepth = 0;                 // percent of audio modulation; 0 = the
 uint32_t breathTickMs = 0;
 bool breathFromSession = false;          // a session stage started the pacer: it stops with the session
 char runningName[20] = "";    // name of the session that is running
-// Golden partials, percent; not stored: they are off at start.
+// Golden partials, percent: part of the advanced settings kept on the card.
 
 // Sound library browsing. One page of four entries is kept; the directory is
 // read again for every page.
@@ -490,6 +490,99 @@ void switchLab(uint8_t slot) {
     applyLab();
 }
 
+// The advanced settings on the card (RES-CFG-004): mixer, breathing and Lab.
+// `keptState` is the record last handed to the card; the settings are
+// compared with it once a second and written when they have stood changed
+// for a few seconds, so that holding a button down is one write.
+rc::AdvancedState keptState;
+rc::AdvancedState pendingState;
+bool stateDirty = false;
+uint32_t stateChangedMs = 0;
+const char* stateOutcome = "not read";
+
+rc::AdvancedState stateNow() {
+    rc::AdvancedState s;
+    for (uint8_t i = 0; i < rc::kStateLayers; ++i) s.layerOn[i] = advanced.layerOn[i];
+    s.toneLevel = advanced.toneLevel;
+    s.partialsLevel = advanced.partialsLevel;
+    s.partial[0] = advanced.partial[0];
+    s.partial[1] = advanced.partial[1];
+    s.fadeChoice = advanced.fadeChoice;
+    if (breathFromSession) {
+        // A pacer that a session started is the session's, not a setting.
+        s.breath = keptState.breath;
+        s.breathDepth = keptState.breathDepth;
+        s.breathOn = keptState.breathOn;
+    } else {
+        s.breath = advanced.breath;
+        s.breathDepth = advanced.breathDepth;
+        s.breathOn = advanced.breathOn;
+    }
+    s.lab[0] = advanced.lab[0];
+    s.lab[1] = advanced.lab[1];
+    s.labSlot = advanced.labSlot;
+    s.labMatch = advanced.labMatch;
+    return s;
+}
+
+// Hands the settings to the card. Whatever the outcome they are not offered
+// again until they change: a device without a card does not keep trying.
+void storeState() {
+    stateDirty = false;
+    keptState = stateNow();
+    if (!sdcard::info().mounted) stateOutcome = "not stored: no card";
+    else if (statestore::save(keptState)) stateOutcome = "stored";
+    else stateOutcome = statestore::error();
+    Serial.printf("STATE %s\n", stateOutcome);
+}
+
+void tickState() {
+    const rc::AdvancedState now = stateNow();
+    if (rc::sameState(now, keptState)) {
+        stateDirty = false;
+    } else if (!stateDirty || !rc::sameState(now, pendingState)) {
+        pendingState = now;
+        stateDirty = true;
+        stateChangedMs = millis();
+    } else if (millis() - stateChangedMs > kSaveDelayMs) {
+        storeState();
+    }
+}
+
+// Brings back what the card holds. Without a valid file nothing is touched:
+// the device starts as it does without these settings.
+void restoreState() {
+    rc::AdvancedState s;
+    if (!sdcard::info().mounted) {
+        stateOutcome = "no card";
+    } else if (!statestore::used()) {
+        stateOutcome = "nothing stored";
+    } else if (!statestore::load(s)) {
+        stateOutcome = statestore::error();
+    } else {
+        stateOutcome = "restored";
+        for (uint8_t i = 0; i < rc::kStateLayers; ++i) advanced.layerOn[i] = s.layerOn[i];
+        advanced.toneLevel = s.toneLevel;
+        advanced.partialsLevel = s.partialsLevel;
+        advanced.partial[0] = s.partial[0];
+        advanced.partial[1] = s.partial[1];
+        advanced.fadeChoice = s.fadeChoice;
+        advanced.breath = s.breath;
+        advanced.breathDepth = s.breathDepth;
+        advanced.lab[0] = s.lab[0];
+        advanced.lab[1] = s.lab[1];
+        advanced.labSlot = s.labSlot;
+        advanced.labMatch = s.labMatch;
+        applyMixer();
+        if (s.breathOn) setBreath(s.breath, s.breathDepth);
+        // The side being heard takes the device's frequencies, as it does
+        // whenever the Lab is applied.
+        applyLab();
+    }
+    Serial.printf("STATE %s\n", stateOutcome);
+    keptState = stateNow();
+}
+
 // Fills the slot list of the advanced screens: 0 = sessions, 1 = sequences.
 void readSlots(uint8_t kind) {
     for (uint8_t i = 0; i < gui::kSlotListMax; ++i) {
@@ -825,11 +918,14 @@ void runCommand(char* line) {
             Serial.println("LAYER ?");
         } else if (strcmp(what, "on") == 0 || strcmp(what, "off") == 0) {
             audio.setLayerEnabled(layer, what[1] == 'n');
+            advanced.layerOn[index] = what[1] == 'n';  // what the mixer screen shows and the card keeps
         } else if (strcmp(what, "level") == 0 && got == 3) {
             const uint8_t percent = static_cast<uint8_t>(clampPercent(static_cast<int>(value)));
             // Noise and recording levels are the ones the screens show.
             if (layer == rc::Layer::Noise) noiseVolume = percent;
             if (layer == rc::Layer::Voice) backgroundVolume = percent;
+            if (layer == rc::Layer::Tone) advanced.toneLevel = percent;
+            if (layer == rc::Layer::Partials) advanced.partialsLevel = percent;
             if (layer == rc::Layer::Noise) applyNoise();
             else audio.setLayerLevel(layer, percent);
         } else if (strcmp(what, "fade") == 0 && got == 3) {
@@ -902,6 +998,21 @@ void runCommand(char* line) {
             sessionstore::name(slot, name, sizeof(name));
             Serial.printf("USESSION slot %u: %s\n", static_cast<unsigned>(slot), name);
         }
+    } else if (strncmp(line, "state", 5) == 0 && (line[5] == '\0' || line[5] == ' ')) {
+        // state | state save | state clear: the advanced settings kept on the card
+        if (strcmp(line, "state save") == 0) {
+            storeState();
+        } else if (strcmp(line, "state clear") == 0) {
+            const bool removed = statestore::remove();
+            keptState = stateNow();
+            stateDirty = false;
+            stateOutcome = removed ? "file removed" : "nothing to remove";
+        }
+        char text[rc::kStateLineMax];
+        const rc::AdvancedState now = stateNow();
+        for (uint8_t i = 0; rc::stateLine(now, i, text, sizeof(text)); ++i) Serial.printf("STATE | %s\n", text);
+        Serial.printf("STATE %s%s, file %s\n", stateOutcome, stateDirty ? ", a change is waiting" : "",
+                      statestore::used() ? "on the card" : "not on the card");
     } else if (strcmp(line, "lab") == 0) {
         for (uint8_t i = 0; i < 2; ++i) {
             const gui::LabSide& side = advanced.lab[i];
@@ -1140,7 +1251,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | tap <x> <y> | ui | lab | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | breath | breath <in s> <hold s> <out s> <hold s> [depth] | breath off | seq | seq default | seq step <n> <Hz> <s> | seq remove <n> | seq glide <s> | seq beat <Hz> | seq save|load|delete <slot> | seq use | usession | usession breath <stage> <in ds> <hold ds> <out ds> <hold ds> <depth> | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | tap <x> <y> | ui | lab | state | state save | state clear | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | breath | breath <in s> <hold s> <out s> <hold s> [depth] | breath off | seq | seq default | seq step <n> <Hz> <s> | seq remove <n> | seq glide <s> | seq beat <Hz> | seq save|load|delete <slot> | seq use | usession | usession breath <stage> <in ds> <hold ds> <out ds> <hold ds> <depth> | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 
@@ -1196,6 +1307,8 @@ void setup() {
     } else {
         startRadio();
     }
+    restoreState();
+    printHeap("advanced settings");
 
     refreshStatus();
     printReport();
@@ -1423,6 +1536,7 @@ void loop() {
         loopsLastSecond = loopsThisSecond;
         loopsThisSecond = 0;
         wifilink::tick();
+        tickState();
         // Card sizes are re-read now and then, but never while a track plays.
         if (++statusTicks % 10 == 0 && player::state() != player::State::Playing) sdcard::refresh();
         refreshStatus();

@@ -4,6 +4,7 @@
 
 #include "rc_sequence.h"
 #include "rc_session_text.h"
+#include "rc_state.h"
 #include "sdcard.h"
 
 namespace {
@@ -13,13 +14,18 @@ const char* lastError = "";
 // The two kinds of file kept here.
 struct Kind {
     const char* format;  // path, taking the slot and the extension
-    uint8_t slots;
+    uint8_t slots;       // 0: a single file, whose path takes the extension only
     const char* empty;   // what to say of an empty slot
 };
 const Kind kSessions = {"/RESONANCE/SESSIONS/USER%02u.%s", sessionstore::kSlots, "no session stored here"};
 const Kind kSequences = {"/RESONANCE/SEQUENCE/SEQ%02u.%s", sequencestore::kSlots, "no sequence stored here"};
+const Kind kState = {"/RESONANCE/ADVANCED.%s", 0, "no settings stored"};
 
 bool pathOf(const Kind& kind, uint8_t slot, const char* extension, char* out, size_t capacity) {
+    if (kind.slots == 0) {
+        snprintf(out, capacity, kind.format, extension);
+        return true;
+    }
     if (slot < 1 || slot > kind.slots) return false;
     snprintf(out, capacity, kind.format, static_cast<unsigned>(slot), extension);
     return true;
@@ -168,3 +174,20 @@ bool save(uint8_t slot, const rc::Sequence& sequence) {
 }
 
 }  // namespace sequencestore
+
+namespace statestore {
+
+const char* error() { return lastError; }
+bool used() { return usedSlot(kState, 0); }
+bool remove() { return removeSlot(kState, 0); }
+
+bool load(rc::AdvancedState& out) {
+    return loadText<rc::AdvancedState, rc::StateParser, rc::kStateLineMax>(kState, 0, out);
+}
+
+bool save(const rc::AdvancedState& state) {
+    if (!rc::isValidState(state)) return (lastError = "values out of range"), false;
+    return saveText<rc::AdvancedState, rc::kStateLineMax>(kState, 0, state, rc::stateLine);
+}
+
+}  // namespace statestore

@@ -45,3 +45,4 @@ WORK-000040 | completed | Mindforge phase 3: layer mixer, guided voice, stage re
 WORK-000041 | completed | Mindforge phase 4: breathing pacer, frequency sequences | completed/WORK-000041-mindforge-phase-4-breathing-pacer-freque.md | RES-SESS-011, RES-SESS-012 | VER-000042
 WORK-000042 | completed | Mindforge phase 5: advanced screens | completed/WORK-000042-mindforge-phase-5-advanced-screens.md | RES-GUI-006 | VER-000043
 WORK-000043 | completed | Mindforge phase 6: Resonance Lab | completed/WORK-000043-mindforge-phase-6-resonance-lab.md | RES-AUDIO-017 | VER-000044
+WORK-000044 | completed | Advanced settings kept on the card | completed/WORK-000044-advanced-settings-kept-on-the-card.md | RES-CFG-004 | VER-000045

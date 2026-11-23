@@ -448,6 +448,20 @@ SHALL fall back to safe defaults when a file is corrupt or incomplete (§15).
 Audio SHALL NOT start by itself after boot, and loud audio SHALL NOT resume
 after an unexpected restart (§2.2, §17).
 
+### RES-CFG-004 — Advanced settings on the card
+
+The settings of the layer mixer (the four switches, the tone and partials
+levels, the two golden levels, the fade time), of the breathing pacer
+(pattern, depth, whether it runs) and of the Resonance Lab (both sides, the
+side being heard, loudness matching) SHALL be kept in one validated text file
+on the card, `/RESONANCE/ADVANCED.TXT`, written under the rules of
+RES-SESS-009 a few seconds after the last change, and SHALL be brought back
+at the next start. A pacer started by a session is not a setting and SHALL
+NOT be kept. Without a card, without a file, or with a file that validation
+refuses, the device SHALL start with all of these at rest, exactly as it does
+without this requirement, and SHALL not treat a missing card as an error.
+RES-CFG-003 stands: the audio itself stays off at start.
+
 ## Bluetooth
 
 ### RES-BT-001 — A2DP source

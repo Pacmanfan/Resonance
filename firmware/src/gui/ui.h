@@ -12,6 +12,7 @@
 #include "rc_pulse.h"
 #include "rc_repeat.h"
 #include "rc_settings.h"
+#include "rc_state.h"
 
 namespace gui {
 
@@ -65,19 +66,9 @@ constexpr float kFadeChoices[] = {0.05f, 0.5f, 1.0f, 2.0f, 5.0f, 10.0f};
 constexpr uint8_t kFadeChoiceCount = sizeof(kFadeChoices) / sizeof(kFadeChoices[0]);
 constexpr uint8_t kSlotListMax = 12;
 
-// One of the two settings the Lab compares. Frequencies and partial levels
-// are taken from the device when the side is left, and put back when it is
-// returned to; a primary frequency of 0 marks a side not used yet.
-struct LabSide {
-    float primaryHz = 0.0f;
-    float beatHz = 0.0f;
-    uint8_t partial[2] = {0, 0};
-    int16_t phaseL = 0;  // degrees, -180..180
-    int16_t phaseR = 0;
-    bool invertL = false;
-    bool invertR = false;
-    rc::LabSettings lab;
-};
+// One of the two settings the Lab compares (kept on the card: rc_state.h).
+using LabSide = rc::LabSide;
+static_assert(kFadeChoiceCount == rc::kMixerFadeChoices, "the stored fade choice indexes kFadeChoices");
 
 // What the advanced screens edit. Owned by the application; the interface
 // changes it and reports an event, as it does with the settings record.

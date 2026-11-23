@@ -435,7 +435,8 @@
       "WORK-000040",
       "WORK-000041",
       "WORK-000042",
-      "WORK-000043"
+      "WORK-000043",
+      "WORK-000044"
     ]
   },
   "follow_ups": [
@@ -667,6 +668,11 @@
     {
       "timestamp": "2026-11-23T03:06:09.461114+00:00",
       "text": "Mindforge feature integration, phase 6: Resonance Lab - stereo width, interaural delay, bilateral alternation with golden or even timing, phase and inversion controls, phase sweep, A/B comparison with loudness matching and no clicks; final integration.",
+      "attachments": []
+    },
+    {
+      "timestamp": "2026-11-23T05:18:04.641927+00:00",
+      "text": "Store the layer mixer, breathing and Resonance Lab settings on the card so that they are kept across a restart.",
       "attachments": []
     }
   ]
