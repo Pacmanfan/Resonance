@@ -8,6 +8,7 @@
 
 #include "display.h"
 #include "rc_edit.h"
+#include "rc_lab.h"
 #include "rc_pulse.h"
 #include "rc_repeat.h"
 #include "rc_settings.h"
@@ -53,6 +54,9 @@ enum class Event : uint8_t {
     SessionLoad,
     SequenceSave,
     SequenceLoad,
+    LabChanged,       // phase, inversion or a Lab control of the side being heard
+    LabSwitch,        // hear side eventArg() (0 = A, 1 = B)
+    LabSweep,         // sweep the right ear's phase through a full turn
     StageCapture,     // stage Advanced::stageIndex takes (or drops) what is set now: eventArg() 0 partials, 1 noise, 2 breathing, 3 recording
 };
 
@@ -60,6 +64,20 @@ enum class Event : uint8_t {
 constexpr float kFadeChoices[] = {0.05f, 0.5f, 1.0f, 2.0f, 5.0f, 10.0f};
 constexpr uint8_t kFadeChoiceCount = sizeof(kFadeChoices) / sizeof(kFadeChoices[0]);
 constexpr uint8_t kSlotListMax = 12;
+
+// One of the two settings the Lab compares. Frequencies and partial levels
+// are taken from the device when the side is left, and put back when it is
+// returned to; a primary frequency of 0 marks a side not used yet.
+struct LabSide {
+    float primaryHz = 0.0f;
+    float beatHz = 0.0f;
+    uint8_t partial[2] = {0, 0};
+    int16_t phaseL = 0;  // degrees, -180..180
+    int16_t phaseR = 0;
+    bool invertL = false;
+    bool invertR = false;
+    rc::LabSettings lab;
+};
 
 // What the advanced screens edit. Owned by the application; the interface
 // changes it and reports an event, as it does with the settings record.
@@ -75,6 +93,10 @@ struct Advanced {
     uint8_t breathDepth = 0;
     bool breathOn = false;
     float breathLevel = 0.0f;  // written on every pass of the main loop
+    // Resonance Lab.
+    LabSide lab[2];
+    uint8_t labSlot = 0;    // the side being heard and edited
+    bool labMatch = false;  // loudness matching between the sides
     // Session builder and sequence.
     rc::Session session = rc::newSession();
     rc::Sequence sequence = rc::defaultSequence();
@@ -175,7 +197,7 @@ private:
     static constexpr uint8_t kMaxButtons = 22;  // the FREQ tab has seventeen, the mixer screen twenty-one
 
     // Screens opened over a tab; None = the tab itself.
-    enum class Sub : uint8_t { None, Menu, Mixer, Breath, Builder, Stage, Slots, Sequence };
+    enum class Sub : uint8_t { None, Menu, Mixer, Breath, Builder, Stage, Slots, Sequence, Lab };
     void openSub(Sub sub);
     void backSub();
     const char* subTitle() const;
@@ -187,6 +209,7 @@ private:
     void drawStage();
     void drawSlots();
     void drawSequence();
+    void drawLab();
     void onAdvancedButton(uint8_t id);
     void animateBreath();
     void drawBreathBar(int16_t x, int16_t y, int16_t w, int16_t h, int16_t& shown);

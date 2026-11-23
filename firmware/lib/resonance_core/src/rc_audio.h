@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "rc_lab.h"
 #include "rc_noise.h"
 #include "rc_ring.h"
 #include "rc_tone.h"
@@ -46,6 +47,9 @@ public:
 
     // The tone layer: frequencies, its own volume, on/off.
     ToneEngine& tone() { return _tone; }
+
+    // The Resonance Lab, on tone, partials and noise (RES-AUDIO-017).
+    Lab& lab() { return _lab; }
 
     // A layer on or off, over the layer's fade time. A layer switched off
     // keeps its level, and - for the recording - goes on playing unheard.
@@ -113,6 +117,7 @@ private:
     ToneEngine _tone;
     FrameRing& _ring;
     NoiseGenerator _noise;
+    Lab _lab;
 
     std::atomic<float> _master;
     std::atomic<float> _sessionGain;

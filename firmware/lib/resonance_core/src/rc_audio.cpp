@@ -168,6 +168,7 @@ void AudioEngine::render(int16_t* out, size_t frames) {
         for (size_t i = got * 2; i < n * 2; ++i) background[i] = 0;
 
         const bool noiseOn = _noise.type() != NoiseType::Off;
+        const bool lab = _lab.begin(n);
         for (size_t i = 0; i < n; ++i) {
             const float bg = _bgRamp.next() * _bgGate.next() * (1.0f / 32768.0f);
             const float noise = noiseOn ? _noise.next() * _noiseRamp.next() : (_noiseRamp.next(), 0.0f);
@@ -179,10 +180,20 @@ void AudioEngine::render(int16_t* out, size_t frames) {
             // own channels.
             // The order of the sum is the one it always had.
             const float hush = noise * breath;
-            const float l = (static_cast<float>(out[2 * i]) * (1.0f / 32768.0f) * breath +
-                             static_cast<float>(background[2 * i]) * bg + hush) * master;
-            const float r = (static_cast<float>(out[2 * i + 1]) * (1.0f / 32768.0f) * breath +
-                             static_cast<float>(background[2 * i + 1]) * bg + hush) * master;
+            float l, r;
+            if (lab) {
+                // The Lab works on what is generated; the recording joins after it.
+                float gl = static_cast<float>(out[2 * i]) * (1.0f / 32768.0f) * breath + hush;
+                float gr = static_cast<float>(out[2 * i + 1]) * (1.0f / 32768.0f) * breath + hush;
+                _lab.process(gl, gr);
+                l = (gl + static_cast<float>(background[2 * i]) * bg) * master;
+                r = (gr + static_cast<float>(background[2 * i + 1]) * bg) * master;
+            } else {
+                l = (static_cast<float>(out[2 * i]) * (1.0f / 32768.0f) * breath +
+                     static_cast<float>(background[2 * i]) * bg + hush) * master;
+                r = (static_cast<float>(out[2 * i + 1]) * (1.0f / 32768.0f) * breath +
+                     static_cast<float>(background[2 * i + 1]) * bg + hush) * master;
+            }
             out[2 * i] = static_cast<int16_t>(lrintf(limit(l) * 32767.0f));
             out[2 * i + 1] = static_cast<int16_t>(lrintf(limit(r) * 32767.0f));
         }

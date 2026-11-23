@@ -75,6 +75,7 @@ const char* Ui::subTitle() const {
         case Sub::Stage: return "STAGE";
         case Sub::Slots: return _slotSave ? "SAVE TO" : "LOAD FROM";
         case Sub::Sequence: return "SEQUENCE";
+        case Sub::Lab: return "RESONANCE LAB";
         default: return "ADVANCED";
     }
 }
@@ -92,6 +93,7 @@ void Ui::drawAdvanced() {
         case Sub::Stage: drawStage(); break;
         case Sub::Slots: drawSlots(); break;
         case Sub::Sequence: drawSequence(); break;
+        case Sub::Lab: drawLab(); break;
         default: break;
     }
 }
@@ -126,11 +128,10 @@ void Ui::row(int16_t y, const char* name, const char* value, uint8_t idMinus, ui
 // ---- screens ---------------------------------------------------------------
 
 void Ui::drawMenu() {
-    static const char* const kEntries[] = {"LAYER MIXER", "BREATHING", "SESSION BUILDER", "SEQUENCE"};
-    for (uint8_t i = 0; i < 4; ++i) {
-        addButton(8, static_cast<int16_t>(kTop + 10 + i * 46), 224, 40, kEntries[i], static_cast<uint8_t>(kAction + i));
+    static const char* const kEntries[] = {"LAYER MIXER", "BREATHING", "SESSION BUILDER", "SEQUENCE", "RESONANCE LAB"};
+    for (uint8_t i = 0; i < 5; ++i) {
+        addButton(8, static_cast<int16_t>(kTop + 8 + i * 46), 224, 40, kEntries[i], static_cast<uint8_t>(kAction + i));
     }
-    label("Tap the title to go back.", 12, kTop + 200, kTextDim, kFontSmall);
 }
 
 void Ui::drawMixer() {
@@ -326,6 +327,48 @@ void Ui::drawSequence() {
     row(kTop + 98, "Glide", text, kAdjust + 8, kAdjust + 9);
 }
 
+// One screen: the two sides and their matching on top, then width, delay,
+// the phase of each ear, inversion and sweep, and the alternation.
+void Ui::drawLab() {
+    char text[20];
+    LabSide& side = _adv.lab[_adv.labSlot < 2 ? _adv.labSlot : 0];
+    snprintf(_advLabel[0], sizeof(_advLabel[0]), "%s", _adv.labSlot == 0 ? "(A)" : "A");
+    snprintf(_advLabel[1], sizeof(_advLabel[1]), "%s", _adv.labSlot == 1 ? "(B)" : "B");
+    snprintf(_advLabel[2], sizeof(_advLabel[2]), "MATCH %s", _adv.labMatch ? "on" : "off");
+    snprintf(_advLabel[3], sizeof(_advLabel[3]), "INV L %s", side.invertL ? "on" : "off");
+    snprintf(_advLabel[4], sizeof(_advLabel[4]), "INV R %s", side.invertR ? "on" : "off");
+    snprintf(_advLabel[5], sizeof(_advLabel[5]), "%s", side.lab.bilateralGolden ? "GOLDEN" : "EVEN");
+    if (!_valuesOnly) {
+        addButton(8, kTop + 1, 52, 28, _advLabel[0], kAction);
+        addButton(64, kTop + 1, 52, 28, _advLabel[1], kAction + 1);
+        addButton(120, kTop + 1, 112, 28, _advLabel[2], kAction + 2);
+        addButton(8, kTop + 151, 72, 28, _advLabel[3], kAction + 3);
+        addButton(84, kTop + 151, 72, 28, _advLabel[4], kAction + 4);
+        addButton(160, kTop + 151, 72, 28, "SWEEP", kAction + 5);
+        addButton(4, kTop + 181, 80, 28, _advLabel[5], kAction + 6);
+    } else {
+        for (uint8_t i = 0; i < 7; ++i) {
+            if (i != 5) redrawButton(static_cast<uint8_t>(kAction + i));
+        }
+    }
+    snprintf(text, sizeof(text), "%u%%", static_cast<unsigned>(side.lab.widthPercent));
+    row(kTop + 31, "Width", text, kAdjust, kAdjust + 1);
+    // Which ear hears later, and by how many microseconds.
+    if (side.lab.delayUs == 0) snprintf(text, sizeof(text), "none");
+    else snprintf(text, sizeof(text), "%c %d", side.lab.delayUs > 0 ? 'R' : 'L', abs(side.lab.delayUs));
+    row(kTop + 61, "Delay us", text, kAdjust + 2, kAdjust + 3);
+    snprintf(text, sizeof(text), "%d", static_cast<int>(side.phaseL));
+    row(kTop + 91, "Phase L", text, kAdjust + 4, kAdjust + 5);
+    snprintf(text, sizeof(text), "%d", static_cast<int>(side.phaseR));
+    row(kTop + 121, "Phase R", text, kAdjust + 6, kAdjust + 7);
+    // The alternation between the ears: its period, and below it its depth.
+    if (side.lab.bilateralPeriodDs == 0) snprintf(text, sizeof(text), "off");
+    else snprintf(text, sizeof(text), "%u.%u s", side.lab.bilateralPeriodDs / 10u, side.lab.bilateralPeriodDs % 10u);
+    row(kTop + 181, nullptr, text, kAdjust + 8, kAdjust + 9);
+    snprintf(text, sizeof(text), "%u%%", static_cast<unsigned>(side.lab.bilateralDepth));
+    row(kTop + 211, "Depth", text, kAdjust + 10, kAdjust + 11);
+}
+
 // ---- input -----------------------------------------------------------------
 
 void Ui::onAdvancedButton(uint8_t id) {
@@ -338,6 +381,7 @@ void Ui::onAdvancedButton(uint8_t id) {
             else if (n == 1) openSub(Sub::Breath);
             else if (n == 2) openSub(Sub::Builder);
             else if (n == 3) openSub(Sub::Sequence);
+            else if (n == 4) openSub(Sub::Lab);
             return;
 
         case Sub::Mixer:
@@ -460,6 +504,50 @@ void Ui::onAdvancedButton(uint8_t id) {
             _sub = _slotKind == 0 ? Sub::Builder : Sub::Sequence;
             _slotArmed = 0xFF;
             drawHeader();
+            return;
+        }
+
+        case Sub::Lab: {
+            LabSide& side = _adv.lab[_adv.labSlot < 2 ? _adv.labSlot : 0];
+            rc::LabSettings& lab = side.lab;
+            _pending = Event::LabChanged;
+            if (!adjust) {
+                if (n < 2) {
+                    if (n == _adv.labSlot) { _pending = Event::None; return; }
+                    _eventArg = n;
+                    _pending = Event::LabSwitch;  // the application redraws once the side is in place
+                    return;
+                }
+                if (n == 2) _adv.labMatch = !_adv.labMatch;
+                else if (n == 3) side.invertL = !side.invertL;
+                else if (n == 4) side.invertR = !side.invertR;
+                else if (n == 5) _pending = Event::LabSweep;
+                else lab.bilateralGolden = !lab.bilateralGolden;
+            } else if (n / 2 == 0) {
+                lab.widthPercent = stepped(lab.widthPercent, 5 * direction, 0, 100);
+            } else if (n / 2 == 1) {
+                int next = lab.delayUs + direction * rc::kLabDelayStepUs;
+                if (next > rc::kLabDelayMaxUs) next = rc::kLabDelayMaxUs;
+                if (next < -rc::kLabDelayMaxUs) next = -rc::kLabDelayMaxUs;
+                lab.delayUs = static_cast<int16_t>(next);
+            } else if (n / 2 == 2 || n / 2 == 3) {
+                int16_t& phase = n / 2 == 2 ? side.phaseL : side.phaseR;
+                int next = phase + 15 * direction;
+                if (next > 180) next -= 360;
+                if (next < -180) next += 360;
+                phase = static_cast<int16_t>(next);
+            } else if (n / 2 == 4) {
+                // Off, then half-second steps, coarser as the period grows.
+                const uint16_t now = lab.bilateralPeriodDs;
+                const uint16_t step = now < 50 ? 5 : (now < 200 ? 10 : 50);
+                int next = direction > 0 ? now + step : static_cast<int>(now) - (now <= 50 ? 5 : (now <= 200 ? 10 : 50));
+                if (next < rc::kBilateralMinDs) next = direction > 0 ? rc::kBilateralMinDs : 0;
+                if (next > rc::kBilateralMaxDs) next = rc::kBilateralMaxDs;
+                lab.bilateralPeriodDs = static_cast<uint16_t>(next);
+            } else {
+                lab.bilateralDepth = stepped(lab.bilateralDepth, 5 * direction, 0, 100);
+            }
+            redrawValues();
             return;
         }
 

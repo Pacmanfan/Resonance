@@ -152,7 +152,7 @@ as it is; everything here is off until asked for.
 | 3 | Audio layers: four mixer layers (tone, partials, noise, recording) with enable, level and fade; fade-in, fade-out and fade-through of the recording; a session stage that names a recording (RES-AUDIO-016, RES-PLAY-007, RES-SESS-010) | **Built (0.9.2, WORK-000040).** Host tests pass. On the board with a headset connected: recordings heard by the operator, no underrun or long gap in any state, lowest free data memory 22.2 kB (limit 16 kB), table below. One decoder: a recording gives way to the next through a fade-out and a fade-in, not an overlap. Layer settings are not stored across a restart yet (phase 5). User sessions stored and loaded on a card (open from phase 2: now verified). Fades not yet judged by ear. Reached over the serial port only (`layer ...`, `voice fade ...`, `noise ...`, `usession voice ...`) |
 | 4 | Breathing pacer (inhale, exhale, optional holds; optional modulation of tone and noise; standalone or set by a session stage) and frequency sequences (Solfeggio set as an editable default, stored on the card, turned into sessions) (RES-SESS-011, RES-SESS-012) | **Built (0.9.3, WORK-000041).** Host tests pass (145 cases). On the board: the pacer steps through its parts on time; a sequence was changed, stored, loaded and deleted on a card and turned into a session; tone and noise with the modulation at 60 % streamed at 44.1 kHz without underrun or long gap, free data memory unchanged. Not yet judged by ear. Reached over the serial port only (`breath ...`, `seq ...`, `usession breath ...`) |
 | 5 | Screens: one ADVANCED entry on SET (and BUILD on SESS) leading to layer mixer, breathing, session builder with stage editor and slot list, and sequence; breathing bar on Home (RES-GUI-006) | **Built (0.9.4, WORK-000042).** The edits are functions of the portable core that cannot make an invalid session (host tests, 153 cases in all). On the board every screen was walked by injected presses (`tap`, `ui` over the serial port): no button overlaps another or leaves the content area, no label is too wide; a session was made, edited, reordered, stored, loaded and started, a sequence changed and stored, layers switched, the pacer started. **Not yet seen or touched by a person: looks, legibility and touch comfort are unverified.** Mixer and pacer settings are deliberately not kept across a restart: the device starts as the plain binaural device |
-| 6 | Resonance Lab: bilateral timing, stereo width, interaural delay, A/B | Not started |
+| 6 | Resonance Lab on the generated sound: stereo width, interaural delay, bilateral alternation with golden or even timing, phase, inversion and sweep, two settings A and B with A-weighted loudness matching (RES-AUDIO-017) | **Built (0.9.5, WORK-000043).** Host tests pass (163 cases in all); at rest the Lab is not in the signal path. On the board the Lab screen was walked by injected presses and both sides, matching and switching behaved; render cost below. **Not heard by anyone, and no stream statistics with the Lab active: no headset was connected at the time.** Lab settings are not kept across a restart |
 
 Render cost measured on the board (`bench audio`, one second of audio in
 blocks of 128 frames, no Bluetooth device connected, 2026-11-22):
@@ -163,6 +163,11 @@ blocks of 128 frames, no Bluetooth device connected, 2026-11-22):
 | + partial φ at 100 % | 22.5 % | 0.66 ms |
 | + partial φ² at 100 % | 25.5 % | 0.74 ms |
 | + a phase sweep running | 25.9 % | 0.75 ms |
+
+With the Lab (0.9.5, same method): tone with width, delay and alternation
+26.0 %; the same with a phase sweep 29.5 %; everything at once - tone, both
+partials, pink noise, breathing modulation, Lab - 38.3 % of one core, worst
+block 1.17 ms. The Lab allocates nothing.
 
 A block of 128 frames is 2.9 ms of audio. Phase 1 allocates nothing: data
 memory free in Play mode without a connection is 96 kB, as before.

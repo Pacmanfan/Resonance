@@ -258,6 +258,27 @@ layers' levels. The master volume, the session level and the limiter SHALL
 apply to the sum as before. With every layer enabled at its default level the
 output SHALL be the same as without the mixer (brief §3.F).
 
+### RES-AUDIO-017 — Resonance Lab
+
+For experiments the device SHALL offer, on the generated sound (tone,
+partials and noise; never a recording):
+
+* stereo width from 0 % (both ears hear the same) to 100 % (as generated);
+* an interaural delay of up to 2000 microseconds for either ear, in steps of
+  50, changed by a glide;
+* a bilateral alternation of level between the ears with a period of 0.5 to
+  60 s and a depth of 0 to 100 %, the time on the two sides being equal or in
+  the golden ratio, with smooth crossings;
+* the channel phase, inversion and phase sweep of RES-AUDIO-013 and -015.
+
+Two settings, A and B - frequencies, partial levels, phase, inversion and the
+controls above - SHALL be kept and switched between without a step in the
+output. With loudness matching on, the louder of the two SHALL be turned down
+so that both have the same A-weighted level; neither SHALL ever be turned up.
+With every control at rest the output SHALL be sample for sample that without
+the Lab. The Lab SHALL be one screen behind the ADVANCED entry. Nothing SHALL
+be claimed for any of its settings (brief §3.H, RES-PROC-006).
+
 ### RES-PLAY-007 — Fades of the recording layer
 
 A recording SHALL start with a fade-in and stop with a fade-out of

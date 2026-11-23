@@ -1,0 +1,62 @@
+{
+ "work": "WORK-000043",
+ "runs": [
+  {
+   "at": "2026-11-23T03:15:22.206905+00:00",
+   "verdict": "PASS",
+   "gate_version": 3,
+   "work": "WORK-000043",
+   "request": "2026-11-17-resonance-complete-project-dev-req-chat-20261117-001.md",
+   "request_id": "REQ-CHAT-20261117-001",
+   "request_fingerprint": "bed82f73fed82ea25c949a44f7c5caa5e1ca5aa5a93c8eafa8397a7d1f78fc06",
+   "request_code_paths": [
+    "firmware/lib/resonance_core/src/rc_audio.cpp",
+    "firmware/lib/resonance_core/src/rc_audio.h",
+    "firmware/lib/resonance_core/src/rc_breath.cpp",
+    "firmware/lib/resonance_core/src/rc_breath.h",
+    "firmware/lib/resonance_core/src/rc_edit.cpp",
+    "firmware/lib/resonance_core/src/rc_edit.h",
+    "firmware/lib/resonance_core/src/rc_lab.cpp",
+    "firmware/lib/resonance_core/src/rc_lab.h",
+    "firmware/lib/resonance_core/src/rc_sequence.cpp",
+    "firmware/lib/resonance_core/src/rc_sequence.h",
+    "firmware/lib/resonance_core/src/rc_session.cpp",
+    "firmware/lib/resonance_core/src/rc_session.h",
+    "firmware/lib/resonance_core/src/rc_session_text.cpp",
+    "firmware/lib/resonance_core/src/rc_session_text.h",
+    "firmware/lib/resonance_core/src/rc_tone.cpp",
+    "firmware/lib/resonance_core/src/rc_tone.h",
+    "firmware/src/audio/player.cpp",
+    "firmware/src/audio/player.h",
+    "firmware/src/gui/ui.cpp",
+    "firmware/src/gui/ui.h",
+    "firmware/src/gui/ui_advanced.cpp",
+    "firmware/src/main.cpp",
+    "firmware/src/storage/sdcard.cpp",
+    "firmware/src/storage/session_store.cpp",
+    "firmware/src/storage/session_store.h",
+    "firmware/src/version.h",
+    "firmware/tests/test_audio.cpp",
+    "firmware/tests/test_breath.cpp",
+    "firmware/tests/test_edit.cpp",
+    "firmware/tests/test_lab.cpp",
+    "firmware/tests/test_sequence.cpp",
+    "firmware/tests/test_session.cpp",
+    "firmware/tests/test_session_text.cpp",
+    "firmware/tests/test_tone.cpp",
+    "scripts/test_manifest.json"
+   ],
+   "test_runs": [
+    "20261122T221419-3257758"
+   ],
+   "evidence": [
+    "VER-000044"
+   ],
+   "head": "1f017f792197279f81879d08a84688488c5c405a",
+   "agent_id": "agent-dev-20261117205050-9ef7a9",
+   "fails": [],
+   "warns": [],
+   "passes": 13
+  }
+ ]
+}

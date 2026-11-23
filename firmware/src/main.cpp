@@ -426,6 +426,70 @@ void applyMixer() {
     player::setFades(fade, fade);
 }
 
+// The level of a mixer layer as a gain, for the loudness estimate.
+float layerGain(bool on, uint8_t percent) {
+    const float f = static_cast<float>(percent) * 0.01f;
+    return on ? f * f : 0.0f;
+}
+
+rc::LabVoice labVoice(const gui::LabSide& side) {
+    rc::LabVoice voice;
+    voice.primaryHz = side.primaryHz;
+    voice.beatHz = side.beatHz;
+    voice.toneGain = layerGain(advanced.layerOn[0], advanced.toneLevel);
+    voice.partialsGain = layerGain(advanced.layerOn[1], advanced.partialsLevel);
+    voice.partial[0] = side.partial[0];
+    voice.partial[1] = side.partial[1];
+    voice.lab = side.lab;
+    return voice;
+}
+
+bool labSweepTurn = false;  // the right ear's phase stands a full turn ahead after a sweep
+
+// Applies the Lab side being heard: phase, inversion, the Lab controls, and
+// - with matching on - the trim that makes it as loud as the other side.
+void applyLab(float phaseSeconds = rc::kPhaseGlideS) {
+    gui::LabSide& side = advanced.lab[advanced.labSlot < 2 ? advanced.labSlot : 0];
+    // What is heard now is this side's frequencies and partials.
+    side.primaryHz = settings.primaryHz;
+    side.beatHz = settings.beatHz;
+    side.partial[0] = partialPercent[0];
+    side.partial[1] = partialPercent[1];
+    audio.tone().setPhase(side.phaseL, static_cast<float>(side.phaseR) + (labSweepTurn ? 360.0f : 0.0f), phaseSeconds);
+    audio.tone().setInverted(side.invertL, side.invertR);
+    audio.lab().set(side.lab);
+    float trim = 1.0f;
+    const gui::LabSide& other = advanced.lab[advanced.labSlot == 0 ? 1 : 0];
+    if (advanced.labMatch && other.primaryHz != 0.0f) {
+        float mine = 1.0f, theirs = 1.0f;
+        rc::matchLoudness(labVoice(side), labVoice(other), mine, theirs);
+        trim = mine;
+    }
+    audio.lab().setTrim(trim);
+}
+
+// Leaves the side being heard and brings in the other, through the engine's
+// glides and ramps: no step. A side not used yet starts as a copy.
+void switchLab(uint8_t slot) {
+    if (slot > 1 || slot == advanced.labSlot) return;
+    gui::LabSide& from = advanced.lab[advanced.labSlot];
+    from.primaryHz = settings.primaryHz;
+    from.beatHz = settings.beatHz;
+    from.partial[0] = partialPercent[0];
+    from.partial[1] = partialPercent[1];
+    gui::LabSide& to = advanced.lab[slot];
+    if (to.primaryHz == 0.0f) to = from;
+    advanced.labSlot = slot;
+    settings.primaryHz = to.primaryHz;
+    settings.beatHz = to.beatHz;
+    audio.tone().setFrequencies(settings.primaryHz, settings.beatHz);
+    for (uint8_t i = 0; i < 2; ++i) {
+        partialPercent[i] = to.partial[i];
+        audio.tone().setPartial(i, partialPercent[i]);
+    }
+    applyLab();
+}
+
 // Fills the slot list of the advanced screens: 0 = sessions, 1 = sequences.
 void readSlots(uint8_t kind) {
     for (uint8_t i = 0; i < gui::kSlotListMax; ++i) {
@@ -838,6 +902,19 @@ void runCommand(char* line) {
             sessionstore::name(slot, name, sizeof(name));
             Serial.printf("USESSION slot %u: %s\n", static_cast<unsigned>(slot), name);
         }
+    } else if (strcmp(line, "lab") == 0) {
+        for (uint8_t i = 0; i < 2; ++i) {
+            const gui::LabSide& side = advanced.lab[i];
+            Serial.printf("LAB %c%s %.1f + %.1f Hz, golden %u/%u, phase %d/%d, invert %d/%d, width %u, delay %d us, bilateral %u ds depth %u %s, loudness %.4f\n",
+                          'A' + i, i == advanced.labSlot ? "*" : " ", static_cast<double>(side.primaryHz),
+                          static_cast<double>(side.beatHz), side.partial[0], side.partial[1], side.phaseL, side.phaseR,
+                          side.invertL, side.invertR, side.lab.widthPercent, side.lab.delayUs, side.lab.bilateralPeriodDs,
+                          side.lab.bilateralDepth, side.lab.bilateralGolden ? "golden" : "even",
+                          static_cast<double>(rc::labLoudness(labVoice(side))));
+        }
+        Serial.printf("LAB match %s, phase now L %.1f R %.1f\n", advanced.labMatch ? "on" : "off",
+                      static_cast<double>(audio.tone().phaseDegrees(rc::Channel::Left)),
+                      static_cast<double>(audio.tone().phaseDegrees(rc::Channel::Right)));
     } else if (strncmp(line, "tap ", 4) == 0) {
         // tap <x> <y>: as if the screen had been touched there
         int x = 0, y = 0;
@@ -1063,7 +1140,7 @@ void runCommand(char* line) {
         Serial.printf("WIFI network '%s' stored %s; applies at the next start in setup mode\n", settings.wifiSsid,
                       storage::save(settings) ? "ok" : "FAILED");
     } else if (line[0] != '\0') {
-        Serial.println("commands: report | heap | tap <x> <y> | ui | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | breath | breath <in s> <hold s> <out s> <hold s> [depth] | breath off | seq | seq default | seq step <n> <Hz> <s> | seq remove <n> | seq glide <s> | seq beat <Hz> | seq save|load|delete <slot> | seq use | usession | usession breath <stage> <in ds> <hold ds> <out ds> <hold ds> <depth> | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
+        Serial.println("commands: report | heap | tap <x> <y> | ui | lab | caps | bench | bench audio | tone | tone phase <L> <R> [s] | tone invert <L> <R> | tone partial <1|2> <percent> | sweep lin|exp <fromP> <toP> <fromB> <toB> <s> | descent lin|exp <startB> <trans s> <hold s> <B1> [B2..] | breath | breath <in s> <hold s> <out s> <hold s> [depth] | breath off | seq | seq default | seq step <n> <Hz> <s> | seq remove <n> | seq glide <s> | seq beat <Hz> | seq save|load|delete <slot> | seq use | usession | usession breath <stage> <in ds> <hold ds> <out ds> <hold ds> <depth> | usession voice <stage> <percent> [path] | usession run | layer | layer <tone|partials|noise|voice> on|off|level <n>|fade <s> | voice fade <in s> <out s> | noise off|white|pink|brown [percent] | usession save|load|delete <slot> | scan | radio | mktest | put <path> <bytes> | play <path> | pause | resume | player | stop | session | session start <n> | session stop | bt | bt connect <n> | volume <n> | audio on | audio off | mode play | mode setup | wifi <ssid> <password> | wifi clear");
     }
 }
 
@@ -1267,6 +1344,20 @@ void loop() {
             screen().refreshAdvanced();
             break;
         }
+        case gui::Event::LabChanged:
+            applyLab();
+            break;
+        case gui::Event::LabSwitch:
+            switchLab(screen().eventArg());
+            screen().refreshAdvanced();
+            refreshStatus();
+            break;
+        case gui::Event::LabSweep:
+            // A full turn of the right ear's phase in thirty seconds, forwards
+            // and, the next time, back: the offset never piles up.
+            labSweepTurn = !labSweepTurn;
+            applyLab(30.0f);
+            break;
         case gui::Event::StageCapture:
             captureStage(screen().eventArg());
             screen().refreshAdvanced();
