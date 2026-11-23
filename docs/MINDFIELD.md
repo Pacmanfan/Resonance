@@ -182,6 +182,16 @@ test cases with synthetic data of known answers), `firmware/src/mind/` and
 | External RNG | External hardware | Not available: none fitted. The class is a placeholder | — |
 | Software PRNG | Software control | Available, always labelled a control. xoshiro128** from a recorded seed | 20 s at 1000 samples/s, seed 777: z −0.87; replay from the card gives the same numbers |
 
+A first longer baseline (experiment 16, 2026-11-23, hardware generator,
+1000 samples a second for ten minutes, a session started, no headset):
+600 000 of 600 000 samples, no gap; proportion of ones 0.4999533 (95 %
+interval 0.49973 to 0.50018), z −0.41; runs z 0.43; bytes z −0.86; lag
+scores −0.44, −2.09, −1.65, −1.17; 600 windows with 35 beyond 1.96 where 30
+are expected, the largest 3.75 against a corrected threshold of 3.93; window
+variance 1.14 where 1 is expected. Nothing here is outside chance, but the
+window variance and the lag-2 score are the figures to watch in longer
+baselines. One run is not a characterisation of the source.
+
 Not established: the hardware generator's behaviour over long runs, its
 independence at 1000 samples a second beyond these short tests, and any
 effect of the Bluetooth stack's own use of it. Long baseline runs are the

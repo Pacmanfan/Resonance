@@ -239,6 +239,58 @@ Render cost without a connection (`bench audio`): tone alone 16.9 %, tone +
 both partials + pink noise 29.0 % of one core (worst block 0.85 ms). The
 mixer allocates nothing.
 
+## Master development directive (owner, 2026-11-23) — development log
+
+Ticket REQ-CHAT-20261123-001. The directive names 0.8.2 as its baseline; the
+repository stood at 0.10.0 when it arrived, with its audio phases already
+built. State by phase:
+
+| Phase | Content | State |
+|---|---|---|
+| 1 | Repository, GPL-3.0, removal of the Setup mode | **Done** in 0.10.0 (WORK-000045), pushed to GitHub |
+| 2 | Random-number sources | **Built (0.11.0, WORK-000046).** Hardware generator offered only while the Bluetooth controller is on; timing jitter built and measured as correlated, so marked not for experiments; internal ADC reads a fixed 0 on this board and reports itself unavailable; noise input and external generator not fitted and shown as such; software control source |
+| 3 | Collection and statistics | **Built (0.11.0).** Fixed 1 ms-tick schedule, raw binary file with gaps, pauses, totals and checksum, recovery of interrupted files, summary text, table export, statistics engine with corrected window threshold and baseline comparison |
+| 4 | Orb, Balance, Tree, Mandala, replay | **Built (0.12.0, WORK-000047)** |
+| 5 | River, Labyrinth, Waterfall, Star, Flame, Vortex, Pendulum, Lotus | **Built (0.12.0)** |
+| 6 | Phase, inversion, golden partials, sweeps | **Built earlier** (0.9.0, WORK-000038); not heard by anyone |
+| 7 | Sessions, mixer, guided audio, breathing, sequences | **Built earlier** (0.9.1–0.9.4, 0.9.6) |
+| 8 | Resonance Lab | **Built earlier** (0.9.5) |
+| 9 | Integration: Mindfield with audio, SD and display together; memory profile; long runs | **Partly.** Collection with pictures at 1000 samples/s: no lost sample, heap 80 kB at the lowest. A ten-minute run is recorded below. **Not done: anything with a Bluetooth headset connected** - the memory table of the directive's section 42 for MP3 with Mindfield, and stream statistics while collecting |
+| 10 | Public release | **Done** for 0.10.0; 0.11.0 and 0.12.0 pushed. GitHub Release page and social preview are manual steps for the owner |
+
+Deviations from the directive, and why:
+
+- **Navigation:** MINDFIELD is a second entry on the SET tab beside ADVANCED,
+  not a sixth tab: five tabs fill the bar. ADVANCED was not renamed STUDIO.
+- **Targets** are "more ones" and "more zeros". A favoured category among
+  several is not built.
+- **Condition order** is chosen by hand and recorded; no randomised or
+  counterbalanced scheduling.
+- **No deletion** of experiments on the device.
+- **Raw export as text** is not built; the binary format is documented and
+  the table export holds the summaries.
+- **Start time:** the board has no clock, so a file records the time since
+  start, not the date.
+
+Measurements (board on USB, no headset):
+
+| | Free heap | Lowest |
+|---|---|---|
+| Idle, Bluetooth started, 0.12.0 | 94.7 kB | 93.6 kB |
+| Collecting at 1000 samples/s, recording, picture drawn | about 81 kB | 80.1 kB |
+
+Audio render benchmark unchanged by Mindfield: 18.1 % of a core for the tone.
+
+A first longer baseline (experiment 16, 2026-11-23, hardware generator,
+1000 samples a second for ten minutes, a session started, no headset):
+600 000 of 600 000 samples, no gap; proportion of ones 0.4999533 (95 %
+interval 0.49973 to 0.50018), z −0.41; runs z 0.43; bytes z −0.86; lag
+scores −0.44, −2.09, −1.65, −1.17; 600 windows with 35 beyond 1.96 where 30
+are expected, the largest 3.75 against a corrected threshold of 3.93; window
+variance 1.14 where 1 is expected. Nothing here is outside chance, but the
+window variance and the lag-2 score are the figures to watch in longer
+baselines. One run is not a characterisation of the source.
+
 ## Reported limitations
 
 Per RES-PROC-005. Each follows from a decision or a measurement, and none is
