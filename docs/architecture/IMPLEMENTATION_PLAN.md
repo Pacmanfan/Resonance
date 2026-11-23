@@ -281,6 +281,27 @@ Measurements (board on USB, no headset):
 
 Audio render benchmark unchanged by Mindfield: 18.1 % of a core for the tone.
 
+With a headset connected over Bluetooth (0.12.0, 2026-11-23, about six
+seconds in each state; "lowest" is the lowest free heap since start up to
+that state):
+
+| State | Free heap | Lowest | Stream |
+|---|---|---|---|
+| Connected, audio off | 87.8 kB | 77.1 kB | no long gap, no underrun |
+| Tone | 83.1 kB | 77.1 kB | 44.1 kHz, no long gap, no underrun |
+| Tone and pink noise | 87.5 kB | 77.1 kB | the same |
+| MP3 alone (tone layer off) | 36.7 kB | 27.6 kB | the same |
+| MP3 and tone | 36.7 kB | 27.6 kB | the same |
+| MP3, tone, both partials, pink noise, breathing at 40 % | 36.7 kB | 27.6 kB | the same; worst block 2.2 ms |
+| The same with a Mindfield experiment at 100 samples/s and its picture (started on the touchscreen by the owner) | 32.1 kB | 27.5 kB | no long gap; no sample lost |
+
+The limit of 16 kB during MP3 playback is kept in every state measured. Two
+recording-layer underruns were counted in the last state while tracks were
+being changed and experiments started and stopped by hand at the same time;
+whether collecting contributed is **not established**. **Still not measured:
+Mindfield at 1000 samples a second together with an MP3, in a controlled
+run.**
+
 A first longer baseline (experiment 16, 2026-11-23, hardware generator,
 1000 samples a second for ten minutes, a session started, no headset):
 600 000 of 600 000 samples, no gap; proportion of ones 0.4999533 (95 %
