@@ -1,0 +1,28 @@
+{
+ "work": "WORK-000050",
+ "runs": [
+  {
+   "at": "2026-11-24T02:46:48.093115+00:00",
+   "verdict": "PASS",
+   "gate_version": 3,
+   "work": "WORK-000050",
+   "request": "2026-11-23-resonance-master-development-d-req-chat-20261123-001.md",
+   "request_id": "REQ-CHAT-20261123-001",
+   "request_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "request_code_paths": [],
+   "test_runs": [
+    "20261123T214637-2158837"
+   ],
+   "evidence": [
+    "VER-000051"
+   ],
+   "head": "450d9666a68717fe0d3b23bd7d8ecfad380a8ac4",
+   "agent_id": "agent-dev-20261117205050-9ef7a9",
+   "fails": [],
+   "warns": [
+    "4 unowned change(s) in the tree (not this request's; never committed by it)"
+   ],
+   "passes": 14
+  }
+ ]
+}

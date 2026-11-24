@@ -51,3 +51,4 @@ WORK-000046 | completed | Mindfield: random sources, raw collection, statistics 
 WORK-000047 | completed | Mindfield: screens, pictures, replay | completed/WORK-000047-mindfield-screens-pictures-replay.md | RES-MIND-005, RES-MIND-006 | VER-000048
 WORK-000048 | completed | Help pages, ADV tab, no off-screen text, Done stops sound | completed/WORK-000048-help-pages-adv-tab-no-off-screen-text-do.md | RES-GUI-007 | VER-000049
 WORK-000049 | completed | Header help button, left title on Frequency, no card free-space line | completed/WORK-000049-header-help-button-left-title-on-frequen.md | RES-GUI-007 | VER-000050
+WORK-000050 | completed | README presents the finished project | completed/WORK-000050-readme-presents-the-finished-project.md | RES-PROC-006 | VER-000051

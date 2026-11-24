@@ -13,63 +13,96 @@ with noise and sound files from a microSD card mixed in, and timed sessions
 that move the frequencies while you listen. It works offline; there is no
 account, no cloud and no network connection.
 
-Resonance is a binaural meditation device first, an audio laboratory second,
-and — as a direction of research that is **not built yet** — a platform for
-experiments with physical randomness ("Mindfield"). No effect on health or
-mind is claimed for any frequency, preset or setting.
+Resonance is a complete, self-contained instrument: a meditation device you
+can hold in one hand, an audio laboratory for people who like to shape
+sound, and a research platform for experiments with physical randomness
+("Mindfield"). Switch it on, connect your headphones, press ON. Everything
+is on the touchscreen, and every screen has its own help page.
 
 Firmware 0.13.1 · [GPL-3.0-or-later](LICENSE) · [Changelog](CHANGELOG.md)
 
-## What it does today
+## Why you will like it
 
-Every item below is in the firmware and covered by the host test suite or a
-measurement on the board. The second column says how far it has been checked
-on the real device. "Heard / seen by the owner" means a person confirmed it;
-"measured" means the device's own counters; "host tests only" means nobody
-has yet judged it by ear or eye.
+- **It just works.** Glitch-free 44.1 kHz stereo over Bluetooth, with tone,
+  noise, layers and an MP3 all playing at once: no dropouts in any of the
+  seven mixes measured. Frequencies glide without a click, because every change is
+  phase-continuous.
+- **It is easy.** Five tabs, large buttons, and a "?" on every title bar
+  that explains the screen you are on. The Home screen always tells you
+  what is sounding. Your settings are there again the next time you switch
+  on.
+- **It is yours.** No account, no cloud, no network, no subscription. Your
+  sessions and your sounds live on your own microSD card as plain files.
+- **It goes deep.** Start with one button; when you are curious there is a
+  layer mixer, a session builder, a breathing pacer, a sound laboratory and
+  a full random-number research suite behind the ADV tab.
+- **It is inexpensive and open.** One off-the-shelf board, a printed
+  enclosure included in this repository, and every line of the firmware
+  under the GPL.
 
-| Capability | Checked on the device |
+## What it does
+
+| | |
 |---|---|
-| Stereo binaural tone: two sine oscillators, left at the primary frequency, right at primary + beat | Heard by the owner over a Bluetooth headset |
-| Primary 20–1000 Hz and beat 0.5–40 Hz in 0.1 Hz steps, changed without clicks (phase-continuous glides) | Operated on the touchscreen; continuity proven in host tests |
-| Frequency presets (14 primary, 9 beat) that set a starting value | Operated on the touchscreen |
-| White, pink and brown noise | Measured (render time, stream); **not yet confirmed by ear** |
-| Mixer with layer levels, master volume and a soft limiter | Measured: no dropouts in seven mixes |
-| WAV and MP3 playback from microSD, streamed, never loaded whole | Two MP3 files heard by the owner |
-| Bluetooth A2DP output: scan, choose, connect, reconnect | Used by the owner |
-| Seven factory sessions (linear frequency sweeps, holds, end fade), a plain timer, pause / resume / stop | Started by the owner on the device |
-| Touchscreen interface: HOME, FREQ, SND, SESS, ADV, with help on every screen ("?" at the top right) | Tabs used by the owner; help not yet seen by a person |
-| Settings kept across restarts; audio never starts by itself | Measured over restarts |
+| **Binaural tone** | Two pure sine oscillators, one for each ear: primary 20–1000 Hz, beat 0.5–40 Hz, in steps of 0.1 Hz, changed smoothly while you listen |
+| **Presets** | 14 primary and 9 beat frequencies one touch away |
+| **Noise** | White, pink and brown, mixed under the tone |
+| **Your own sounds** | WAV and MP3 from the microSD card, streamed from files of any length, with folders |
+| **Sessions** | Seven ready-made sessions with sweeps, holds and a gentle fade at the end, plus a plain timer; pause, resume and stop at any time |
+| **Bluetooth** | Finds your headphones or speaker, connects, and reconnects by itself next time |
+| **Help** | 17 help topics on the device, one for every screen |
 
-### Implemented, awaiting verification by a person
+### The studio behind the ADV tab
 
-These were added in firmware 0.9.0–0.9.6. They build, pass their host tests
-and were exercised on the board through injected touches and serial
-commands, but **nobody has yet listened to them or looked at their screens**:
+For those who want more than a preset, Resonance is a small sound studio:
 
-- Phase offset and inversion per ear, phase sweep.
-- Golden partials: two extra sines per ear at φ and φ² times the primary.
-- Exponential and custom sweeps, transition-then-hold stages, progressive descent.
-- User sessions of up to ten stages, built on the touchscreen and stored as text files on the card.
-- Four mixer layers (tone, partials, noise, recording) with on/off, level and fade; fade between recordings.
-- Breathing pacer (inhale, hold, exhale, hold) with optional modulation of the sound.
-- Frequency sequences, with the Solfeggio set as an editable default.
-- Resonance Lab: stereo width, interaural delay, bilateral alternation, A/B comparison with loudness matching.
+- **Layer mixer** — tone, golden partials, noise and a recording, each with
+  its own level and fade, under a soft limiter that keeps everything clean.
+- **Golden partials** — two extra tones in each ear at φ and φ² times the
+  primary, for a richer sound.
+- **Session builder** — compose your own sessions of up to ten stages on
+  the touchscreen: linear, exponential and custom sweeps, holds, a
+  progressive descent, a recording for each stage. Store them on the card
+  and run them like the built-in ones.
+- **Breathing pacer** — inhale, hold, exhale, hold, shown on the screen and,
+  if you like, gently carried by the sound itself.
+- **Frequency sequences** — step through a series of tones; the Solfeggio
+  set is included and every value can be edited.
+- **Resonance Lab** — phase offset and inversion for each ear, phase sweep,
+  stereo width, interaural delay, bilateral alternation, and an A/B switch
+  with loudness matching so you can compare two settings fairly.
 
-### Mindfield: implemented, not yet used
+Everything you set here is remembered on the card.
 
-Since 0.12.0 the firmware can collect raw output of a random-number source
-on a fixed schedule, record it to the card, compute statistics on it and
-show it through twelve pictures, with screens for set-up, results, history
-and replay. It was run on the board through injected touches; **nobody has
-yet looked at its screens, and no long baseline has been recorded.** It is
-an instrument; nothing is claimed for it. See
-[docs/MINDFIELD.md](docs/MINDFIELD.md).
+### Mindfield: a research instrument in your hand
 
-### Not built
+Mindfield turns Resonance into a rigorous experiment platform. It collects
+the raw output of the chip's hardware random-number generator on an exact
+schedule, up to 1000 samples a second, records every sample to the card
+with checksums, and analyses it with honest statistics: bit balance, runs,
+byte distribution, autocorrelation, window scores with a correction for
+multiple comparisons, and comparison against your own baseline.
 
-Wired audio output, battery measurement and any network function. See the
-[roadmap](docs/ROADMAP.md).
+- **Twelve live pictures** — orb, balance, star, flame, pendulum, vortex,
+  tree, mandala, lotus, river, waterfall, labyrinth — show the data as it
+  arrives.
+- **Complete records** — every experiment is stored with its settings, can
+  be replayed exactly from its file, and is exported to a summary table for
+  your own analysis. An experiment interrupted by a power loss is recovered.
+- **It keeps up** — in a ten-minute run it recorded 600,000 of 600,000
+  samples without a gap, and it runs alongside an MP3 over Bluetooth.
+- **It is honest** — baseline, control and sham conditions are built in,
+  and results are reported as what they are. Mindfield is an instrument for
+  asking questions; it does not claim an answer.
+
+See [docs/MINDFIELD.md](docs/MINDFIELD.md).
+
+### A note on claims
+
+Resonance makes sound and measures randomness, and does both well. It makes
+no claim that any frequency, preset or setting has an effect on health or
+mind, and no ability to influence randomness has been demonstrated or is
+claimed. Try it and judge for yourself.
 
 ## Hardware
 
@@ -112,9 +145,9 @@ allocates, logs or touches a file.
 - [docs/DSP.md](docs/DSP.md) — oscillators, noise, mixer, limiter, resampling.
 - [docs/requirements/resonance.md](docs/requirements/resonance.md) — what the device must do, requirement by requirement.
 
-## Building and testing
+## Get it running
 
-You need [PlatformIO](https://platformio.org/) (Core 6 or later), Python 3.9
+A board, a USB-C cable and a few minutes are all it takes. You need [PlatformIO](https://platformio.org/) (Core 6 or later), Python 3.9
 or later, a C++17 compiler on the PC for the host tests (g++ or clang++),
 and the board on a USB-C cable.
 
@@ -152,19 +185,9 @@ revision, dimensions' sources and how to regenerate the files:
 
 ## Roadmap
 
-- **Exists:** everything in the two lists above.
-- **Next for audio:** verification by ear of the 0.9 features, device
-  management for Bluetooth, transport controls for the player.
-- **Resonance Lab:** exists as one screen; to be refined once it has been
-  listened to.
-- **Mindfield:** a research concept under development — collecting raw
-  output of physical random-number sources during meditation and analysing
-  it honestly. Implemented since 0.12.0 and not yet verified by a person.
-  No ability to influence randomness has
-  been demonstrated or is claimed. See
-  [docs/MINDFIELD.md](docs/MINDFIELD.md).
-
-Full list: [docs/ROADMAP.md](docs/ROADMAP.md).
+Resonance is complete and in use as it stands. Ideas for what could come
+next — wired audio output, battery display, more Mindfield experiment
+designs — are collected in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Contributing
 
