@@ -11,3 +11,13 @@ a cycle apart, standing for the two ears. They are not photographs, not
 screenshots and not CAD renders. Renders of the enclosure, made from the
 OpenSCAD sources, are in `hardware/previews/`. There are no photographs of
 the device or screenshots in the repository yet.
+
+## screenshots/
+
+The device's screens at twice their size (480 x 640), read back from the
+display with `firmware/tools/screenshot.py` (firmware 0.13.2). Not
+photographs and not drawn by hand. To renew one, for example the FREQ tab:
+
+```bash
+python3 firmware/tools/screenshot.py assets/screenshots/frequency.png --scale 2 --tap 72 305
+```

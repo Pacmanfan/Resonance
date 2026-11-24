@@ -1006,6 +1006,28 @@ void runCommand(char* line) {
         if (sscanf(line + 4, "%d %d", &x, &y) == 2) screen().press(static_cast<int16_t>(x), static_cast<int16_t>(y));
     } else if (strcmp(line, "ui") == 0) {
         screen().describe(Serial);
+    } else if (strcmp(line, "shot") == 0) {
+        // The picture now on the panel, read back from it row by row, for
+        // firmware/tools/screenshot.py: "SHOT <row>" then runs of one colour
+        // as rrggbb or rrggbb*count. Development aid; the loop stands still
+        // for the few seconds it takes.
+        static uint8_t row[240 * 3];
+        gui::Display& d = lcd();
+        const int w = d.width() > 240 ? 240 : d.width();
+        Serial.printf("SHOT begin %d %d\n", w, static_cast<int>(d.height()));
+        for (int y = 0; y < d.height(); ++y) {
+            d.readRectRGB(0, y, w, 1, row);
+            Serial.printf("SHOT %d", y);
+            for (int x = 0; x < w;) {
+                int run = 1;
+                while (x + run < w && memcmp(row + 3 * x, row + 3 * (x + run), 3) == 0) ++run;
+                if (run > 1) Serial.printf(" %02x%02x%02x*%d", row[3 * x], row[3 * x + 1], row[3 * x + 2], run);
+                else Serial.printf(" %02x%02x%02x", row[3 * x], row[3 * x + 1], row[3 * x + 2]);
+                x += run;
+            }
+            Serial.println();
+        }
+        Serial.println("SHOT end");
     } else if (strcmp(line, "breath") == 0) {
         static const char* const names[] = {"off", "inhale", "hold in", "exhale", "hold out"};
         const rc::BreathPattern& p = breath.pattern();

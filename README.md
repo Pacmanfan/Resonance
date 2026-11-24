@@ -19,7 +19,7 @@ sound, and a research platform for experiments with physical randomness
 ("Mindfield"). Switch it on, connect your headphones, press ON. Everything
 is on the touchscreen, and every screen has its own help page.
 
-Firmware 0.13.1 · [GPL-3.0-or-later](LICENSE) · [Changelog](CHANGELOG.md)
+Firmware 0.13.2 · [GPL-3.0-or-later](LICENSE) · [Changelog](CHANGELOG.md)
 
 ## Why you will like it
 
@@ -39,6 +39,25 @@ Firmware 0.13.1 · [GPL-3.0-or-later](LICENSE) · [Changelog](CHANGELOG.md)
 - **It is inexpensive and open.** One off-the-shelf board, a printed
   enclosure included in this repository, and every line of the firmware
   under the GPL.
+
+## The screens
+
+<p align="center">
+<img src="assets/screenshots/home.png" alt="Home: beat rings, both frequencies, on/off, volume, Bluetooth" width="23%">
+<img src="assets/screenshots/frequency.png" alt="Frequency Studio: primary and beat frequency, noise" width="23%">
+<img src="assets/screenshots/sound.png" alt="Sound Library: folders of sound files on the card" width="23%">
+<img src="assets/screenshots/sessions.png" alt="Sessions: program, length, fade, start" width="23%">
+</p>
+<p align="center">
+<img src="assets/screenshots/adv.png" alt="ADV tab: brightness, Advanced, Mindfield" width="23%">
+<img src="assets/screenshots/advanced.png" alt="Advanced: layer mixer, breathing, session builder, sequence, Resonance Lab" width="23%">
+<img src="assets/screenshots/mindfield.png" alt="Mindfield: source, set-up, start, result, history" width="23%">
+<img src="assets/screenshots/help.png" alt="Help page for the Home screen" width="23%">
+</p>
+
+Top row: HOME, FREQ, SND, SESS. Bottom row: ADV, the Advanced menu,
+Mindfield, and a help page. These are the device's own pixels, read back
+from the display.
 
 ## What it does
 

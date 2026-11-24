@@ -96,6 +96,7 @@ wired.
 | `volume <n>` | Set the master volume in percent |
 | `audio on` / `audio off` | Start or stop the tone |
 | `tap <x> <y>` / `ui` | Act as if the screen had been touched there / describe the screen now shown |
+| `shot` | Send the picture on the display, read back from the panel, for `tools/screenshot.py <file.png> [--tap X Y ...]`. Works only on a board whose panel answers on its data-out line (`REPORT panel RDDST` not 0) |
 
 The advanced functions have commands too:
 

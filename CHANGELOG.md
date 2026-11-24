@@ -8,6 +8,12 @@ Versions before 0.10.0 were never published as releases.
 "Not verified by a person" means: built, host-tested and exercised on the
 board through serial commands, but not yet judged by ear or eye.
 
+## 0.13.2 — 2026-11-23
+
+- Development command `shot` and `firmware/tools/screenshot.py`: the
+  picture on the display, read back from the panel, as a PNG. Screenshots
+  of the main screens in the README.
+
 ## 0.13.1 — 2026-11-23
 
 - The "?" in the header is drawn as a button.
